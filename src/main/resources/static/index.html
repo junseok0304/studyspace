@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StudySpace</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main class="shell">
+  <section class="hero">
+    <p class="eyebrow">STUDYSPACE</p>
+    <h1>나만의 학습 공간</h1>
+    <p class="muted">강의노트와 복습을 한곳에서 관리하세요.</p>
+  </section>
+  <section id="auth-card" class="card">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-mode="login">로그인</button>
+      <button class="tab" data-mode="signup">회원가입</button>
+    </div>
+    <form id="auth-form">
+      <label>이메일<input id="email" type="email" autocomplete="email" required></label>
+      <label id="nickname-label" class="hidden">닉네임<input id="nickname" maxlength="50" autocomplete="nickname"></label>
+      <label>비밀번호<input id="password" type="password" minlength="8" autocomplete="current-password" required></label>
+      <button class="primary" type="submit" id="submit-button">로그인</button>
+    </form>
+    <a class="kakao" href="/api/auth/kakao">카카오로 로그인</a>
+    <p id="message" class="message" role="status"></p>
+  </section>
+  <section id="account-card" class="card hidden">
+    <p class="eyebrow">ACCOUNT</p>
+    <h2 id="welcome"></h2>
+    <p id="account-detail" class="muted"></p>
+    <button class="secondary" id="logout-button">로그아웃</button>
+  </section>
+</main>
+<script src="/app.js" defer></script>
+</body>
+</html>

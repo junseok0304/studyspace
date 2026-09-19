@@ -1,0 +1,39 @@
+server:
+  port: ${STUDYSPACE_PORT:8091}
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${STUDYSPACE_COOKIE_SECURE:false}
+
+spring:
+  datasource:
+    url: ${STUDYSPACE_DB_URL:jdbc:h2:file:./runtime/studyspace;MODE=MySQL;AUTO_SERVER=TRUE}
+    username: ${STUDYSPACE_DB_USERNAME:sa}
+    password: ${STUDYSPACE_DB_PASSWORD:}
+    driver-class-name: ${STUDYSPACE_DB_DRIVER:org.h2.Driver}
+  sql:
+    init:
+      mode: always
+  h2:
+    console:
+      enabled: false
+
+studyspace:
+  auth:
+    require-email-verification: ${STUDYSPACE_REQUIRE_EMAIL_VERIFICATION:false}
+  features:
+    stt:
+      enabled: false
+  kakao:
+    enabled: ${STUDYSPACE_KAKAO_ENABLED:false}
+    rest-api-key: ${KAKAO_REST_API_KEY:}
+    javascript-key: ${KAKAO_JAVASCRIPT_KEY:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8091/api/auth/kakao/callback}
+    public-base-url: ${STUDYSPACE_PUBLIC_BASE_URL:http://localhost:8091}
+
+logging:
+  level:
+    org.springframework.security: WARN
