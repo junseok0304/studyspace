@@ -99,9 +99,39 @@ public class KakaoController {
             throw new AuthException("카카오 로그인 상태 검증에 실패했습니다.", 400);
         }
         if (code == null || code.isBlank()) throw new AuthException("카카오 인가 코드가 없습니다.", 400);
-        UserAccount user = authService.loginWithKakao(kakaoClient.exchangeAndGetUser(code));
+        var kakaoUser = kakaoClient.exchangeAndGetUser(code);
+        var existing = authService.existingKakao(kakaoUser);
+        if (existing.isEmpty()) {
+            session.setAttribute("kakao.pending", kakaoUser);
+            session.setAttribute("kakao.pending.at", System.currentTimeMillis());
+            return new RedirectView(properties.publicBaseUrl() + "/signup.html?social=kakao");
+        }
+        UserAccount user = existing.get();
         sessionAuthenticationService.save(sessionAuthenticationService.forUser(user), request, response);
         return new RedirectView(properties.publicBaseUrl() + "/?kakao=success");
+    }
+
+    public record Consent(boolean termsAccepted, boolean privacyAccepted) {}
+
+    @org.springframework.web.bind.annotation.PostMapping("/complete")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public AuthModels.AuthResponse complete(@org.springframework.web.bind.annotation.RequestBody Consent consent,
+                                            HttpServletRequest request, HttpServletResponse response) {
+        authService.requireConsent(consent.termsAccepted(), consent.privacyAccepted());
+        var session = request.getSession(false);
+        if (session == null) throw new AuthException("카카오 인증을 다시 시작해 주세요.", 400);
+        synchronized (session) {
+            Object pending = session.getAttribute("kakao.pending");
+            Object at = session.getAttribute("kakao.pending.at");
+            if (!(pending instanceof KakaoClient.KakaoUser user) || !(at instanceof Long time)
+                    || System.currentTimeMillis() - time > 600000L)
+                throw new AuthException("카카오 인증을 다시 시작해 주세요.", 400);
+            var account = authService.loginWithKakao(user);
+            session.removeAttribute("kakao.pending");
+            session.removeAttribute("kakao.pending.at");
+            sessionAuthenticationService.save(sessionAuthenticationService.forUser(account), request, response);
+            return new AuthModels.AuthResponse(account.response());
+        }
     }
 
     private String randomState() {

@@ -33,6 +33,7 @@ public class AuthService {
 
     @Transactional
     public AuthModels.SignupResponse signup(AuthModels.SignupRequest request, String baseUrl) {
+        requireConsent(request.termsAccepted(), request.privacyAccepted());
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         String nickname = request.nickname().trim();
         if (users.findByEmail(email).isPresent()) {
@@ -40,6 +41,7 @@ public class AuthService {
         }
         try {
             UserAccount user = users.create(email, passwordEncoder.encode(request.password()), nickname, !requireEmailVerification);
+            users.saveConsent(user.id());
             String verificationUrl = null;
             if (requireEmailVerification) {
                 String rawToken = randomToken();
@@ -80,8 +82,17 @@ public class AuthService {
                     UserAccount created = users.create(email, passwordEncoder.encode(UUID.randomUUID().toString()),
                             kakaoUser.nickname(), true);
                     users.addProvider(created.id(), "KAKAO", kakaoUser.providerId(), kakaoUser.email());
+                    users.saveConsent(created.id());
                     return created;
                 });
+    }
+
+    public java.util.Optional<UserAccount> existingKakao(KakaoClient.KakaoUser user) {
+        return users.findByProvider("KAKAO", user.providerId());
+    }
+
+    public void requireConsent(boolean terms, boolean privacy) {
+        if (!terms || !privacy) throw new AuthException("필수 약관에 모두 동의해 주세요.", 400);
     }
 
     public boolean verifyEmail(String rawToken) {

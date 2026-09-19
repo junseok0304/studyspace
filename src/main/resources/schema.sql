@@ -8,6 +8,14 @@ create table if not exists users (
     created_at timestamp not null default current_timestamp
 );
 
+create table if not exists user_consents (
+    user_id bigint primary key,
+    terms_version varchar(40) not null,
+    privacy_version varchar(40) not null,
+    accepted_at timestamp not null default current_timestamp,
+    foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists courses (
     id varchar(36) primary key,
     user_id bigint not null,

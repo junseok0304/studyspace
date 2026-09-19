@@ -12,7 +12,9 @@ public final class AuthModels {
     public record SignupRequest(
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 8, max = 72) String password,
-            @NotBlank @Size(min = 1, max = 50) String nickname
+            @NotBlank @Size(min = 1, max = 50) String nickname,
+            boolean termsAccepted,
+            boolean privacyAccepted
     ) {}
 
     public record LoginRequest(
