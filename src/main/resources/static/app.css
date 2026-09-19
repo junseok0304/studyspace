@@ -71,4 +71,18 @@ fieldset.consents { border: 0; border-top: 1px solid #e7eaf0; padding: 18px 0 0;
 .legal { max-width: 720px; margin: 60px auto; padding: 28px; line-height: 1.9; }
 .legal h1 { font-size: 30px; }.legal h2 { margin-top: 28px; font-size: 19px; }
 :focus-visible { outline: 2px solid #2878d4; outline-offset: 4px; }
+.profile { max-width: 760px; padding: 32px 20px 64px; margin: auto; }
+.profile header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 42px; font-size: 13px; }
+.profile > .card { margin-top: 24px; }
+.profile form { margin-top: 22px; }
+.profile .secondary { margin-top: 18px; }
+.semester-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+select { padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font: inherit; }
+.schedule-row { padding: 12px 0; border-bottom: 1px solid #e7eaf0; line-height: 1.8; }
+.schedule-row span { font-size: 13px; color: #687788; }
+.profile-link { display: inline-block; margin-left: 16px; font-size: 13px; }
+dialog { width: min(400px,calc(100% - 40px)); padding: 30px; border: 1px solid #dce3ed; border-radius: 12px; color: #222e3d; }
+dialog::backdrop { background: #17283c55; }
+dialog h2 { font-size: 22px; } dialog p { font-size: 14px; line-height: 1.8; }
+dialog a { display: block; text-align: center; text-decoration: none; margin: 24px 0 10px; }
 @media(max-width:850px) { .shell:not(.workspace-shell) { max-width: 460px; display: block; width: calc(100% - 32px); padding: 32px 0; } .shell:not(.workspace-shell) .hero { margin-bottom: 32px; } .shell:not(.workspace-shell) h1 { font-size: 34px; margin: 16px 0; } .brand-logo { width: 56px; height: 56px; margin-bottom: 20px; } .shell:not(.workspace-shell) > .card { padding: 24px; } }

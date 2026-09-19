@@ -35,6 +35,7 @@
     <h2 id="welcome"></h2>
     <p id="account-detail" class="muted"></p>
     <button class="secondary" id="logout-button">로그아웃</button>
+    <a class="profile-link" href="/mypage.html">마이페이지</a>
   </section>
 </main>
 <section id="study" class="study hidden" aria-label="학습 공간">
@@ -64,5 +65,12 @@
   </section>
 </section>
 <script src="/app.js" defer></script>
+<dialog id="school-prompt" aria-labelledby="school-prompt-title">
+  <p class="eyebrow">CONNECT YOUR CLASSES</p>
+  <h2 id="school-prompt-title">이번 학기, 한 번에 정리해요.</h2>
+  <p>학교 계정을 연결하면 시간표를 가져와<br>과목별 공부를 시작할 수 있어요.</p>
+  <a class="primary" href="/mypage.html">LMS 연동하러 가기</a>
+  <form method="dialog"><button class="secondary">나중에</button></form>
+</dialog>
 </body>
 </html>

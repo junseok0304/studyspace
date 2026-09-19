@@ -41,6 +41,9 @@ function showAccount(user) {
   $('#welcome').textContent = `${user.nickname}님, 환영합니다.`;
   $('#account-detail').textContent = `${user.email} · ${user.emailVerified ? '이메일 인증 완료' : '이메일 인증 필요'}`;
   import('/study.js').then(module => module.start(request)).catch(() => message('학습 공간을 열지 못했습니다. 새로고침해 주세요.'));
+  fetch('/api/school/prompt').then(r => r.ok ? r.json() : {}).then(data => {
+    if (data.show && !$('#school-prompt').open) $('#school-prompt').showModal();
+  }).catch(() => {});
 }
 
 async function loadSession() {

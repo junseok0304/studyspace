@@ -1,0 +1,21 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>마이페이지 · StudySpace</title><link rel="stylesheet" href="/app.css"><link rel="icon" href="/assets/studyspace-logo.png"></head><body>
+<main class="profile">
+  <header><a href="/"><img src="/assets/studyspace-logo.png" alt="StudySpace 홈" width="48" height="48"></a><a href="/">학습 공간으로 돌아가기</a></header>
+  <p class="eyebrow">MY SPACE</p><h1>마이페이지</h1><p class="muted">이번 학기의 수업을 내 공간에 연결하세요.</p>
+  <section class="card"><h2>학교 계정 연동</h2><p class="muted">성공회대학교 LMS · 시간표는 학교 수강내역과 종합정보시스템에서 가져옵니다.</p>
+    <p id="connection-state" role="status">연동 상태 확인 중</p>
+    <form id="school-form">
+      <label>LMS 아이디<input id="school-id" required maxlength="80" autocomplete="off"></label>
+      <label>LMS 비밀번호<input id="school-password" type="password" required maxlength="200" autocomplete="off"></label>
+      <label class="check-row"><input type="checkbox" id="store-consent" required><span>시간표를 다시 불러올 수 있도록 학교 로그인 정보를 저장하는 데 동의합니다. 연동 해제 시 삭제됩니다.</span></label>
+      <button class="primary" id="register-school">로그인 확인하고 등록</button>
+    </form>
+    <button class="secondary" id="disconnect" hidden>연동 해제 · 저장 정보 삭제</button>
+  </section>
+  <section class="card"><h2>시간표 동기화</h2><p class="muted">저장된 계정으로 다시 불러옵니다. 수강 목록에서 사라진 과목과 기존 노트도 유지됩니다.</p>
+    <form id="sync-form"><div class="semester-row"><label>연도<input id="sync-year" type="number" min="2000" max="2100" required></label><label>학기<select id="sync-semester"><option value="1">1학기</option><option value="2">2학기</option><option value="3">여름학기</option><option value="4">겨울학기</option></select></label></div><button class="primary" id="sync" disabled>동기화 · 시간표 다시 불러오기</button></form>
+    <div id="preview"></div><button class="primary" id="confirm-import" hidden>확인하고 과목에 반영</button>
+    <h3>가져온 과목</h3><div id="saved-courses"></div>
+  </section>
+  <p id="profile-message" role="status" aria-live="polite"></p>
+</main><script src="/mypage.js" defer></script></body></html>
