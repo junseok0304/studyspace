@@ -58,6 +58,11 @@ public class UserAccountRepository {
                 userId, provider, providerUserId, providerEmail);
     }
 
+    public void saveConsent(long userId) {
+        jdbc.update("insert into user_consents(user_id, terms_version, privacy_version) values (?, ?, ?)",
+                userId, "2026-09-19-draft", "2026-09-19-draft");
+    }
+
     public void saveVerificationToken(long userId, String token, Instant expiresAt) {
         jdbc.update("insert into email_verification_tokens(user_id, token_hash, expires_at) values (?, ?, ?)",
                 userId, token, expiresAt);

@@ -20,7 +20,7 @@ class StudySpaceAuthTests {
 
     @Test
     void signupLoginMeAndLogout() throws Exception {
-        String signup = "{\"email\":\"student@example.com\",\"password\":\"password123\",\"nickname\":\"학생\"}";
+        String signup = "{\"email\":\"student@example.com\",\"password\":\"password123\",\"nickname\":\"학생\",\"termsAccepted\":true,\"privacyAccepted\":true}";
         mvc.perform(post("/api/auth/signup")
                         .with(SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(signup))
@@ -50,7 +50,7 @@ class StudySpaceAuthTests {
 
     @Test
     void duplicateEmailAndWrongPasswordAreRejected() throws Exception {
-        String signup = "{\"email\":\"duplicate@example.com\",\"password\":\"password123\",\"nickname\":\"학생\"}";
+        String signup = "{\"email\":\"duplicate@example.com\",\"password\":\"password123\",\"nickname\":\"학생\",\"termsAccepted\":true,\"privacyAccepted\":true}";
         mvc.perform(post("/api/auth/signup").with(SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(signup))
                 .andExpect(status().isCreated());
@@ -68,5 +68,20 @@ class StudySpaceAuthTests {
         mvc.perform(get("/api/auth/kakao"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.error").value("카카오 로그인이 아직 설정되지 않았습니다."));
+    }
+
+    @Test
+    void signupRequiresBothAgreements() throws Exception {
+        mvc.perform(post("/api/auth/signup").with(SecurityMockMvcRequestPostProcessors.csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"no-consent@example.com\",\"password\":\"password123\",\"nickname\":\"학생\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/auth/kakao/complete").with(SecurityMockMvcRequestPostProcessors.csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"termsAccepted\":true,\"privacyAccepted\":true}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/signup.html")).andExpect(status().isOk());
+        mvc.perform(get("/terms.html")).andExpect(status().isOk());
+        mvc.perform(get("/privacy.html")).andExpect(status().isOk());
     }
 }

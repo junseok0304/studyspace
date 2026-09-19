@@ -53,7 +53,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/index.html", "/app.css", "/app.js", "/favicon.ico", "/assets/**",
                                 "/api/auth/signup", "/api/auth/login", "/api/auth/verify-email", "/api/auth/csrf",
-                                "/api/auth/kakao", "/api/auth/kakao/callback",
+                                "/api/auth/kakao", "/api/auth/kakao/callback", "/api/auth/kakao/complete",
+                                "/signup.html", "/signup.js", "/terms.html", "/privacy.html",
                                 "/error").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form.disable())

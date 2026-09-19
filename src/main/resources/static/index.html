@@ -11,22 +11,23 @@
 <main class="shell">
   <section class="hero">
     <img class="brand-logo" src="/assets/studyspace-logo.png" alt="StudySpace 로고" width="80" height="80">
-    <p class="eyebrow">STUDYSPACE</p>
-    <h1>나만의 학습 공간</h1>
-    <p class="muted">강의노트와 복습을 한곳에서 관리하세요.</p>
+    <p class="eyebrow">STUDYSPACE / YOUR STUDY DESK</p>
+    <h1>오늘 배운 것,<br>내일의 내 것으로.</h1>
+    <p class="muted">흩어진 강의노트를 한곳에.<br>내 속도로 쌓아가는 공부를 시작하세요.</p>
   </section>
   <section id="auth-card" class="card">
-    <div class="tabs" role="tablist">
-      <button class="tab active" data-mode="login">로그인</button>
-      <button class="tab" data-mode="signup">회원가입</button>
-    </div>
+    <p class="eyebrow">WELCOME BACK</p>
+    <h2>다시 만나 반가워요.</h2>
+    <p class="auth-intro">이어서 공부할 준비가 되었나요?</p>
     <form id="auth-form">
       <label>이메일<input id="email" type="email" autocomplete="email" required></label>
       <label id="nickname-label" class="hidden">닉네임<input id="nickname" maxlength="50" autocomplete="nickname"></label>
       <label>비밀번호<input id="password" type="password" minlength="8" autocomplete="current-password" required></label>
       <button class="primary" type="submit" id="submit-button">로그인</button>
     </form>
-    <a class="kakao" href="/api/auth/kakao">카카오로 로그인</a>
+    <div class="divider">또는</div>
+    <a class="kakao" href="/api/auth/kakao">카카오로 시작하기</a>
+    <p class="auth-foot">처음 오셨나요? <a href="/signup.html">이메일로 회원가입</a></p>
     <p id="message" class="message" role="status"></p>
   </section>
   <section id="account-card" class="card hidden">

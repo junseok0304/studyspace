@@ -75,6 +75,7 @@ $('#logout-button').addEventListener('click', async () => {
 });
 
 loadSession();
+if (new URLSearchParams(location.search).get('registered') === 'true') message('가입되었습니다. 이메일로 로그인해 주세요.', true);
 
 const kakaoResult = new URLSearchParams(window.location.search).get('kakao');
 if (kakaoResult === 'success') message('카카오 로그인에 성공했습니다.', true);
