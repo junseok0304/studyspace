@@ -51,7 +51,7 @@ public class SecurityConfig {
                         .sessionFixation(fixation -> fixation.changeSessionId())
                         .maximumSessions(5))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/app.css", "/app.js", "/favicon.ico",
+                        .requestMatchers("/", "/index.html", "/app.css", "/app.js", "/favicon.ico", "/assets/**",
                                 "/api/auth/signup", "/api/auth/login", "/api/auth/verify-email", "/api/auth/csrf",
                                 "/api/auth/kakao", "/api/auth/kakao/callback",
                                 "/error").permitAll()
