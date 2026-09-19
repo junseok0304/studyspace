@@ -35,10 +35,12 @@ async function request(path, options = {}) {
 }
 
 function showAccount(user) {
+  document.querySelector('.shell').classList.add('workspace-shell');
   $('#auth-card').classList.add('hidden');
   $('#account-card').classList.remove('hidden');
   $('#welcome').textContent = `${user.nickname}님, 환영합니다.`;
   $('#account-detail').textContent = `${user.email} · ${user.emailVerified ? '이메일 인증 완료' : '이메일 인증 필요'}`;
+  import('/study.js').then(module => module.start(request)).catch(() => message('학습 공간을 열지 못했습니다. 새로고침해 주세요.'));
 }
 
 async function loadSession() {
@@ -54,11 +56,11 @@ $('#auth-form').addEventListener('submit', async (event) => {
   if (state.mode === 'signup') payload.nickname = $('#nickname').value;
   try {
     const result = await request(`/api/auth/${state.mode}`, { method: 'POST', body: JSON.stringify(payload) });
-    if (state.mode === 'signup' && result.verificationRequired) {
-      message('가입되었습니다. 이메일 인증 후 로그인해 주세요.', true);
+    if (state.mode === 'signup') {
       if (result.developmentVerificationUrl) console.info('개발용 이메일 인증 링크:', result.developmentVerificationUrl);
       setMode('login');
       $('#email').value = payload.email;
+      message(result.verificationRequired ? '이메일 인증 후 로그인해 주세요.' : '가입되었습니다. 로그인해 주세요.', true);
     } else {
       showAccount(result.user);
     }

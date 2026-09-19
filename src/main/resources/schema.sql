@@ -8,6 +8,26 @@ create table if not exists users (
     created_at timestamp not null default current_timestamp
 );
 
+create table if not exists courses (
+    id varchar(36) primary key,
+    user_id bigint not null,
+    semester varchar(40) not null,
+    name varchar(120) not null,
+    foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists notes (
+    id varchar(36) primary key,
+    course_id varchar(36) not null,
+    user_id bigint not null,
+    title varchar(200) not null,
+    body text not null,
+    version bigint not null default 0,
+    updated_at timestamp not null default current_timestamp,
+    foreign key (course_id) references courses(id) on delete cascade,
+    foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists email_verification_tokens (
     id bigint auto_increment primary key,
     user_id bigint not null,
