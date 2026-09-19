@@ -1,12 +1,11 @@
 const state = { mode: 'login' };
 const $ = (selector) => document.querySelector(selector);
 
-function csrfToken() {
-  return document.cookie.split('; ').find((row) => row.startsWith('XSRF-TOKEN='))?.split('=')[1];
-}
-
 async function ensureCsrf() {
-  await fetch('/api/auth/csrf', { credentials: 'same-origin' });
+  const response = await fetch('/api/auth/csrf', { credentials: 'same-origin' });
+  if (!response.ok) throw new Error('보안 토큰을 발급받지 못했습니다.');
+  const body = await response.json();
+  return body.token;
 }
 
 function message(text, success = false) {
@@ -26,10 +25,9 @@ function setMode(mode) {
 }
 
 async function request(path, options = {}) {
-  await ensureCsrf();
+  const csrf = await ensureCsrf();
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = csrfToken();
-  if (token) headers['X-XSRF-TOKEN'] = decodeURIComponent(token);
+  if (csrf) headers['X-XSRF-TOKEN'] = csrf;
   const response = await fetch(path, { ...options, headers, credentials: 'same-origin' });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.error || '요청을 처리하지 못했습니다.');

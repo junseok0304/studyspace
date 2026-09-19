@@ -29,7 +29,7 @@ gradle test
 
 ## 인증 API
 
-모든 변경 요청은 먼저 `GET /api/auth/csrf`를 호출해 `XSRF-TOKEN` 쿠키를 받고, 쿠키 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다. 브라우저 화면은 이 과정을 자동으로 처리합니다.
+모든 변경 요청은 먼저 `GET /api/auth/csrf`를 호출해 응답 JSON의 `token` 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다. 브라우저 화면은 이 과정을 자동으로 처리합니다. `XSRF-TOKEN` 쿠키는 서버가 관리하는 원본 토큰이므로 헤더에 직접 사용하지 않습니다.
 
 ```text
 POST /api/auth/signup       { email, password, nickname }
