@@ -36,6 +36,32 @@
     <button class="secondary" id="logout-button">로그아웃</button>
   </section>
 </main>
+<section id="study" class="study hidden" aria-label="학습 공간">
+  <aside class="card">
+    <h2>내 과목</h2>
+    <form id="course-form">
+      <label>학기<input id="semester" placeholder="2026년 2학기" maxlength="40" required></label>
+      <label>과목명<input id="course-name" maxlength="120" required></label>
+      <button class="primary">과목 추가</button>
+    </form>
+    <div id="courses"></div>
+  </aside>
+  <section class="card">
+    <h2 id="course-heading">과목을 선택하세요</h2>
+    <button id="new-note" class="secondary" disabled>새 강의노트</button>
+    <div id="notes"></div>
+  </section>
+  <section class="card">
+    <h2>강의노트</h2>
+    <form id="note-form" class="hidden">
+      <label>제목<input id="note-title" maxlength="200" required></label>
+      <label>Markdown 본문<textarea id="note-body" rows="20" maxlength="60000"></textarea></label>
+      <button id="save-note" class="primary">저장</button>
+      <button id="export-note" class="secondary" type="button">Markdown 다운로드</button>
+    </form>
+    <p id="study-message" role="status">과목을 추가하고 첫 노트를 작성해 보세요.</p>
+  </section>
+</section>
 <script src="/app.js" defer></script>
 </body>
 </html>
