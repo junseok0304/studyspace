@@ -9,6 +9,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.net.URI;
 
 @Controller
 @RequestMapping("/api/auth/kakao")
@@ -33,10 +34,50 @@ public class KakaoController {
 
     @GetMapping
     public RedirectView start(HttpServletRequest request) {
+        RedirectView canonicalLocalHost = canonicalLocalHostRedirect(request);
+        if (canonicalLocalHost != null) return canonicalLocalHost;
+
         String state = randomState();
-        request.getSession(true).setAttribute(STATE_SESSION_KEY, state);
-        request.getSession().setAttribute(STATE_CREATED_SESSION_KEY, System.currentTimeMillis());
+        var session = request.getSession(true);
+        session.setAttribute(STATE_SESSION_KEY, state);
+        session.setAttribute(STATE_CREATED_SESSION_KEY, System.currentTimeMillis());
         return new RedirectView(kakaoClient.authorizationUrl(state));
+    }
+
+    /**
+     * The configured local redirect URI is registered with Kakao using one
+     * hostname (normally localhost). Browsers treat localhost and 127.0.0.1
+     * as different cookie hosts, so normalize the OAuth start request before
+     * creating the session-bound state value.
+     */
+    private RedirectView canonicalLocalHostRedirect(HttpServletRequest request) {
+        if (!isLoopback(request.getServerName())) return null;
+        if (properties.redirectUri() == null || properties.redirectUri().isBlank()) return null;
+        URI configured;
+        try {
+            configured = URI.create(properties.redirectUri());
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+        String configuredHost = configured.getHost();
+        if (!isLoopback(configuredHost)
+                || configuredHost.equalsIgnoreCase(request.getServerName())) return null;
+
+        int port = configured.getPort() > 0 ? configured.getPort() : request.getServerPort();
+        String target = new StringBuilder()
+                .append(configured.getScheme()).append("://")
+                .append(configuredHost)
+                .append(port > 0 ? ":" + port : "")
+                .append(request.getRequestURI())
+                .toString();
+        return new RedirectView(target);
+    }
+
+    private boolean isLoopback(String host) {
+        return "localhost".equalsIgnoreCase(host)
+                || "127.0.0.1".equals(host)
+                || "[::1]".equals(host)
+                || "::1".equals(host);
     }
 
     @GetMapping("/callback")

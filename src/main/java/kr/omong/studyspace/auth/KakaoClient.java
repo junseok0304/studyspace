@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -50,12 +51,12 @@ public class KakaoClient {
         form.add("code", code);
         if (hasText(properties.clientSecret())) form.add("client_secret", properties.clientSecret());
 
-        String tokenBody = restClient.post().uri(TOKEN_URL)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .body(String.class);
         try {
+            String tokenBody = restClient.post().uri(TOKEN_URL)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .body(String.class);
             JsonNode token = objectMapper.readTree(tokenBody);
             String accessToken = Optional.ofNullable(token.get("access_token"))
                     .map(JsonNode::asText).filter(this::hasText)
@@ -76,6 +77,8 @@ public class KakaoClient {
             return new KakaoUser(Long.toString(providerId), email, nickname);
         } catch (AuthException e) {
             throw e;
+        } catch (RestClientException e) {
+            throw new AuthException("카카오 인증 서버와 통신하지 못했습니다.", 502);
         } catch (Exception e) {
             throw new AuthException("카카오 사용자 응답을 해석하지 못했습니다.", 502);
         }
