@@ -13,6 +13,14 @@ gradle bootRun
 
 브라우저에서 `http://localhost:8091`을 엽니다. 기본 데이터베이스는 프로젝트의 `runtime/studyspace`에 생성되는 H2 파일 DB입니다. 서버를 다시 시작해도 가입한 계정이 유지됩니다.
 
+카카오 키처럼 로컬 비밀값을 사용할 때는 `.env.example`을 복사해 `.env`를 만들고 값을 채운 다음 제공된 실행 스크립트를 사용하세요. `.env`는 Git에 올라가지 않습니다.
+
+```bash
+cp .env.example .env
+# .env에 실제 로컬 값을 입력
+./scripts/run-local.sh
+```
+
 테스트:
 
 ```bash
