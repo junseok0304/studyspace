@@ -8,6 +8,15 @@ create table if not exists users (
     created_at timestamp not null default current_timestamp
 );
 
+create table if not exists school_links (
+    user_id bigint primary key,
+    credentials text not null,
+    linked boolean not null default false,
+    preview text,
+    imported_at timestamp,
+    foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists user_consents (
     user_id bigint primary key,
     terms_version varchar(40) not null,
@@ -34,6 +43,15 @@ create table if not exists notes (
     updated_at timestamp not null default current_timestamp,
     foreign key (course_id) references courses(id) on delete cascade,
     foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists school_courses (
+    user_id bigint not null,
+    external_id varchar(200) not null,
+    course_id varchar(36) not null,
+    schedule text not null,
+    primary key (user_id, external_id),
+    foreign key (course_id) references courses(id) on delete cascade
 );
 
 create table if not exists email_verification_tokens (
