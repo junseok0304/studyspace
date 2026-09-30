@@ -103,11 +103,11 @@ export function mountDashboard({request, byId, getCourse, selectCourse, button, 
       const max = Math.max(1, ...data.days.map(day => day.count));
       el('activity-chart').replaceChildren(...data.days.map(day => {
         const item = document.createElement('div'); item.className = 'bar-column';
-        const count = document.createElement('span'); count.textContent = day.count;
+        const count = document.createElement('span'); count.textContent = `${day.count}개`;
         const track = document.createElement('div'); track.className = 'bar-track'; track.setAttribute('aria-hidden', 'true');
         const fill = document.createElement('i'); fill.className = 'bar-fill'; fill.style.height = `${day.count / max * 100}%`; track.append(fill);
         const label = document.createElement('span'); label.textContent = day.date.slice(5).replace('-', '/');
-        item.setAttribute('aria-label', `${day.date} · 노트 ${day.count}개 열람`); item.append(count, track, label); return item;
+        item.setAttribute('aria-label', `${day.date} · 열어 본 노트 ${day.count}개 (노트별 하루 1회 집계)`); item.title = `${day.date}: 노트 ${day.count}개 열람`; item.append(count, track, label); return item;
       }));
       el('recent-notes').replaceChildren(...data.recent.map(note => {
         const open = button('', () => selectCourse(courses.find(course => course.id === note.courseId), note.id)); open.className = 'dashboard-link-row';
