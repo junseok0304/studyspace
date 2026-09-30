@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -23,13 +24,16 @@ public class AuthController {
     private final AuthService authService;
     private final AuthenticationManager authenticationManager;
     private final SessionAuthenticationService sessionAuthenticationService;
+    private final String publicBaseUrl;
 
     public AuthController(AuthService authService,
                           AuthenticationManager authenticationManager,
-                          SessionAuthenticationService sessionAuthenticationService) {
+                          SessionAuthenticationService sessionAuthenticationService,
+                          @Value("${studyspace.auth.public-base-url:http://localhost:8091}") String publicBaseUrl) {
         this.authService = authService;
         this.authenticationManager = authenticationManager;
         this.sessionAuthenticationService = sessionAuthenticationService;
+        this.publicBaseUrl = publicBaseUrl.replaceAll("/$", "");
     }
 
     @PostMapping("/signup")
@@ -66,10 +70,8 @@ public class AuthController {
 
     @PostMapping("/password-reset/request")
     public AuthModels.PasswordResetResponse requestPasswordReset(
-            @Valid @RequestBody AuthModels.PasswordResetRequest request,
-            HttpServletRequest httpRequest) {
-        String baseUrl = httpRequest.getRequestURL().toString().replace("/api/auth/password-reset/request", "");
-        return authService.requestPasswordReset(request, baseUrl);
+            @Valid @RequestBody AuthModels.PasswordResetRequest request) {
+        return authService.requestPasswordReset(request, publicBaseUrl);
     }
 
     @PostMapping("/password-reset/confirm")

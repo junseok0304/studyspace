@@ -22,16 +22,19 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final boolean requireEmailVerification;
     private final boolean exposeDevelopmentLinks;
+    private final PasswordResetMailer resetMailer;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserAccountRepository users,
                        PasswordEncoder passwordEncoder,
                        @Value("${studyspace.auth.require-email-verification:false}") boolean requireEmailVerification,
-                       @Value("${studyspace.auth.expose-development-links:false}") boolean exposeDevelopmentLinks) {
+                       @Value("${studyspace.auth.expose-development-links:false}") boolean exposeDevelopmentLinks,
+                       PasswordResetMailer resetMailer) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.requireEmailVerification = requireEmailVerification;
         this.exposeDevelopmentLinks = exposeDevelopmentLinks;
+        this.resetMailer = resetMailer;
     }
 
     @Transactional
@@ -114,9 +117,18 @@ public class AuthService {
             users.savePasswordResetToken(user.id(), sha256(rawToken), Instant.now().plus(Duration.ofMinutes(30)));
             return baseUrl + "/reset-password.html?token=" + rawToken;
         }).orElse(null);
+        boolean sent = false;
+        if (resetUrl != null) {
+            try {
+                sent = resetMailer.send(email, resetUrl);
+            } catch (RuntimeException deliveryFailure) {
+                // Keep the response indistinguishable for known and unknown accounts.
+                // A fresh request can issue a new token if the mail provider is restored.
+            }
+        }
         return new AuthModels.PasswordResetResponse(
                 "가입된 이메일이라면 비밀번호 재설정 안내를 보냈습니다.",
-                exposeDevelopmentLinks ? resetUrl : null);
+                exposeDevelopmentLinks && !sent ? resetUrl : null);
     }
 
     @Transactional

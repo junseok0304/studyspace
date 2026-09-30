@@ -8,6 +8,17 @@ server:
         secure: ${STUDYSPACE_COOKIE_SECURE:false}
 
 spring:
+  mail:
+    host: ${STUDYSPACE_MAIL_HOST:}
+    port: ${STUDYSPACE_MAIL_PORT:587}
+    username: ${STUDYSPACE_MAIL_USERNAME:}
+    password: ${STUDYSPACE_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${STUDYSPACE_MAIL_AUTH:true}
+          starttls:
+            enable: ${STUDYSPACE_MAIL_STARTTLS:true}
   servlet:
     multipart:
       max-file-size: ${STUDYSPACE_MAX_FILE_SIZE:50MB}
@@ -28,6 +39,8 @@ studyspace:
   auth:
     require-email-verification: ${STUDYSPACE_REQUIRE_EMAIL_VERIFICATION:false}
     expose-development-links: ${STUDYSPACE_EXPOSE_DEV_AUTH_LINKS:false}
+    public-base-url: ${STUDYSPACE_PUBLIC_BASE_URL:http://localhost:8091}
+    mail-from: ${STUDYSPACE_MAIL_FROM:no-reply@studyspace.omong.kr}
   features:
     stt:
       enabled: false
