@@ -24,10 +24,6 @@ byId('request-form').onsubmit=async event=>{
   try {
     const result=await send('/api/auth/password-reset/request',{email:byId('reset-email').value});
     showMessage(result.message,true);
-    if(result.developmentResetUrl) {
-      const link=document.createElement('a'); link.href=result.developmentResetUrl; link.textContent='로컬 개발용 재설정 화면 열기'; link.className='development-reset-link';
-      byId('reset-message').append(document.createElement('br'),link);
-    }
   } catch(error) { showMessage(error.message); button.disabled=false; }
 };
 

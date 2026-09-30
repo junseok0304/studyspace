@@ -9,4 +9,4 @@ spring:
 studyspace:
   auth:
     require-email-verification: false
-    expose-development-links: true
+    mail-host: test.smtp.local

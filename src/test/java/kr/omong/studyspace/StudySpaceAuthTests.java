@@ -7,6 +7,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
@@ -15,12 +18,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.verify;
+import org.mockito.ArgumentCaptor;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class StudySpaceAuthTests {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @MockitoBean JavaMailSender mailSender;
 
     @Test
     void signupLoginMeAndLogout() throws Exception {
@@ -121,7 +127,10 @@ class StudySpaceAuthTests {
         var result = mvc.perform(post("/api/auth/password-reset/request").with(SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"" + email + "\"}"))
                 .andExpect(status().isOk()).andReturn();
-        String resetUrl = json.readTree(result.getResponse().getContentAsByteArray()).get("developmentResetUrl").asText();
+        ArgumentCaptor<SimpleMailMessage> messageCaptor=ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(messageCaptor.capture());
+        String resetUrl=java.util.Arrays.stream(messageCaptor.getValue().getText().split("\\R"))
+                .filter(line->line.contains("/reset-password.html?token=")).findFirst().orElseThrow();
         String token = URI.create(resetUrl).getQuery().substring("token=".length());
         String confirm = "{\"token\":\"" + token + "\",\"password\":\"new-password-456\"}";
 

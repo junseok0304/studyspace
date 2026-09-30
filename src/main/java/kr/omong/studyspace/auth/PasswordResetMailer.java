@@ -14,7 +14,7 @@ public class PasswordResetMailer {
 
     public PasswordResetMailer(ObjectProvider<JavaMailSender> senders,
                                @Value("${studyspace.auth.mail-from:no-reply@studyspace.omong.kr}") String from,
-                               @Value("${spring.mail.host:}") String host) {
+                               @Value("${studyspace.auth.mail-host:}") String host) {
         this.senders = senders;
         this.from = from;
         this.host = host;

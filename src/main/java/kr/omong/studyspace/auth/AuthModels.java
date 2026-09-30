@@ -31,7 +31,7 @@ public final class AuthModels {
             @NotBlank @Size(min = 8, max = 72) String password
     ) {}
 
-    public record PasswordResetResponse(String message, String developmentResetUrl) {}
+    public record PasswordResetResponse(String message) {}
 
     public record UserResponse(
             long id,

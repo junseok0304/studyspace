@@ -38,9 +38,9 @@ spring:
 studyspace:
   auth:
     require-email-verification: ${STUDYSPACE_REQUIRE_EMAIL_VERIFICATION:false}
-    expose-development-links: ${STUDYSPACE_EXPOSE_DEV_AUTH_LINKS:false}
     public-base-url: ${STUDYSPACE_PUBLIC_BASE_URL:http://localhost:8091}
     mail-from: ${STUDYSPACE_MAIL_FROM:no-reply@studyspace.omong.kr}
+    mail-host: ${STUDYSPACE_MAIL_HOST:}
   features:
     stt:
       enabled: false
@@ -62,6 +62,9 @@ logging:
     org.springframework.security: WARN
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
