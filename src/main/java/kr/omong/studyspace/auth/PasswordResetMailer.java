@@ -10,14 +10,18 @@ import org.springframework.stereotype.Component;
 public class PasswordResetMailer {
     private final ObjectProvider<JavaMailSender> senders;
     private final String from;
+    private final String host;
 
     public PasswordResetMailer(ObjectProvider<JavaMailSender> senders,
-                               @Value("${studyspace.auth.mail-from:no-reply@studyspace.omong.kr}") String from) {
+                               @Value("${studyspace.auth.mail-from:no-reply@studyspace.omong.kr}") String from,
+                               @Value("${spring.mail.host:}") String host) {
         this.senders = senders;
         this.from = from;
+        this.host = host;
     }
 
     public boolean send(String email, String resetUrl) {
+        if (host.isBlank()) return false;
         JavaMailSender sender = senders.getIfAvailable();
         if (sender == null) return false;
         var message = new SimpleMailMessage();
