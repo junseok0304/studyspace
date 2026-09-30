@@ -44,10 +44,11 @@ class FlashcardTests {
         db.update("insert into users(email,password_hash,nickname) values('spaced@example.com','test','학생')");
         long userId=db.queryForObject("select id from users where email='spaced@example.com'",Long.class);
         db.update("insert into courses(id,user_id,semester,name) values('spaced-course',?,'2026-2','운영체제')",userId);
-        db.update("insert into notes(id,course_id,user_id,title,body,version) values('spaced-note','spaced-course',?,'프로세스','프로세스 스레드 동기화',2)",userId);
+        db.update("insert into notes(id,course_id,user_id,title,body,version) values('spaced-note','spaced-course',?,'프로세스','# 프로세스\n\n프로세스 스레드 동기화',2)",userId);
         var owner=user(Long.toString(userId));
         mvc.perform(post("/api/notes/spaced-note/flashcard-decks").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"requestId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"cardCount\":3}")).andExpect(status().isCreated());
         String card=db.queryForObject("select id from flashcards where deck_id=(select id from flashcard_decks where user_id=?) order by card_order limit 1",String.class,userId);
+        assertEquals("‘프로세스 스레드 동기화’의 핵심 내용을 설명해 보세요.",db.queryForObject("select front_text from flashcards where id=?",String.class,card));
         reviewCard(owner,card,"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","KNOWN"); assertState(card,1,1);
         reviewCard(owner,card,"cccccccc-cccc-4ccc-8ccc-cccccccccccc","KNOWN"); assertState(card,2,3);
         reviewCard(owner,card,"dddddddd-dddd-4ddd-8ddd-dddddddddddd","KNOWN"); assertState(card,3,7);

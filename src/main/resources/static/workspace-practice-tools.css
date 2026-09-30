@@ -424,12 +424,19 @@
 .notesup-workspace .learning-source-summary{ margin:13px 0 0; color:#7c8797; }
 .notesup-workspace .learning-tabs{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:0;
   margin:18px 0 22px;
   border-bottom:1px solid #e5e9f0;
 }
 .notesup-workspace .learning-tabs button{ min-width:0; min-height:48px; white-space:nowrap; }
+.notesup-workspace .note-summary-stage{ width:min(100%, 900px); margin:18px auto 32px; color:#394557; font-size:16px; line-height:1.85; }
+.notesup-workspace .note-summary-stage h1{ margin:0 0 20px; font-size:25px; line-height:1.4; }
+.notesup-workspace .note-summary-stage h2{ margin:18px 0 10px; font-size:19px; line-height:1.5; }
+.notesup-workspace .note-summary-stage p{ margin:0 0 14px; }
+.notesup-workspace .note-summary-stage ul,.notesup-workspace .note-summary-stage ol{ margin:8px 0 16px; padding-left:24px; }
+.notesup-workspace .note-summary-stage li{ margin:6px 0; }
+.notesup-workspace .note-summary-stage li > p{ margin:0; }
 .notesup-workspace .learning-view-heading{ margin:0 0 14px; }
 .notesup-workspace .learning-view-heading h4{ font-size:17px; }
 .notesup-workspace .learning-view-heading p{ margin:5px 0 0; color:#8792a1; font-size:13px; }
@@ -563,6 +570,7 @@
 .notesup-workspace .flashcard-complete h4{ margin:0; font-size:22px; }
 @media(max-width:700px){
   .notesup-workspace .learning-panel{ padding:16px 12px 20px; }
+  .notesup-workspace .learning-tabs{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .notesup-workspace .learning-heading{ align-items:flex-start; }
   .notesup-workspace .learning-heading h3{ font-size:18px; }
   .notesup-workspace .learning-mode-badge{ font-size:10px; }

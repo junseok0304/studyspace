@@ -54,7 +54,9 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       face.setAttribute('aria-label', flipped ? '카드 앞면으로 뒤집기' : '카드 뒷면 보기');
       face.onclick = () => { flipped = !flipped; render(); };
       const meta = document.createElement('p'); meta.className = 'flashcard-meta';
-      meta.textContent = flipped ? `${card.explanation} · ${card.source}` : `${index + 1}/${cards.length} · 눌러서 답 보기`;
+      const provenance = [card.explanation, card.source].map(value => String(value || '').trim()).filter(Boolean);
+      const uniqueProvenance = provenance.filter((value, position) => !provenance.some((other, otherPosition) => otherPosition !== position && other.length >= value.length + 6 && other.includes(value)));
+      meta.textContent = flipped ? uniqueProvenance.join(' · ') : `${index + 1}/${cards.length} · 눌러서 답 보기`;
       player.append(face, meta);
       const pageActions = document.createElement('div'); pageActions.className = 'flashcard-page-actions';
       const previous = document.createElement('button'); previous.type = 'button'; previous.className = 'secondary'; previous.textContent = '‹ 이전'; previous.disabled = index === 0;

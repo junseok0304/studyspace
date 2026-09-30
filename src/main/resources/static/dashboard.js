@@ -87,7 +87,11 @@ export function mountDashboard({request, byId, getCourse, selectCourse, button, 
       }));
       el('metric-flashcards-due').textContent = `${data.flashcardsDue}장`;
       const flashcardBreakdown = el('metric-flashcards-breakdown');
-      if (flashcardBreakdown) flashcardBreakdown.textContent = `새 카드 ${data.newFlashcards ?? 0}장 · 복습 예정 ${data.reviewFlashcards ?? 0}장`;
+      if (flashcardBreakdown) flashcardBreakdown.textContent = `이번 학기 전체 · 새 카드 ${data.newFlashcards ?? 0}장 · 오늘 복습 ${data.reviewFlashcards ?? 0}장`;
+      const flashcardTarget = el('metric-flashcards-target');
+      if (flashcardTarget) flashcardTarget.textContent = reviewTarget
+        ? `바로 시작할 노트: ${reviewTarget.title} · ${reviewTarget.courseName}`
+        : '지금 학습할 카드가 없습니다.';
       const reviewButton = el('dashboard-review-button');
       if (reviewButton) {
         reviewButton.disabled = data.flashcardsDue < 1 || !reviewTarget;

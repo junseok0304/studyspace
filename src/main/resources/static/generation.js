@@ -6,12 +6,19 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
   let rows = [];
   let loadedNoteId = '';
   const startingKeys = new Set();
+  const needsSummaryRefresh = content => {
+    const text = String(content || '');
+    const listItems = text.match(/^\s*(?:[-*+]|\d+[.)])\s+/gm) || [];
+    return /(?:원문 미리보기|원문 내용의 흐름|실제 생성 전 확인|핵심 개념 · 내용|개발용 미리보기)/i.test(text) || listItems.length >= 3;
+  };
 
   async function load(noteId) {
     clearTimeout(timer);
     const requestVersion = ++version;
     const generateButton = el('generate-infographic');
     if (generateButton) generateButton.disabled = !noteId;
+    const summaryButton = el('generate-summary');
+    if (summaryButton) summaryButton.disabled = !noteId;
     if (!noteId) {
       rows = [];
       loadedNoteId = '';
@@ -25,6 +32,13 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     loadedNoteId = noteId;
     rows = result;
     render(rows);
+    const latestSummary = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === getEditor().version && matchesAiMode(row));
+    const summaryMessage = el('summary-message');
+    if (summaryMessage) {
+      if (latestSummary?.status === 'PENDING' || latestSummary?.status === 'RUNNING') summaryMessage.textContent = '현재 노트 내용을 글로 요약하고 있습니다.';
+      else if (latestSummary?.status === 'FAILED') summaryMessage.textContent = '요약을 만들지 못했습니다. 다시 생성해 주세요.';
+      else summaryMessage.textContent = '';
+    }
     const latestInfographic = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === getEditor().version);
     if (latestInfographic?.status === 'PENDING' || latestInfographic?.status === 'RUNNING') {
       el('generation-message').textContent = '현재 노트의 인포그래픽을 만들고 있습니다.';
@@ -43,7 +57,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     const editor = getEditor();
     if (!editor.id) return false;
     const noteId = editor.id;
-    const button = kind === 'INFOGRAPHIC' ? el('generate-infographic') : null;
+    const button = kind === 'INFOGRAPHIC' ? el('generate-infographic') : kind === 'SUMMARY' ? el('generate-summary') : null;
     const message = kind === 'SUMMARY' ? el('summary-message') : el('generation-message');
     if (button) button.disabled = true;
     try {
@@ -102,7 +116,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     if (loadedNoteId !== noteId) await load(noteId);
     if (getEditor().id !== noteId) return false;
     const existing = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === editor.version && matchesAiMode(row));
-    if (existing?.status === 'COMPLETED' && existing.content) { message.textContent = ''; return true; }
+    if (existing?.status === 'COMPLETED' && existing.content && !needsSummaryRefresh(existing.content)) { message.textContent = ''; return true; }
     if (existing?.status === 'PENDING' || existing?.status === 'RUNNING') { message.textContent = '현재 노트 내용을 글로 요약하고 있습니다.'; return true; }
     if (existing?.status === 'FAILED') { message.textContent = '요약을 만들지 못했습니다. 다시 생성해 주세요.'; return false; }
     const key = `SUMMARY:${editor.id}:${editor.version}`;

@@ -63,7 +63,7 @@ test('switching notes while sources load does not start generation for the old n
 });
 
 test('infographic content is paginated with working accessible navigation', () => {
-  const markdown = '# 경제 세계화\n\n## 1. 개념\n\n국가 간 상호의존성이 커집니다.\n\n## 출처\n\n- 강의자료.pdf p. 2\n\n---PAGE---\n\n## 2. 흐름\n\n무역과 투자가 확대됩니다.\n\n출처: 수업노트';
+  const markdown = '# 경제 세계화\n\n## 1. 개념\n\n국가 간 상호의존성이 커집니다. [강의자료.pdf, p. 2]\n\n## 출처\n\n- 강의자료.pdf p. 2\n\n---PAGE---\n\n## 2. 흐름\n\n무역과 투자가 확대됩니다. (수업자료.pptx 슬라이드 3)\n\n출처: 수업노트';
   assert.equal(paginateInfographic(markdown).length,2);
   const dom = new JSDOM('<!doctype html><div id="stage"></div>');
   const container = dom.window.document.getElementById('stage');
@@ -76,7 +76,7 @@ test('infographic content is paginated with working accessible navigation', () =
   next.click();
   assert.equal(container.querySelector('.infographic-page-number').textContent,'2 / 2');
   assert.match(container.querySelector('.infographic-page').textContent,/무역과 투자가 확대/);
-  assert.doesNotMatch(container.textContent,/출처|강의자료\.pdf|수업노트/);
+  assert.doesNotMatch(container.textContent,/출처|강의자료\.pdf|수업자료\.pptx|수업노트/);
   assert.equal(next.disabled,true);
   assert.equal(previous.disabled,false);
   previous.click();

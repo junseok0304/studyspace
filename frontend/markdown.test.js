@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { renderMarkdown } from './markdown.js';
+import { removeDuplicateLeadingTitle } from '../src/main/resources/static/note-markdown.js';
+
+test('hides only a matching first note heading in read view', () => {
+  const source = '# 0902 2차시\n\n## 수업 내용\n\n내용\n\n# 다음 주제';
+  assert.equal(removeDuplicateLeadingTitle(source, '0902 2차시'), '## 수업 내용\n\n내용\n\n# 다음 주제');
+  assert.equal(removeDuplicateLeadingTitle(source, '다른 노트'), source);
+  assert.equal(removeDuplicateLeadingTitle('## 다른 제목\n\n내용', '다른 제목'), '## 다른 제목\n\n내용');
+});
 
 test('renders headings, tables and language-aware code without changing Markdown', () => {
   const dom = new JSDOM('');

@@ -1,4 +1,5 @@
 import { renderMarkdown } from './markdown.js';
+import { removeDuplicateLeadingTitle } from './note-markdown.js';
 import { DraftStore, NoteEditor } from './note-editor.js';
 import { renderInfographicPages } from './infographic-view.js';
 import { mountWorkspaceNavigation } from './workspace-nav.js';
@@ -68,7 +69,7 @@ export async function start(request, userId) {
     if (!course?.id) return;
     const savedTool = ['generation-panel', 'practice', 'practice-panel'].includes(tool) ? 'learning-panel' : (tool || 'note');
     const params = new URLSearchParams({course: course.id, tool: savedTool});
-    if (editor.id) params.set('note', editor.id);
+    if (editor.active && editor.id) params.set('note', editor.id);
     history.replaceState({studyspace: true}, '', `${location.pathname}${location.search}#study?${params}`);
   };
   const editorRequest = async (path, options = {}) => {
@@ -177,8 +178,9 @@ export async function start(request, userId) {
     writingPanel.classList.toggle('view-mode', mode === 'view');
     if (bodyLabel) bodyLabel.hidden = mode === 'view';
     if (mode === 'view') {
-      // 열람 화면은 첫 줄을 포함한 본문 전체를 Markdown으로 렌더링한다.
-      readView.replaceChildren(renderMarkdown(splitAiFrontmatter(byId('note-body').value || '').body));
+      // 본문 첫 제목이 노트 제목과 같을 때만 열람 화면에서 중복을 숨긴다.
+      const body = splitAiFrontmatter(byId('note-body').value || '').body;
+      readView.replaceChildren(renderMarkdown(removeDuplicateLeadingTitle(body, byId('note-title').value)));
       byId('save-note').hidden = true;
     } else {
       byId('save-note').hidden = false;
@@ -223,7 +225,6 @@ export async function start(request, userId) {
     else if (summaryResult?.status==='FAILED') summaryStage.append(emptyState('요약을 만들지 못했습니다.','다시 생성을 눌러 새 요약을 요청해 주세요.'));
     else if (summaryResult?.status==='COMPLETED'&&summaryResult.content) {
       summaryStage.append(renderMarkdown(summaryResult.content));
-      const meta=document.createElement('p');meta.className='fine-print';meta.textContent=`${summaryResult.mockResult?'모의 요약':'AI 요약'} · 노트 버전 ${summaryResult.sourceNoteVersion} · 자료 ${summaryResult.attachmentCount||0}개`;summaryStage.append(meta);
     }
     const stage=byId('infographic-stage');
     const badge=byId('learning-mode-badge');
@@ -254,6 +255,10 @@ export async function start(request, userId) {
   generationFeature = mountGeneration({request, byId, getEditor: () => editor, getAttachmentIds, render: renderGenerations, matchesAiMode});
   attachmentsFeature = mountAttachments({request, byId, getEditor: () => editor, getGenerationFeature: () => generationFeature, emptyState, mockEnabled: aiConfig.mockEnabled});
   learningFeature = mountLearningWorkspace({document, byId, getEditor: () => editor, generation: generationFeature, quiz: quizFeature, flashcards: flashcardsFeature, beforeOpen: noteId => attachmentsFeature.loadAttachments(noteId)});
+  document.addEventListener('studyspace:tool-selected', event => {
+    if (navigating || !editor.active || !course?.id) return;
+    persistWorkspaceState(event.detail?.id);
+  });
 
   byId('restore-draft').onclick = () => {
     if (!editor.pendingDraft || !editor.restore) return;
@@ -410,7 +415,6 @@ export async function start(request, userId) {
         else { tell('먼저 이 과목에 강의노트를 작성해 주세요.'); return; }
       }
       document.dispatchEvent(new CustomEvent('studyspace:select-tool', {detail: {id, view}}));
-      persistWorkspaceState(id);
     } catch (error) { tell(error.message); }
   });
   document.addEventListener('studyspace:before-tool-select', event => {
@@ -427,7 +431,6 @@ export async function start(request, userId) {
         const opened=await selectCourse(owner,session.noteId);
         if(opened && editor.active && editor.id===session.noteId) {
           document.dispatchEvent(new CustomEvent('studyspace:select-tool',{detail:{id:'recording-panel'}}));
-          persistWorkspaceState('recording-panel');
         } else tell('녹음을 시작한 노트를 다시 열지 못했습니다. 녹음은 계속 진행 중입니다.');
       } catch(error) { tell(`녹음 노트를 여는 중 오류가 발생했습니다. ${error.message}`); }
       finally { if(recordingFeature.activeSession()===session)session.reopening=false; }

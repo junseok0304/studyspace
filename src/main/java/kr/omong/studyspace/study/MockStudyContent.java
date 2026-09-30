@@ -12,7 +12,8 @@ final class MockStudyContent {
         var result = new LinkedHashSet<String>();
         for (String source : sources) {
             if (source == null || source.isBlank()) continue;
-            for (String raw : source.split("\\R+")) {
+            String visibleSource = source.replaceAll("(?s)<!--\\s*AI 전용 메타데이터.*?-->", "");
+            for (String raw : visibleSource.split("\\R+")) {
                 if (result.size() >= 50) break;
                 String line = raw.strip()
                         .replaceAll("^#{1,6}\\s*", "")
@@ -23,6 +24,7 @@ final class MockStudyContent {
                 if (line.matches("(?i)^(노트:|버전:|자료:|선택한 요점 정리.*|포함한 강의자료.*|PDF 페이지 \\d+|슬라이드 \\d+|HWP 구역 \\d+).*$")) continue;
                 if (line.matches("(?i)^(course_?id|course_?name|created|id|type|semester|status|updated):.*$")) continue;
                 if (line.matches("^(수업 내용|교수님 강조 내용|질문과 헷갈린 점|다음 수업까지 할 일)$")) continue;
+                if (line.matches("^(원문 미리보기|원문 내용의 흐름|실제 생성 전 확인|핵심 개념 · 내용|개발용 미리보기입니다.*)$")) continue;
                 for (String sentence : line.split("(?<=[.!?。！？])\\s+")) {
                     String clean = sentence.strip();
                     if (clean.length() >= 3) result.add(clean.length() > 320 ? clean.substring(0, 320).stripTrailing() + "…" : clean);
@@ -30,6 +32,11 @@ final class MockStudyContent {
             }
         }
         return new ArrayList<>(result);
+    }
+
+    static List<String> passagesExcluding(String excludedText, String... sources) {
+        String excluded = excludedText == null ? "" : excludedText.strip();
+        return passages(sources).stream().filter(value -> !value.equals(excluded)).toList();
     }
 
     static String clip(String text, int maxLength) {

@@ -61,7 +61,9 @@ class GenerationTests {
         mvc.perform(get("/api/notes/generation-note/generations").with(owner))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("COMPLETED"))
-                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("Gemini API를 호출하지 않았습니다")))
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("## 요약")))
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("실제 생성 전 확인"))))
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Gemini API를 호출하지 않았습니다"))))
                 .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("페이지 교체 알고리즘 FIFO")));
         String generationJob=db.queryForObject("select id from generation_jobs where user_id=? and request_id=?",String.class,ownerId,"7d777dd9-aa0b-4b04-951a-b3c386e2cf08");
         db.update("update generation_job_sources set extracted_text=? where job_id=?","## PDF 페이지 4\n페이지 교체 알고리즘 FIFO",generationJob);

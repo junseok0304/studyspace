@@ -103,7 +103,7 @@ public class GenerationWorker {
     private String mockContent(Input input,List<Source> sources) {
         var material=new StringBuilder(input.body());
         for(Source attachment:sources) material.append("\n").append(attachment.text());
-        List<String> passages=MockStudyContent.passages(material.toString());
+        List<String> passages=MockStudyContent.passagesExcluding(input.title(),material.toString());
         if(passages.isEmpty()) passages=List.of(input.title()+" 노트에 작성된 내용을 확인해 주세요.");
         String excerpt=String.join("\n\n",passages.stream().limit(8).map(value->"- "+value).toList());
         String lead=passages.getFirst();
@@ -142,20 +142,12 @@ public class GenerationWorker {
 
                 %s
                 """.formatted(input.title(),excerpt,sourcePreview);
-        if ("SUMMARY".equals(input.kind())) return """
-                > 노트와 첨부자료의 원문을 이용한 개발용 미리보기입니다. Gemini API를 호출하지 않았습니다.
-
-                ## 핵심 개념 · 내용
-
-                %s
-
-                ## 원문 내용의 흐름
-
-                위 항목은 선택한 노트와 첨부자료에서 추출한 순서대로 표시했습니다.
-
-                ## 근거 자료
-                %s
-                """.formatted(excerpt,sourcePreview);
+        if ("SUMMARY".equals(input.kind())) {
+            List<String> summaryPassages=passages.stream().filter(value -> !value.equals(input.title())).limit(6).toList();
+            if(summaryPassages.isEmpty()) return "## 요약\n\n현재 노트에는 요약할 내용이 충분하지 않습니다. 노트에 수업 내용을 적은 뒤 다시 생성해 주세요.";
+            String summary=String.join("\n\n",summaryPassages);
+            return "## 요약\n\n"+summary;
+        }
         return """
                 > 개발용 미리보기입니다. Gemini API를 호출하지 않았습니다.
 

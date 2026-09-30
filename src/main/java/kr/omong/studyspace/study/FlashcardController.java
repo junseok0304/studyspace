@@ -100,7 +100,7 @@ public class FlashcardController {
         String basis=review==null
                 ?String.join("\n",java.util.stream.Stream.concat(java.util.stream.Stream.of(note.body()),attachments.stream().map(AttachmentSource::text)).toList())
                 :review.content();
-        List<String> passages=MockStudyContent.passages(basis);
+        List<String> passages=MockStudyContent.passagesExcluding(note.title(),basis);
         if(passages.isEmpty()) passages=List.of(note.title()+" 노트의 핵심 내용을 설명해 보세요.");
         String claim=passages.get(order%passages.size());
         String front="‘"+MockStudyContent.clip(claim,96)+"’의 핵심 내용을 설명해 보세요.";

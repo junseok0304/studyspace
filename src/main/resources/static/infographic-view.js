@@ -48,11 +48,16 @@ export function stripInfographicSources(markdown) {
       if (!droppingSection) kept.push(line);
       continue;
     }
-    if (droppingSection || /^\s*(?:[-*+]\s*)?(?:출처|참고(?:\s*자료|문헌)?|자료\s*출처|근거(?:\s*자료)?|references?|citations?)\s*[:：]/i.test(line)) continue;
+    const sourceReferenceLine = /^\s*(?:[-*+]\s*)?(?:출처|참고(?:\s*자료|문헌)?|자료\s*출처|근거(?:\s*자료)?|references?|citations?)\s*[:：]/i.test(line)
+      || /^\s*(?:[-*+]\s*)?[^\n]*\.(?:pdf|pptx?|hwp|png)(?:\s*(?:,|·|\s)*(?:p(?:age)?\.?\s*\d+|페이지\s*\d+|슬라이드\s*\d+|구역\s*\d+))?\s*$/i.test(line);
+    if (droppingSection || sourceReferenceLine) continue;
     if (/^\s*\[\^?\d+\]:/.test(line)) continue;
     kept.push(line.replace(/\[\^?\d+\]/g, '')
       .replace(/\s*\[(?:출처|참고|자료|근거)[^\]]*\]/gi, '')
       .replace(/\s*\((?:출처|참고|자료|근거)[^)]*\)/gi, '')
+      .replace(/\s*\[[^\]]+\.(?:pdf|pptx?|hwp|png)[^\]]*\]\([^)]*\)/gi, '')
+      .replace(/\s*\[[^\]]*\.(?:pdf|pptx?|hwp|png)[^\]]*\]/gi, '')
+      .replace(/\s*\([^)]*\.(?:pdf|pptx?|hwp|png)[^)]*\)/gi, '')
       .replace(/\s*\([^)]*(?:\.pdf|\.pptx?|\.hwp|\.png)[^)]*(?:p(?:age)?\.?\s*\d+|페이지\s*\d+|슬라이드\s*\d+)[^)]*\)/gi, ''));
   }
   return kept.join('\n').replace(/\n{3,}/g, '\n\n');

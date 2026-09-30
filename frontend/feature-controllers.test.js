@@ -14,6 +14,7 @@ const markup = `<!doctype html><html><body>
   <span id="learning-mode-badge"></span><p id="quiz-message"></p><p id="flashcard-message"></p>
   <button id="create-speed-quiz"></button><select id="quiz-count"><option value="5">5</option><option value="8">8</option></select><div id="quiz-player"></div><details id="quiz-history"><div id="quiz-sets"></div></details>
   <button id="create-flashcards"></button><select id="flashcard-count"><option value="8">8</option></select><div id="flashcard-player"></div><details id="flashcard-history"><div id="flashcard-decks"></div></details>
+  <button id="generate-summary"></button><p id="summary-message"></p><article id="summary-stage"></article>
   <button id="generate-infographic"></button><p id="generation-message"></p><div id="infographic-stage"></div>
   <input id="attachment-input" type="file"><div id="attachment-dropzone"><span id="attachment-selection"></span></div>
   <button id="upload-attachments"></button><span id="attachment-count"></span><p id="attachment-message"></p><div id="attachments"></div>
@@ -39,6 +40,7 @@ test('feature controllers keep their request, state, and rendering paths connect
   const course = {id: 'course-1', name: '과목'};
   const calls = [];
   let uploadedFile = false;
+  let summaryContent = `## 원문 미리보기\n\nHTTP 요청은 클라이언트가 서버에 요청을 보내고 응답을 받는 과정입니다.\n\n## 실제 생성 전 확인\n\n노트 확인`;
   const request = async (path, options = {}) => {
     calls.push({path, options});
     if (path.endsWith('/notes') && options.method !== 'POST') return [{id: 'note-1', title: '강의노트'}];
@@ -49,22 +51,26 @@ test('feature controllers keep their request, state, and rendering paths connect
       {id: 'quiz-other', noteId: 'note-2', title: '다른 노트 퀴즈', questionCount: 3, completedAttempts: 0, sourceNoteVersion: 1, mockResult: true, activeAttemptId: null}
     ];
     if (path === '/api/quiz-sets/quiz-1/attempts' && options.method === 'POST') return {id: 'attempt-1', quizSetId: 'quiz-1', mode: 'NORMAL', status: 'IN_PROGRESS', totalQuestions: 1, questions: [{id: 'question-1', order: 0, prompt: 'HTTP 요청에서 서버가 응답을 돌려주는 단계는?', options: ['응답', '요청 생성', 'DNS 조회', '연결 종료'], hint: '요청 뒤 서버가 돌려주는 결과를 생각해 보세요.', selectedIndex: null}]};
+    if (path === '/api/quiz-attempts/attempt-1/answers/question-1') return {id:'attempt-1',quizSetId:'quiz-1',mode:'NORMAL',status:'IN_PROGRESS',totalQuestions:1,questions:[{id:'question-1',order:0,prompt:'HTTP 요청에서 서버가 응답을 돌려주는 단계는?',options:['응답','요청 생성','DNS 조회','연결 종료'],hint:'요청 뒤 서버가 돌려주는 결과를 생각해 보세요.',selectedIndex:1,correct:false,correctIndex:0,explanation:'서버가 요청을 처리한 뒤 응답을 돌려줍니다.',source:'강의노트'}]};
     if (path === '/api/quiz-sets/quiz-1/attempts' && (!options.method || options.method === 'GET')) return [];
     if (path.endsWith('/quiz-sets') && options.method === 'POST') return {id: 'quiz-1', noteId: 'note-1', sourceNoteVersion: 3, mockResult: true};
     if (path === '/api/notes/note-1/attachments' && options.method === 'POST') { uploadedFile = true; return {id: 'ux-upload-1', originalName: 'ux-preview.pdf', size: 24, analysisStatus: 'NOT_ANALYZED'}; }
     if (path === '/api/attachments/ux-upload-1/analysis' && options.method === 'POST') return {id: 'ux-upload-1', analysisStatus: 'ANALYZING'};
+    if (path === '/api/attachments/legacy-hwp/analysis' && options.method === 'POST') return {id:'legacy-hwp',analysisStatus:'ANALYZING'};
     if (path === '/api/notes/note-1/attachments') return [
       {id: 'attachment-1', originalName: '수업자료.pdf', size: 2048, analysisStatus: 'TEXT_READY', extractedLength: 500, summaryStatus: 'READY', summaryText: '핵심 내용'},
+      {id:'legacy-hwp',originalName:'이전강의자료.hwp',size:46080,analysisStatus:'NOT_ANALYZED',summaryStatus:'NOT_SUMMARIZED'},
       ...(uploadedFile ? [{id: 'ux-upload-1', originalName: 'ux-preview.pdf', size: 24, analysisStatus: 'TEXT_READY', extractedLength: 92, summaryStatus: 'READY', summaryText: 'HTTP 요청은 클라이언트가 서버에 정보를 전달하고 응답을 받는 과정입니다.'}] : [])
     ];
     if (path === '/api/courses/course-1/flashcard-decks' && (!options.method || options.method === 'GET')) return [
       {id: 'deck-1', noteId: 'note-1', title: '복습 카드', cardCount: 8, sourceNoteVersion: 3, mockResult: true},
       {id: 'deck-other', noteId: 'note-2', title: '다른 노트 카드', cardCount: 4, sourceNoteVersion: 1, mockResult: true}
     ];
-    if (path === '/api/flashcard-decks/deck-1') return {id: 'deck-1', title: 'HTTP 복습', sourceNoteVersion: 3, cards: [{id: 'card-1', front: 'HTTP 응답 단계의 역할은?', back: '서버가 요청을 처리한 결과를 클라이언트에 돌려줍니다.', explanation: '요청-응답 흐름', source: '수업자료.pdf'}]};
+    if (path === '/api/flashcard-decks/deck-1') return {id: 'deck-1', title: 'HTTP 복습', sourceNoteVersion: 3, cards: [{id: 'card-1', front: 'HTTP 응답 단계의 역할은?', back: '서버가 요청을 처리한 결과를 클라이언트에 돌려줍니다.', explanation: '원문 근거 · 노트 `강의노트` 버전 3', source: '노트 `강의노트` 버전 3'}]};
     if (path === '/api/notes/note-1/flashcard-decks' && options.method === 'POST') return {id: 'deck-new', noteId: 'note-1', title: '새 플래시카드', cardCount: 8, sourceNoteVersion: 3, mockResult: true, cards: [{id: 'card-new', front: 'HTTP 요청은?', back: '클라이언트가 서버에 정보를 전달합니다.', explanation: '요청 단계', source: '강의노트'}]};
+    if (path === '/api/notes/note-1/generations' && options.method === 'POST') { summaryContent = '## 요약\n\nHTTP 요청은 클라이언트와 서버가 정보를 주고받는 과정입니다.'; return {id:'summary-2'}; }
     if (path === '/api/notes/note-1/generations' && (!options.method || options.method === 'GET')) return [
-      {id: 'summary-1', kind: 'SUMMARY', status: 'COMPLETED', title: '요점 정리', sourceNoteVersion: 3, attachmentCount: uploadedFile ? 1 : 0, content: `## 핵심 개념\n\n- HTTP 요청은 클라이언트가 서버에 요청을 보내고 응답을 받는 과정입니다.${uploadedFile ? '\n- HTTP 요청은 클라이언트가 서버에 정보를 전달하고 응답을 받는 과정입니다.' : ''}`},
+      {id: 'summary-1', kind: 'SUMMARY', status: 'COMPLETED', title: '요점 정리', sourceNoteVersion: 3, mockResult:true, attachmentCount: uploadedFile ? 1 : 0, content: summaryContent},
       {id: 'mindmap-1', kind: 'MIND_MAP', status: 'COMPLETED', title: 'HTTP 흐름', sourceNoteVersion: 3, content: JSON.stringify({label: 'HTTP 요청 흐름', children: [{label: '클라이언트 요청', children: []}, {label: '서버 응답', children: []}]})},
       {id: 'infographic-1', kind: 'INFOGRAPHIC', status: 'COMPLETED', title: 'HTTP 요청 흐름', sourceNoteVersion: 3, mockResult: true, attachmentCount: 1, content: '# HTTP 요청 흐름\n\n## 요청\n\n- 클라이언트가 정보를 전달합니다.'}
     ];
@@ -88,6 +94,11 @@ test('feature controllers keep their request, state, and rendering paths connect
     await quiz.openForNote();
     assert.equal(byId('quiz-player').querySelector('.quiz-hint summary').textContent, '힌트 보기');
     assert.match(byId('quiz-player').textContent, /HTTP 요청에서 서버가 응답/);
+    const wrongAnswer=byId('quiz-player').querySelector('input[type="radio"]');
+    wrongAnswer.checked=true;
+    await wrongAnswer.onchange();
+    assert.match(byId('quiz-player').querySelector('.quiz-explanation').textContent,/오답 · 정답 1번/);
+    assert.equal(byId('quiz-player').querySelectorAll('input[type="radio"]:disabled').length,4);
     const playQuiz = [...byId('quiz-sets').querySelectorAll('button')].find(button => button.textContent === '풀기');
     await playQuiz.onclick();
     assert.match(byId('quiz-player').textContent, /서버가 응답을 돌려주는 단계/);
@@ -109,27 +120,41 @@ test('feature controllers keep their request, state, and rendering paths connect
     assert.match(byId('flashcard-player').textContent, /HTTP 응답 단계의 역할은/);
     await byId('flashcard-player').querySelector('.flashcard-study-card').onclick();
     assert.match(byId('flashcard-player').textContent, /서버가 요청을 처리한 결과/);
+    assert.equal((byId('flashcard-player').textContent.match(/노트 `강의노트` 버전 3/g) || []).length, 1);
     await byId('create-flashcards').onclick();
     assert.match(byId('flashcard-player').textContent, /HTTP 요청은/);
 
     let rendered = null;
     const generation = mountGeneration({request, byId, getEditor: () => editor, getAttachmentIds: () => ['attachment-1'], render: (rows, view) => { rendered = {rows, view}; }});
     await generation.load(editor.id);
+    assert.equal(byId('generate-summary').disabled,false);
+    await generation.openSummary();
+    assert.equal(calls.some(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST' && JSON.parse(call.options.body).kind === 'SUMMARY'), true);
+    summaryContent = '## 요약\n\n- 요청은 클라이언트에서 시작합니다.\n- 서버가 요청을 처리합니다.\n- 처리 결과를 응답으로 돌려줍니다.';
+    await generation.load(editor.id);
+    const summaryRequestsBeforeListRefresh = calls.filter(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST').length;
+    await generation.openSummary();
+    assert.equal(calls.filter(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST').length, summaryRequestsBeforeListRefresh + 1);
     await generation.openInfographic();
     assert.equal(calls.some(call => call.options.method === 'POST' && JSON.parse(call.options.body).kind === 'INFOGRAPHIC'), false);
     assert.equal(rendered.rows.find(row => row.kind === 'INFOGRAPHIC').status, 'COMPLETED');
-    await generation.start('SUMMARY');
     const generationCreate = calls.find(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST');
     assert.equal(JSON.parse(generationCreate.options.body).kind, 'SUMMARY');
     assert.deepEqual(JSON.parse(generationCreate.options.body).attachmentIds, ['attachment-1']);
-    assert.match(rendered.rows.find(row => row.kind === 'SUMMARY').content, /HTTP 요청은 클라이언트가 서버에 요청/);
+    assert.match(rendered.rows.find(row => row.kind === 'SUMMARY').content, /HTTP 요청은 클라이언트와 서버가 정보를 주고받는 과정/);
+    assert.equal(byId('summary-message').textContent, '');
     assert.match(rendered.rows.find(row => row.kind === 'MIND_MAP').content, /클라이언트 요청/);
 
     const attachments = mountAttachments({request, byId, getEditor: () => editor, getGenerationFeature: () => generation, emptyState});
     await attachments.loadAttachments(editor.id);
     assert.deepEqual(attachments.selectedAttachmentIds(), ['attachment-1']);
+    const legacyAnalyze=[...byId('attachments').querySelectorAll('button')].find(button=>button.textContent==='분석 시작');
+    assert.ok(legacyAnalyze);
+    await legacyAnalyze.onclick();
+    assert.equal(calls.some(call=>call.path==='/api/attachments/legacy-hwp/analysis'&&call.options.method==='POST'),true);
     assert.match(byId('generation-source-summary').textContent, /수업자료\.pdf/);
     assert.equal(byId('attachments').querySelector('.attachment-summary').textContent, '핵심 내용');
+    const summaryRequestsBeforeUpload = calls.filter(call => call.path === '/api/notes/note-1/generations' && call.options.method === 'POST').length;
     const sampleFile = new dom.window.File(['%PDF-1.4 HTTP request response flow'], 'ux-preview.pdf', {type: 'application/pdf'});
     Object.defineProperty(byId('attachment-input'), 'files', {configurable: true, value: [sampleFile]});
     byId('attachment-input').dispatchEvent(new dom.window.Event('change'));
@@ -140,7 +165,7 @@ test('feature controllers keep their request, state, and rendering paths connect
     assert.equal(calls.some(call => call.path === '/api/attachments/ux-upload-1/analysis' && call.options.method === 'POST'), true);
     assert.equal(calls.some(call => call.path === '/api/notes/note-1/generations' && call.options.method === 'POST'), true);
     // Upload summarizes the file through its analysis worker, not an invisible extra paid generation.
-    assert.equal(calls.filter(call => call.path === '/api/notes/note-1/generations' && call.options.method === 'POST').length, 1);
+    assert.equal(calls.filter(call => call.path === '/api/notes/note-1/generations' && call.options.method === 'POST').length, summaryRequestsBeforeUpload);
     assert.match(byId('attachments').textContent, /HTTP 요청은 클라이언트가 서버에 정보를 전달/);
     assert.deepEqual(attachments.selectedAttachmentIds(), ['attachment-1', 'ux-upload-1']);
     editor.id = '';
@@ -158,7 +183,7 @@ test('feature controllers keep their request, state, and rendering paths connect
 test('dashboard controller loads backend course stats and routes course actions', async () => {
   const dom = new JSDOM(`<!doctype html><html><body>
     <select id="dashboard-semester"></select><input id="show-archived" type="checkbox"><div id="courses"></div><span id="course-count"></span><select id="course-semester"></select>
-    <button id="dashboard-retry"></button><p id="dashboard-message"></p><div id="dashboard-summary"></div><span id="metric-flashcards-due"></span>
+    <button id="dashboard-retry"></button><p id="dashboard-message"></p><div id="dashboard-summary"></div><span id="metric-flashcards-due"></span><p id="metric-flashcards-breakdown"></p><p id="metric-flashcards-target"></p>
     <button id="dashboard-review-button"></button><button id="dashboard-quiz-button"></button><div id="quiz-stats"></div><div id="activity-chart"></div>
     <div id="recent-notes"></div><div id="today-classes"></div><div id="course-progress"></div>
   </body></html>`, {url: 'http://localhost:8091/'});
@@ -173,9 +198,9 @@ test('dashboard controller loads backend course stats and routes course actions'
     if (path === '/api/courses') return [{id: 'course-1', name: '프로그래밍', semester: '2026년 2학기', archived: false}];
     if (path === '/api/semesters') return [{name: '2026년 2학기'}];
     if (path.startsWith('/api/dashboard')) return {
-      notes: 1, viewed: 1, activeDays: 2, courses: 1, quizAccuracy: 100, quizAttempts: 1, flashcardsDue: 1, wrongAnswers: 0,
+      notes: 1, viewed: 1, activeDays: 2, courses: 1, quizAccuracy: 100, quizAttempts: 1, flashcardsDue: 7, newFlashcards: 5, reviewFlashcards: 2, wrongAnswers: 0,
       days: [{date: '2026-09-25', count: 1}], recent: [{title: '강의노트', courseName: '프로그래밍', courseId: 'course-1'}],
-      quizTarget: {id: 'note-1', courseId: 'course-1'}, reviewTarget: {id: 'note-1', courseId: 'course-1'},
+      quizTarget: {id: 'note-1', courseId: 'course-1'}, reviewTarget: {id: 'note-1', courseId: 'course-1',title:'강의노트',courseName:'프로그래밍'},
       todayClasses: [{start: '10:00', end: '11:00', name: '프로그래밍', room: 'B101', courseId: 'course-1'}],
       courseStats: [{id: 'course-1', name: '프로그래밍', viewed: 1, notes: 1}]
     };
@@ -183,7 +208,7 @@ test('dashboard controller loads backend course stats and routes course actions'
   };
   const selected = [];
   const routedViews = [];
-  dom.window.document.addEventListener('studyspace:select-tool', event => routedViews.push(event.detail.view));
+  dom.window.document.addEventListener('studyspace:select-tool', event => routedViews.push({view:event.detail.view,dueOnly:event.detail.dueOnly}));
   const dashboard = mountDashboard({
     request, byId, getCourse: () => null,
     selectCourse: async (course, noteId) => selected.push({course, noteId}),
@@ -199,14 +224,16 @@ test('dashboard controller loads backend course stats and routes course actions'
     assert.deepEqual([...byId('dashboard-summary').querySelectorAll('.study-stat-label')].map(node => node.textContent), ['노트 열람률', '최근 7일', '수강 과목', '쌓아온 노트']);
     assert.equal(byId('today-classes').querySelector('table tbody tr td').textContent, '프로그래밍');
     assert.equal(byId('course-progress').querySelector('progress').value, 1);
+    assert.equal(byId('metric-flashcards-breakdown').textContent, '이번 학기 전체 · 새 카드 5장 · 오늘 복습 2장');
+    assert.equal(byId('metric-flashcards-target').textContent, '바로 시작할 노트: 강의노트 · 프로그래밍');
     byId('dashboard-review-button').click();
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(selected[0].course.id, 'course-1');
     assert.equal(selected[0].noteId, 'note-1');
-    assert.equal(routedViews[0], 'flashcards');
+    assert.deepEqual(routedViews[0], {view:'flashcards',dueOnly:true});
     byId('dashboard-quiz-button').click();
     await new Promise(resolve => setTimeout(resolve, 0));
-    assert.equal(routedViews[1], 'quiz');
+    assert.deepEqual(routedViews[1], {view:'quiz',dueOnly:false});
     assert.equal(dom.window.document.querySelector('.course-tab[aria-pressed="false"]') !== null, true);
   } finally {
     globalThis.document = previous.document;

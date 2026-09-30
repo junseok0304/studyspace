@@ -50,7 +50,10 @@ export function mountAttachments({request, byId, getEditor, getGenerationFeature
       const item = document.createElement('div'); item.className = 'attachment-row';
       const info = document.createElement('div'); info.className = 'attachment-info';
       const link = document.createElement('a'); link.href = `/api/attachments/${encodeURIComponent(row.id)}/content`; link.textContent = row.originalName; link.setAttribute('download', ''); link.setAttribute('aria-label', `${row.originalName} 다운로드`);
-      const analysisLabel = row.analysisStatus === 'FAILED' && row.analysisErrorCode ? (analysisErrors[row.analysisErrorCode] || '분석 실패') : (statuses[row.analysisStatus] || row.analysisStatus);
+      const isImage = /\.png$/i.test(row.originalName || '');
+      const analysisLabel = mockEnabled && isImage && ['NOT_ANALYZED', 'AWAITING_AI'].includes(row.analysisStatus)
+        ? 'AI 연결 후 분석 가능'
+        : row.analysisStatus === 'FAILED' && row.analysisErrorCode ? (analysisErrors[row.analysisErrorCode] || '분석 실패') : (statuses[row.analysisStatus] || row.analysisStatus);
       const meta = document.createElement('span'); meta.textContent = `${formatSize(row.size)} · ${row.reusedAnalysis ? '분석 재사용' : analysisLabel}${row.extractedLength ? ` · ${row.extractedLength.toLocaleString()}자` : ''}`;
       info.append(link, meta);
       if (row.analysisStatus === 'TEXT_READY') {
@@ -68,8 +71,8 @@ export function mountAttachments({request, byId, getEditor, getGenerationFeature
         };
         actions.append(retry);
       }
-      if (row.analysisStatus === 'FAILED' || (!mockEnabled && ['AWAITING_AI', 'NOT_ANALYZED'].includes(row.analysisStatus))) {
-        const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'quiet-button'; retry.textContent = '다시 분석';
+      if ((row.analysisStatus === 'FAILED' && (!mockEnabled || !isImage)) || row.analysisStatus === 'NOT_ANALYZED' && (!mockEnabled || !isImage) || !mockEnabled && row.analysisStatus === 'AWAITING_AI') {
+        const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'quiet-button'; retry.textContent = row.analysisStatus === 'NOT_ANALYZED' ? '분석 시작' : '다시 분석';
         retry.onclick = async () => {
           retry.disabled = true;
           try { await request(`/api/attachments/${encodeURIComponent(row.id)}/analysis`, {method: 'POST'}); await loadAttachments(getEditor().id); }

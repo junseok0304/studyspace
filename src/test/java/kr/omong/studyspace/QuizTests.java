@@ -23,7 +23,7 @@ class QuizTests {
         db.update("insert into users(email,password_hash,nickname) values('quiz@example.com','test','학생')");
         long userId=db.queryForObject("select id from users where email='quiz@example.com'",Long.class);
         db.update("insert into courses(id,user_id,semester,name) values('quiz-course',?,'2026-2','자료구조')",userId);
-        db.update("insert into notes(id,course_id,user_id,title,body,version) values('quiz-note','quiz-course',?,'트리','# 이진 탐색 트리',2)",userId);
+        db.update("insert into notes(id,course_id,user_id,title,body,version) values('quiz-note','quiz-course',?,'트리','# 트리\n\n트리는 계층 구조입니다.',2)",userId);
         db.update("insert into attachments(id,note_id,user_id,original_name,storage_key,media_type,extension,size_bytes,sha256,analysis_status,extracted_text,analyzed_at) values('quiz-file','quiz-note',?,'트리.pdf','test/quiz-file.pdf','application/pdf','pdf',100,'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','TEXT_READY','이진 탐색 트리는 정렬된 구조입니다.',current_timestamp)",userId);
         var owner=user(Long.toString(userId));
         String create="{\"requestId\":\"11111111-1111-4111-8111-111111111111\",\"questionCount\":3,\"attachmentIds\":[\"quiz-file\"]}";
@@ -32,6 +32,9 @@ class QuizTests {
         String setId=db.queryForObject("select id from quiz_sets where user_id=?",String.class,userId);
         mvc.perform(get("/api/quiz-sets/"+setId+"/questions").with(owner))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].prompt").value(org.hamcrest.Matchers.containsString("1번째로 정리된 핵심 문장")))
+                .andExpect(jsonPath("$[0].options").value(org.hamcrest.Matchers.hasItem("트리는 계층 구조입니다.")))
+                .andExpect(jsonPath("$[0].options").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("트리"))))
                 .andExpect(jsonPath("$[1].options").value(org.hamcrest.Matchers.hasItem("이진 탐색 트리는 정렬된 구조입니다.")))
                 .andExpect(jsonPath("$[1].hint").value(org.hamcrest.Matchers.containsString("특징")))
                 .andExpect(jsonPath("$[1].explanation").value(org.hamcrest.Matchers.containsString("이진 탐색 트리는 정렬된 구조입니다.")));

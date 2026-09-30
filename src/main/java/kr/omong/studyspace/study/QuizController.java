@@ -60,7 +60,7 @@ public class QuizController {
         final List<GeminiGenerator.GeneratedQuiz> generated=generatedResult;
         String mockMaterial = review != null ? review.content() : String.join("\n",
                 java.util.stream.Stream.concat(java.util.stream.Stream.of(note.body()),attachments.stream().map(AttachmentSource::text)).toList());
-        List<String> mockPassages=MockStudyContent.passages(mockMaterial);
+        List<String> mockPassages=MockStudyContent.passagesExcluding(note.title(),mockMaterial);
         if(mockPassages.isEmpty()) mockPassages=List.of(note.title()+" 노트에 작성된 내용을 확인해 주세요.");
         final List<String> sourcePassages=mockPassages;
         try { tx.executeWithoutResult(status->{
@@ -151,8 +151,9 @@ public class QuizController {
     }
 
     private void insertMockQuestion(String setId,int order,Note note,List<String> passages) {
-        String claim=passages.get(order%passages.size());
-        String prompt=(order+1)+". 다음 중 강의 원문에 실제로 제시된 내용은 무엇인가요?";
+        int passageIndex=order%passages.size();
+        String claim=passages.get(passageIndex);
+        String prompt=(order+1)+". 원문에서 "+(passageIndex+1)+"번째로 정리된 핵심 문장은 무엇인가요?";
         var distractors=passages.stream().filter(value->!value.equals(claim)).limit(3).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
         List<String> fallback=List.of("강의자료에서 근거를 찾을 수 없는 설명입니다.","원문에 포함되지 않은 내용입니다.","제공된 자료에서 확인되지 않는 주장입니다.");
         for(String value:fallback) { if(distractors.size()==3) break; if(!value.equals(claim)) distractors.add(value); }
