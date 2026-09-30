@@ -35,7 +35,6 @@ function renderSemesters(semesters) {
 async function refresh() {
   const [data,storage,semesters]=await Promise.all([api('/api/school'),api('/api/account/storage'),api('/api/semesters')]);
   byId('connection-state').textContent=data.linked ? '연동 완료' : '학교 계정을 연결해 시간표를 가져오세요.';
-  byId('school-account-editor').open=!data.linked;
   byId('disconnect').hidden=!data.saved; byId('disconnect').parentElement.hidden=!data.saved; byId('sync').disabled=!data.linked;
   rows(byId('saved-courses'),data.courses);
   renderSemesters(semesters);

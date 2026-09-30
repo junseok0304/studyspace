@@ -412,13 +412,6 @@ body:has(#study:not(.hidden)) .workspace-shell{
 .notesup-workspace .study-dashboard .study-stat:nth-child(4){ border-color: #e2d6f7; background: #f8f4ff; }
 .notesup-workspace .study-dashboard .study-stat:nth-child(4) .study-stat-value{ color: #8968d6 !important; }
 
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 1) .bar-fill{ background:linear-gradient(180deg,#7894f2,#4f70d8); }
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 2) .bar-fill{ background:linear-gradient(180deg,#55b9a9,#2f9d8f); }
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 3) .bar-fill{ background:linear-gradient(180deg,#f0aa72,#d97843); }
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 4) .bar-fill{ background:linear-gradient(180deg,#b39aeb,#8968d6); }
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 5) .bar-fill{ background:linear-gradient(180deg,#e68ba0,#c45d76); }
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 6) .bar-fill{ background:linear-gradient(180deg,#d6b45e,#a8791c); }
-.notesup-workspace .study-dashboard .bar-column:nth-child(7n) .bar-fill{ background:linear-gradient(180deg,#7894f2,#4f70d8); }
 
 .notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 1){ --course-progress-accent:#4f70d8; --course-progress-soft:#eef3ff; }
 .notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 2){ --course-progress-accent:#2f9d8f; --course-progress-soft:#effbf8; }
@@ -496,6 +489,36 @@ body:has(#study:not(.hidden)) .workspace-shell{
 .notesup-workspace .study-dashboard .fine-print{ font-size: 12px; }
 .notesup-workspace .study-dashboard .bar-column > span,
 .notesup-workspace .study-dashboard .bar-column small{ font-size: 11px; }
+
+/* Recent activity: one calm, cohesive scale instead of a rainbow of bars. */
+.notesup-workspace .study-dashboard .bar-column > span:first-child{
+  color:#8490a3;
+  font-size:10px;
+  font-weight:650;
+  font-variant-numeric:tabular-nums;
+}
+.notesup-workspace .study-dashboard .bar-track{
+  width:28px;
+  border:1px solid #e9edf5;
+  border-radius:8px 8px 5px 5px;
+  background:linear-gradient(180deg,#f8f9fc,#f0f3f8);
+}
+.notesup-workspace .study-dashboard .bar-fill,
+.notesup-workspace .study-dashboard .bar-column:nth-child(n) .bar-fill{
+  min-height:0;
+  border-radius:7px 7px 4px 4px;
+  background:linear-gradient(180deg,#91a4dc 0%,#637abf 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
+  transition:height .3s ease,filter .2s ease;
+}
+.notesup-workspace .study-dashboard .bar-column:last-child .bar-fill{
+  background:linear-gradient(180deg,#8299d8 0%,#526eb9 100%);
+}
+.notesup-workspace .study-dashboard .bar-column:hover .bar-fill{ filter:brightness(1.06); }
+.notesup-workspace .study-dashboard .bar-column > span:last-child{
+  color:#929cad;
+  font-variant-numeric:tabular-nums;
+}
 
 .notesup-workspace .generation-actions button.ai-action strong{ font-size: 15px; }
 .notesup-workspace .generation-actions button.ai-action small{ font-size: 12px; }

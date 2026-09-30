@@ -98,3 +98,155 @@
   .profile-nav { gap:6px; }
   .profile-nav a { font-size:14px; padding:10px; }
 }
+
+/* Refreshed account workspace: clear settings hierarchy and a quiet, spacious
+   content surface. The existing controls and section navigation stay intact. */
+.profile{
+  width:min(1260px,calc(100% - 64px));
+  padding:28px 0 88px;
+  color:#27344a;
+}
+.profile header{
+  min-height:48px;
+  margin-bottom:36px;
+  padding-bottom:18px;
+  border-bottom:1px solid #e7ebf2;
+}
+.profile header img{display:block;border-radius:13px;box-shadow:0 5px 15px rgba(76,105,185,.16)}
+.profile header > a:last-child{margin-left:auto;color:#64718a;font-size:13px;font-weight:650;text-decoration:none}
+.profile header > a:last-child:hover{color:#4f69b5}
+.profile-eyebrow{
+  grid-column:2;
+  grid-row:2;
+  margin:0 0 7px;
+  color:#7182b4;
+  font-size:10px!important;
+  font-weight:800;
+  letter-spacing:.13em;
+}
+.profile h1{
+  grid-column:2;
+  grid-row:3;
+  margin:0;
+  padding:0;
+  color:#27344a;
+  font-size:30px;
+  letter-spacing:-1.2px;
+}
+.profile-lede{
+  grid-column:2;
+  grid-row:4;
+  margin:7px 0 22px;
+  color:#7a879b;
+  font-size:14px;
+  line-height:1.7;
+}
+.profile-nav{
+  grid-column:1;
+  grid-row:2 / span 5;
+  align-self:start;
+  top:22px;
+  gap:5px;
+  padding:12px;
+  border:1px solid #e5eaf2;
+  border-radius:16px;
+  background:rgba(255,255,255,.88);
+  box-shadow:0 10px 30px rgba(49,68,109,.055);
+}
+.profile-nav::before{
+  content:'설정 메뉴';
+  padding:8px 11px 10px;
+  color:#9aa4b4;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+.profile-nav a{
+  display:flex;
+  align-items:center;
+  min-height:43px;
+  padding:10px 12px;
+  border:1px solid transparent;
+  border-radius:10px;
+  color:#69768a;
+  font-size:13px;
+  transition:background .16s ease,color .16s ease,border-color .16s ease;
+}
+.profile-nav a:hover{background:#f6f8fc;color:#465d9e}
+.profile-nav a[aria-current=page]{border-color:#e0e6f4;background:#eff3fb;color:#5069ad}
+.profile > .message:not(:empty){grid-column:2;grid-row:5;margin:0 0 12px}
+.profile > .card{
+  grid-column:2;
+  margin:0 0 14px;
+  padding:30px 34px;
+  border:1px solid #e4e9f1;
+  border-radius:17px;
+  background:#fff;
+  box-shadow:0 12px 34px rgba(49,68,109,.055);
+}
+.profile > .card h2{margin:0 0 8px;color:#2d3a50;font-size:21px;letter-spacing:-.6px}
+.profile > .card h2::after{content:'';display:block;width:28px;height:3px;margin-top:13px;border-radius:8px;background:#8093cb}
+.profile > .card h3{margin:30px 0 8px;color:#3b4960;font-size:15px}
+.profile .muted{max-width:760px;color:#7b8798}
+.profile #connection-state{padding:8px 13px;background:#edf7f2;color:#39795f}
+.profile #connection-state::before{background:#58a383;box-shadow:0 0 0 3px #d8efe4}
+.profile .semester-list{padding:12px;border:1px solid #e8edf4;border-radius:12px;background:#fafbfd}
+.profile .semester-list span{padding:7px 12px;border-color:#e1e7f0;background:#fff;color:#596881;font-weight:650}
+.profile .storage-summary{padding:24px;border-color:#e1e7f0;border-radius:15px;background:linear-gradient(120deg,#f5f7fc,#fbfcfe)}
+.profile .storage-summary strong{display:block;color:#354462;font-size:19px;font-variant-numeric:tabular-nums}
+.profile .storage-summary span{display:inline-block;margin:5px 0 0;color:#8792a3}
+.profile .storage-summary progress{height:8px;border-radius:99px;accent-color:#647dbf}
+.profile .storage-summary progress{
+  display:block;
+  appearance:none;
+  -webkit-appearance:none;
+  overflow:hidden;
+  border:0;
+  background:#e8edf6;
+}
+.profile .storage-summary progress::-webkit-progress-bar{border-radius:99px;background:#e8edf6}
+.profile .storage-summary progress::-webkit-progress-value{min-width:7px;border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
+.profile .storage-summary progress::-moz-progress-bar{min-width:7px;border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
+.profile .profile-download{margin-top:16px}
+.profile #disconnect[hidden],
+.profile .form-actions-secondary[hidden]{display:none!important}
+.profile .danger-zone{border-color:#f0dede;background:#fffdfd}
+.profile .danger-zone h2::after{background:#d58989}
+.profile .danger-zone details{margin-top:14px;padding:0 16px;border:1px solid #f2e4e4;border-radius:12px;background:#fff}
+.profile .danger-zone details[open]{padding-bottom:20px}
+.profile .danger-zone #delete-account-form{width:100%;min-width:0;grid-template-columns:minmax(0,1fr);gap:14px}
+.profile .danger-zone #delete-account-form label{min-width:0}
+.profile .danger-zone #delete-account-form input{box-sizing:border-box;width:100%;min-width:0}
+.profile .danger-zone #delete-account-form .form-actions{min-width:0;margin-top:2px}
+.profile .danger-zone #delete-account-form .danger-button{box-sizing:border-box;width:min(100%,280px);min-width:0;min-height:46px;padding:10px 16px;white-space:normal;line-height:1.4;overflow-wrap:anywhere}
+.profile .schedule-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 2px}
+.profile .schedule-row br{display:none}
+.profile .schedule-row strong{font-size:14px}
+.profile .schedule-row span{text-align:right}
+@media(min-width:900px){
+  .profile{grid-template-columns:228px minmax(0,1fr);column-gap:34px}
+  .profile h1{font-size:30px}
+  .profile > .card{grid-row:6}
+  .profile #school-settings{grid-row:6}
+  .profile #schedule-settings{grid-row:6}
+  .profile #data-settings{grid-row:6}
+  .profile #account-settings{grid-row:6}
+}
+@media(max-width:899px){
+  .profile{width:min(760px,calc(100% - 36px));display:block}
+  .profile-eyebrow{margin:0 0 7px}
+  .profile h1{margin:0;padding:0;font-size:28px}
+  .profile-lede{margin:7px 0 20px}
+  .profile-nav{position:sticky;top:0;display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;padding:9px;border-radius:13px}
+  .profile-nav::before{display:none}
+  .profile-nav a{flex:0 0 auto;min-height:40px}
+  .profile > .card{margin-bottom:14px;padding:24px}
+  .profile .danger-zone #delete-account-form .danger-button{width:100%;max-width:360px}
+}
+@media(max-width:560px){
+  .profile{width:calc(100% - 28px);padding-top:18px}
+  .profile header{margin-bottom:25px;padding-bottom:14px}
+  .profile > .card{padding:20px 17px;border-radius:14px}
+  .profile .schedule-row{align-items:flex-start;flex-direction:column;gap:3px}
+  .profile .schedule-row span{text-align:left}
+}

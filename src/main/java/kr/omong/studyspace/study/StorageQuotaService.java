@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class StorageQuotaService {
     private final JdbcTemplate db; private final long limit;
-    public StorageQuotaService(JdbcTemplate db,@Value("${STUDYSPACE_STORAGE_LIMIT_BYTES:2147483648}") long limit){this.db=db;this.limit=Math.max(1,limit);}
+    public StorageQuotaService(JdbcTemplate db,@Value("${STUDYSPACE_STORAGE_LIMIT_BYTES:3221225472}") long limit){this.db=db;this.limit=Math.max(1,limit);}
     public record Usage(long usedBytes,long limitBytes,long remainingBytes,double usedPercent){}
     public Usage usage(long user){
         Long attachments=db.queryForObject("select coalesce(sum(size_bytes),0) from attachments where user_id=?",Long.class,user);

@@ -2,12 +2,14 @@
 <main class="profile">
   <header><a href="/"><img src="/assets/studyspace-logo.png" alt="StudySpace 홈" width="48" height="48"></a><a href="/">학습 공간으로 돌아가기</a></header>
   <link rel="stylesheet" href="/profile-refinement.css">
+  <p class="profile-eyebrow">MY STUDYSPACE</p>
   <h1>마이페이지</h1>
+  <p class="profile-lede">학교 연동부터 학습 자료와 계정까지, 필요한 설정을 한곳에서 관리합니다.</p>
    <nav class="profile-nav" aria-label="설정 메뉴"><a href="#school-settings">학교 연동</a><a href="#schedule-settings">시간표·학기</a><a href="#data-settings">저장공간·데이터</a><a href="#account-settings">계정 관리</a></nav>
   <p id="profile-message" class="message" role="status" aria-live="polite"></p>
   <section class="card" id="school-settings"><h2>학교 연동</h2><p class="muted">성공회대학교</p>
     <p id="connection-state" role="status">연동 상태 확인 중</p>
-    <details id="school-account-editor" open><summary>연동 계정 설정</summary>
+    <h3 class="school-account-heading">연동 계정 설정</h3>
     <form id="school-form">
       <label>LMS 아이디<input id="school-id" required maxlength="80" autocomplete="off"></label>
       <label>LMS 비밀번호<input id="school-password" type="password" required maxlength="200" autocomplete="off"></label>
@@ -15,7 +17,6 @@
       <div class="form-actions"><button class="primary" id="register-school">로그인 확인하고 등록</button></div>
     </form>
     <div class="form-actions form-actions-secondary"><button class="secondary" id="disconnect" hidden>연동 해제 · 저장 정보 삭제</button></div>
-    </details>
   </section>
    <section class="card" id="schedule-settings"><h2>시간표와 학기</h2><p class="muted">학기는 여기서 추가하고, 학습 공간에서는 등록한 학기를 선택해 과목을 만듭니다.</p>
      <form id="semester-form" class="semester-form"><label>새 학기 이름<input id="semester-name" maxlength="40" placeholder="예: 2026년 2학기" required></label><div class="form-actions"><button class="secondary" type="submit">학기 추가</button></div></form>
