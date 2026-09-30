@@ -228,7 +228,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     return loadedSets;
   }
 
-  async function createQuiz() {
+  async function createQuiz({start = true} = {}) {
     const editor = getEditor(); if (!editor.id) return;
     const noteId = editor.id;
     if (generatingNotes.has(noteId)) return null;
@@ -246,13 +246,23 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
       if (getEditor().id !== noteId) return set;
       byId('learning-mode-badge').textContent = set.mockResult ? '모의 결과 저장됨' : 'AI 생성 결과 저장됨';
       el('quiz-message').textContent = `${count}문제 퀴즈를 저장했습니다.`;
-      await startAttempt(set.id);
+      if (start) await startAttempt(set.id);
       return set;
     } catch (error) { if (getEditor().id === noteId) el('quiz-message').textContent = error.message; return null; }
     finally { generatingNotes.delete(noteId); button.disabled = !getEditor().id || generatingNotes.has(getEditor().id); }
   }
 
   el('create-speed-quiz').onclick = createQuiz;
+
+  async function ensureForNote() {
+    const editor = getEditor(); const course = getCourse();
+    if (!editor?.id || !course?.id) return null;
+    const noteId = editor.id;
+    const rows = await loadQuizSets(course.id);
+    if (getEditor()?.id !== noteId) return null;
+    const existing = (rows || loadedSets).find(set => set.noteId === noteId && set.sourceNoteVersion === editor.version && matchesAiMode(set));
+    return existing || createQuiz({start: false});
+  }
 
   async function openForNote() {
     const editor = getEditor(); const course = getCourse();
@@ -278,5 +288,5 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     return set;
   }
 
-  return {loadQuizSets, renderAttempt, openForNote, createQuiz};
+  return {loadQuizSets, renderAttempt, openForNote, createQuiz, ensureForNote};
 }

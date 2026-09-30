@@ -153,7 +153,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     return loadedDecks;
   }
 
-  async function createDeck() {
+  async function createDeck({studyAfter = true} = {}) {
     const editor = getEditor(); if (!editor.id) return;
     const noteId = editor.id;
     if (generatingNotes.has(noteId)) return null;
@@ -171,13 +171,23 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       if (getEditor().id !== noteId) return deck;
       byId('learning-mode-badge').textContent = deck.mockResult ? '모의 결과 저장됨' : 'AI 생성 결과 저장됨';
       el('flashcard-message').textContent = `${count}장 플래시카드를 저장했습니다.`;
-      study(deck);
+      if (studyAfter) study(deck);
       return deck;
     } catch (error) { if (getEditor().id === noteId) el('flashcard-message').textContent = error.message; return null; }
     finally { generatingNotes.delete(noteId); button.disabled = !getEditor().id || generatingNotes.has(getEditor().id); }
   }
 
   el('create-flashcards').onclick = createDeck;
+
+  async function ensureForNote() {
+    const editor = getEditor(); const course = getCourse();
+    if (!editor?.id || !course?.id) return null;
+    const noteId = editor.id;
+    const decks = await loadFlashcardDecks(course.id);
+    if (getEditor()?.id !== noteId) return null;
+    const existing = (decks || loadedDecks).find(deck => deck.noteId === noteId && deck.sourceNoteVersion === editor.version && matchesAiMode(deck));
+    return existing || createDeck({studyAfter: false});
+  }
 
   async function openForNote() {
     const editor = getEditor(); const course = getCourse();
@@ -196,5 +206,5 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     return deck;
   }
 
-  return {loadFlashcardDecks, openForNote, createDeck};
+  return {loadFlashcardDecks, openForNote, createDeck, ensureForNote};
 }
