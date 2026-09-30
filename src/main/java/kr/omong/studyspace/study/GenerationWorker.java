@@ -22,6 +22,7 @@ public class GenerationWorker {
     private final ObjectMapper json;
     private final GeminiGenerator gemini;
     private final UsageRecorder usage;
+    private final java.util.concurrent.ConcurrentHashMap<Long,java.util.concurrent.Semaphore> userSlots = new java.util.concurrent.ConcurrentHashMap<>();
 
     public GenerationWorker(JdbcTemplate db, TransactionTemplate tx,
                             @Qualifier("generationExecutor") TaskExecutor executor,
@@ -36,7 +37,16 @@ public class GenerationWorker {
     }
 
     public void enqueue(String jobId, long userId) {
-        executor.execute(() -> process(jobId, userId));
+        executor.execute(() -> {
+            var slots=userSlots.computeIfAbsent(userId, ignored -> new java.util.concurrent.Semaphore(3));
+            if(!slots.tryAcquire()) return;
+            try {
+                process(jobId,userId);
+            } finally {
+                slots.release();
+                enqueueNextPending(userId);
+            }
+        });
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -45,6 +55,12 @@ public class GenerationWorker {
         List<JobOwner> jobs = db.query("select id,user_id from generation_jobs where status='PENDING' order by created_at",
                 (row,index) -> new JobOwner(row.getString("id"),row.getLong("user_id")));
         jobs.forEach(job -> enqueue(job.id(),job.userId()));
+    }
+
+    private void enqueueNextPending(long userId) {
+        var pending=db.query("select id from generation_jobs where user_id=? and status='PENDING' order by created_at,id limit 1",
+                (row,index)->row.getString("id"),userId);
+        if(!pending.isEmpty()) enqueue(pending.getFirst(),userId);
     }
 
     private void process(String jobId, long userId) {

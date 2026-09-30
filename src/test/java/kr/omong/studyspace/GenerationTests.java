@@ -115,22 +115,22 @@ class GenerationTests {
         assertEquals(1,db.queryForObject("select count(*) from generation_jobs where request_id='1d777dd9-aa0b-4b04-951a-b3c386e2cf08'",Integer.class));
     }
 
-    @Test void rejectsNewGenerationWhenPerUserLimitsAreReached() throws Exception {
+    @Test void allowsThreeConcurrentGenerationsPerUserAndRejectsTheFourth() throws Exception {
         db.update("insert into users(email,password_hash,nickname) values('limits@example.com','test','한도')");
         long ownerId=db.queryForObject("select id from users where email='limits@example.com'",Long.class);
         db.update("insert into courses(id,user_id,semester,name) values('limits-course',?,'2026-2','한도과목')",ownerId);
         db.update("insert into notes(id,course_id,user_id,title,body,version) values('limits-note','limits-course',?,'한도노트','# 내용',0)",ownerId);
         var owner=user(Long.toString(ownerId));
         String input="{\"kind\":\"SUMMARY\",\"requestId\":\"8e777dd9-aa0b-4b04-951a-b3c386e2cf08\",\"attachmentIds\":[]}";
-        for(int i=0;i<5;i++) db.update("insert into generation_jobs(id,request_id,user_id,note_id,kind,status,source_note_version,model,mock_result) values(?,?,?,'limits-note','SUMMARY','PENDING',0,'gemini-3.6-flash',true)",
+        for(int i=0;i<2;i++) db.update("insert into generation_jobs(id,request_id,user_id,note_id,kind,status,source_note_version,model,mock_result) values(?,?,?,'limits-note','SUMMARY','PENDING',0,'gemini-3.6-flash',true)",
                 "limit-job-"+i,"limit-request-"+i,ownerId);
         mvc.perform(post("/api/notes/limits-note/generations").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(input))
+                .andExpect(status().isAccepted());
+        for(int i=2;i<5;i++) db.update("insert into generation_jobs(id,request_id,user_id,note_id,kind,status,source_note_version,model,mock_result) values(?,?,?,'limits-note','SUMMARY','PENDING',0,'gemini-3.6-flash',true)",
+                "limit-job-"+i,"limit-request-"+i,ownerId);
+        String fourth="{\"kind\":\"SUMMARY\",\"requestId\":\"b5c3a9a1-0c83-4f95-bb60-b72ee5d42e9f\",\"attachmentIds\":[]}";
+        mvc.perform(post("/api/notes/limits-note/generations").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(fourth))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.error").value("대기 중인 생성 작업이 많습니다. 완료 후 다시 시도해 주세요."));
-        db.update("update generation_jobs set status='RUNNING' where id='limit-job-0'");
-        db.update("update generation_jobs set status='CANCELED' where id!='limit-job-0' and user_id=?",ownerId);
-        mvc.perform(post("/api/notes/limits-note/generations").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(input))
-                .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.error").value("이미 실행 중인 생성 작업이 있습니다. 완료 후 다시 시도해 주세요."));
+                .andExpect(jsonPath("$.error").value("동시에 최대 3건까지 생성할 수 있습니다. 진행 중인 작업이 완료되면 다시 시도해 주세요."));
     }
 }

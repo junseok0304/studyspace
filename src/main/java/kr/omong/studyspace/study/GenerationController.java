@@ -35,6 +35,7 @@ public class GenerationController {
     private final String model;
     private final boolean mockEnabled;
     private final ObjectMapper json;
+    private final java.util.concurrent.ConcurrentHashMap<Long,Object> admissionLocks = new java.util.concurrent.ConcurrentHashMap<>();
 
     public GenerationController(JdbcTemplate db, GenerationWorker worker,TransactionTemplate tx,
                                 @Value("${studyspace.ai.model:gemini-3.6-flash}") String model,
@@ -119,6 +120,7 @@ public class GenerationController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Generation create(Authentication auth,@PathVariable String noteId,@Valid @RequestBody CreateGeneration input) {
         long user=owner(auth);
+        synchronized (admissionLocks.computeIfAbsent(user, ignored -> new Object())) {
         var replay=findByRequest(input.requestId(),user);
         if(!replay.isEmpty()) return replay.getFirst();
         NoteVersion note=requireNote(noteId,user);
@@ -143,12 +145,14 @@ public class GenerationController {
         }
         worker.enqueue(id,user);
         return find(id,user);
+        }
     }
 
     @PostMapping("/generations/{id}/retry")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Generation retry(Authentication auth,@PathVariable String id,@Valid @RequestBody RetryGeneration input) {
         long user=owner(auth);
+        synchronized (admissionLocks.computeIfAbsent(user, ignored -> new Object())) {
         if (!mockEnabled && !Boolean.TRUE.equals(db.queryForObject("select email_verified from users where id=?",Boolean.class,user))) throw new AuthException("이메일 인증 후 AI 생성을 이용할 수 있습니다.",403);
         var originals=db.query("select note_id,kind,source_note_version,source_title,source_body,model from generation_jobs where id=? and user_id=? and status in ('FAILED','CANCELED')",
                 (row,index) -> new RetrySource(row.getString("note_id"),row.getString("kind"),row.getLong("source_note_version"),row.getString("source_title"),row.getString("source_body"),row.getString("model")),id,user);
@@ -172,6 +176,7 @@ public class GenerationController {
         }
         worker.enqueue(retryId,user);
         return find(retryId,user);
+        }
     }
 
     @DeleteMapping("/generations/{id}")
@@ -250,8 +255,7 @@ public class GenerationController {
         Integer running=db.queryForObject("select count(*) from generation_jobs where user_id=? and status='RUNNING'",Integer.class,user);
         Integer pending=db.queryForObject("select count(*) from generation_jobs where user_id=? and status='PENDING'",Integer.class,user);
         Integer daily=db.queryForObject("select count(*) from generation_jobs where user_id=? and created_at >= current_date",Integer.class,user);
-        if(running!=null && running>=1) throw new AuthException("이미 실행 중인 생성 작업이 있습니다. 완료 후 다시 시도해 주세요.",429);
-        if(pending!=null && pending>=5) throw new AuthException("대기 중인 생성 작업이 많습니다. 완료 후 다시 시도해 주세요.",429);
+        if((running==null?0:running)+(pending==null?0:pending)>=3) throw new AuthException("동시에 최대 3건까지 생성할 수 있습니다. 진행 중인 작업이 완료되면 다시 시도해 주세요.",429);
         if(daily!=null && daily>=30) throw new AuthException("오늘의 생성 한도(30회)에 도달했습니다.",429);
     }
     private List<String> locations(String text) {
