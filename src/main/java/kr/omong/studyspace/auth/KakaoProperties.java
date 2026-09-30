@@ -8,6 +8,7 @@ public record KakaoProperties(
         String restApiKey,
         String javascriptKey,
         String clientSecret,
+        boolean clientSecretRequired,
         String redirectUri,
         String publicBaseUrl
 ) {

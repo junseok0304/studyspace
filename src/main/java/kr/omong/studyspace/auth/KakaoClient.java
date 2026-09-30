@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -28,11 +29,14 @@ public class KakaoClient {
     }
 
     public boolean available() {
-        return properties.enabled() && hasText(properties.restApiKey()) && hasText(properties.redirectUri());
+        return properties.enabled() && hasText(properties.restApiKey()) && hasText(properties.redirectUri())
+                && (!properties.clientSecretRequired() || hasText(properties.clientSecret()));
     }
 
     public String authorizationUrl(String state) {
         if (!available()) {
+            if (properties.enabled() && properties.clientSecretRequired() && !hasText(properties.clientSecret()))
+                throw new AuthException("카카오 로그인 클라이언트 시크릿이 서버에 설정되지 않았습니다.",503);
             throw new AuthException("카카오 로그인이 아직 설정되지 않았습니다.", 503);
         }
         return UriComponentsBuilder.fromUriString(AUTHORIZE_URL)
@@ -77,11 +81,29 @@ public class KakaoClient {
             return new KakaoUser(Long.toString(providerId), email, nickname);
         } catch (AuthException e) {
             throw e;
+        } catch (RestClientResponseException e) {
+            throw kakaoResponseError(e.getResponseBodyAsString());
         } catch (RestClientException e) {
             throw new AuthException("카카오 인증 서버와 통신하지 못했습니다.", 502);
         } catch (Exception e) {
             throw new AuthException("카카오 사용자 응답을 해석하지 못했습니다.", 502);
         }
+    }
+
+    private AuthException kakaoResponseError(String responseBody) {
+        String code="";
+        try {
+            JsonNode body=objectMapper.readTree(responseBody);
+            code=Optional.ofNullable(body.get("error_code")).map(JsonNode::asText)
+                    .orElseGet(()->Optional.ofNullable(body.get("error")).map(JsonNode::asText).orElse(""));
+        } catch(Exception ignored) { /* Do not expose an untrusted provider response. */ }
+        return switch(code) {
+            case "KOE010" -> new AuthException("카카오 로그인 클라이언트 시크릿 설정이 일치하지 않습니다.",502);
+            case "KOE303" -> new AuthException("카카오 로그인 리다이렉트 주소가 서버 설정과 일치하지 않습니다.",502);
+            case "KOE320" -> new AuthException("카카오 로그인 요청이 만료되었습니다. 처음부터 다시 시도해 주세요.",400);
+            case "KOE101","invalid_client" -> new AuthException("카카오 REST API 키 또는 앱 설정을 확인해 주세요.",502);
+            default -> new AuthException("카카오 인증 서버가 로그인 요청을 승인하지 않았습니다.",502);
+        };
     }
 
     private String text(JsonNode node, String field) {

@@ -1,0 +1,386 @@
+/** Recording UI, recorder lifecycle, waveform analysis, and course-level list. */
+export function mountRecording({request, byId, getCourse, getEditor, setLocked, emptyState}) {
+  const el = byId;
+  let version = 0;
+  let activeRecording = null;
+  let recordingTimer = null;
+  let rows = [];
+  let noteRows = [];
+  const waveformFailures = new Set();
+
+  const recordingTime = seconds => {
+    const value = Math.max(0, Math.floor(seconds || 0));
+    return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+  };
+
+  async function uploadChunk(id, sequence, blob) {
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const form = new FormData();
+        form.append('chunk', blob, `chunk-${sequence}.webm`);
+        return await request(`/api/recordings/${encodeURIComponent(id)}/chunks?sequence=${sequence}`, {method: 'POST', formData: form});
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) {
+          el('recording-message').textContent = `녹음 구간 ${sequence + 1} 저장을 재시도하고 있습니다… (${attempt + 2}/3)`;
+          await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  function drawWaveform(canvas, peaks, cursor = null, viewStart = 0, viewEnd = 1) {
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(300, canvas.clientWidth || 600);
+    const height = 92;
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    const context = canvas.getContext('2d');
+    context.scale(ratio, ratio);
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = '#f5f8fb';
+    context.fillRect(0, 0, width, height);
+    const span = Math.max(0.001, viewEnd - viewStart);
+    const screen = value => (value - viewStart) / span;
+    context.strokeStyle = '#428df0';
+    context.lineWidth = 1;
+    context.beginPath();
+    peaks.forEach((peak, index) => {
+      const relative = index / Math.max(1, peaks.length - 1);
+      if (relative < viewStart || relative > viewEnd) return;
+      const x = screen(relative) * (width - 1);
+      const amplitude = Math.max(1, peak * (height / 2 - 5));
+      context.moveTo(x, height / 2 - amplitude);
+      context.lineTo(x, height / 2 + amplitude);
+    });
+    context.stroke();
+    if (cursor !== null && cursor >= viewStart && cursor <= viewEnd) {
+      context.strokeStyle = '#d92d20';
+      context.lineWidth = 2;
+      context.beginPath();
+      const x = screen(cursor) * (width - 1);
+      context.moveTo(x, 0);
+      context.lineTo(x, height);
+      context.stroke();
+    }
+  }
+
+  async function createWaveform(recording) {
+    const response = await fetch(`/api/recordings/${encodeURIComponent(recording.id)}/content`, {credentials: 'same-origin', cache: 'no-store'});
+    if (!response.ok) throw new Error(`오디오를 불러오지 못했습니다 (${response.status}).`);
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error('이 브라우저는 파형 분석을 지원하지 않습니다.');
+    const context = new AudioContextClass();
+    try {
+      if (context.state === 'suspended') await context.resume();
+      const audioData = await response.arrayBuffer();
+      const buffer = await new Promise((resolve, reject) => {
+        let settled = false;
+        const done = (callback, value) => { if (!settled) { settled = true; callback(value); } };
+        try {
+          const result = context.decodeAudioData(audioData.slice(0), value => done(resolve, value), error => done(reject, error));
+          if (result && typeof result.then === 'function') result.then(value => done(resolve, value), error => done(reject, error));
+        } catch (error) { done(reject, error); }
+      });
+      const channel = buffer.getChannelData(0);
+      const count = Math.min(1200, Math.max(200, Math.ceil(buffer.duration * 4)));
+      const block = Math.max(1, Math.floor(channel.length / count));
+      const peaks = [];
+      for (let index = 0; index < count; index++) {
+        let peak = 0;
+        const end = Math.min(channel.length, (index + 1) * block);
+        for (let sample = index * block; sample < end; sample++) peak = Math.max(peak, Math.abs(channel[sample]));
+        peaks.push(Number(peak.toFixed(4)));
+      }
+      return await request(`/api/recordings/${encodeURIComponent(recording.id)}/waveform`, {method: 'POST', body: JSON.stringify({peaks, durationSeconds: Math.min(3600, buffer.duration)})});
+    } finally {
+      if (context.state !== 'closed') await context.close().catch(() => {});
+    }
+  }
+
+  function updateRecordingRow(updated) {
+    waveformFailures.delete(updated.id);
+    rows = rows.map(row => row.id === updated.id ? {...updated, noteId: row.noteId, noteTitle: row.noteTitle} : row);
+    renderRecordings(rows, noteRows);
+  }
+
+  function renderRecordings(recordings, notes = []) {
+    rows = recordings;
+    noteRows = notes;
+    const list = el('recordings');
+    list.replaceChildren(...recordings.map(recording => {
+      const item = document.createElement('article');
+      item.className = 'recording-row';
+      const head = document.createElement('div');
+      head.className = 'recording-row-head';
+      const identity = document.createElement('div');
+      identity.className = 'recording-row-identity';
+      const title = document.createElement('strong');
+      title.textContent = recording.title;
+      const duration = document.createElement('span');
+      duration.className = 'fine-print';
+      duration.textContent = recording.status === 'READY' ? recordingTime(recording.durationSeconds) : '저장 중단됨';
+      const rename = document.createElement('button');
+      rename.type = 'button'; rename.className = 'quiet-button'; rename.textContent = '이름 변경';
+      rename.onclick = async () => {
+        const value = window.prompt('녹음 이름', recording.title)?.trim();
+        if (value) { await request(`/api/recordings/${recording.id}`, {method: 'PATCH', body: JSON.stringify({title: value})}); await loadRecordings(recording.courseId); }
+      };
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'quiet-button'; remove.textContent = '삭제';
+      remove.onclick = async () => {
+        if (window.confirm('이 녹음을 삭제할까요?')) { await request(`/api/recordings/${recording.id}`, {method: 'DELETE'}); await loadRecordings(recording.courseId); }
+      };
+      identity.append(title, duration, rename);
+      head.append(identity);
+      if (recording.status === 'READY') {
+        const noteSelect = document.createElement('select');
+        noteSelect.className = 'recording-note-select';
+        noteSelect.setAttribute('aria-label', `${recording.title} 연결할 강의노트`);
+        noteSelect.title = '연결할 강의노트';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = recording.noteId ? '현재 연결된 노트' : '연결할 강의노트 선택';
+        placeholder.selected = !recording.noteId;
+        placeholder.disabled = Boolean(recording.noteId);
+        noteSelect.append(placeholder);
+        notes.forEach(note => {
+          const option = document.createElement('option');
+          option.value = note.id; option.textContent = note.title; option.selected = note.id === recording.noteId;
+          noteSelect.append(option);
+        });
+        if (recording.noteId && !notes.some(note => note.id === recording.noteId)) {
+          const option = document.createElement('option');
+          option.value = recording.noteId; option.textContent = `${recording.noteTitle || '삭제된 노트'} (현재 연결)`; option.selected = true;
+          noteSelect.prepend(option);
+        }
+        noteSelect.disabled = !notes.length || (notes.length === 1 && notes[0].id === recording.noteId);
+        noteSelect.onchange = async () => {
+          const previous = recording.noteId;
+          const requestedNoteId = noteSelect.value;
+          noteSelect.disabled = true;
+          try {
+            const updated = await request(`/api/recordings/${encodeURIComponent(recording.id)}/note`, {method: 'PATCH', body: JSON.stringify({noteId: requestedNoteId})});
+            recording.noteId = updated.noteId; recording.noteTitle = updated.noteTitle; noteSelect.value = updated.noteId;
+            rows = rows.map(row => row.id === updated.id ? {...row, ...updated} : row);
+            el('recording-message').textContent = `연결된 강의노트를 ${updated.noteTitle || '변경'}(으)로 변경했습니다.`;
+            noteSelect.disabled = notes.length === 1 && notes[0].id === updated.noteId;
+          } catch (error) {
+            noteSelect.value = previous || '';
+            el('recording-message').textContent = `노트 연결을 저장하지 못했습니다. ${error.message}`;
+            noteSelect.disabled = !notes.length;
+          }
+        };
+        head.append(noteSelect);
+      }
+      head.append(remove);
+      item.append(head);
+      if (recording.status === 'READY') renderPlayer(item, recording, duration);
+      return item;
+    }));
+    if (!recordings.length) list.replaceChildren(emptyState('이 과목에 녹음이 없습니다.', '녹음은 같은 과목의 모든 강의노트에서 확인할 수 있습니다.'));
+  }
+
+  function renderPlayer(item, recording, durationLabel) {
+    let playableDuration = Number(recording.durationSeconds) || 0;
+    let redrawWaveform = () => {};
+    const syncPlayableDuration = audio => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        playableDuration = audio.duration;
+        durationLabel.textContent = recordingTime(playableDuration);
+        redrawWaveform();
+      }
+    };
+    const player = document.createElement('div'); player.className = 'recording-player';
+    const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata';
+    audio.src = `/api/recordings/${encodeURIComponent(recording.id)}/content`;
+    audio.addEventListener('loadedmetadata', () => syncPlayableDuration(audio));
+    audio.addEventListener('durationchange', () => syncPlayableDuration(audio));
+    const speed = document.createElement('select'); speed.setAttribute('aria-label', '재생 속도');
+    [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].forEach(value => {
+      const option = document.createElement('option'); option.value = value; option.textContent = `${value}배속`; option.selected = value === 1; speed.append(option);
+    });
+    speed.onchange = () => { audio.playbackRate = Number(speed.value); audio.preservesPitch = true; };
+    player.append(audio, speed); item.append(player);
+    if (!recording.waveform?.length) {
+      const failed = waveformFailures.has(recording.id);
+      const message = document.createElement('p'); message.className = 'fine-print waveform-empty-message';
+      message.textContent = failed ? '파형을 만들지 못했습니다. 녹음 재생은 가능합니다.' : '파형 데이터가 없습니다. 녹음 재생은 가능합니다.';
+      item.append(message);
+      const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'quiet-button'; retry.textContent = failed ? '파형 다시 만들기' : '파형 만들기';
+      retry.onclick = async () => {
+        retry.disabled = true;
+        try { updateRecordingRow(await createWaveform(recording)); }
+        catch (error) { waveformFailures.add(recording.id); updateRecordingRow(recording); el('recording-message').textContent = `파형 생성에 실패했습니다. ${error.message}`; }
+      };
+      item.append(retry);
+      return;
+    }
+    const canvas = document.createElement('canvas'); canvas.className = 'waveform';
+    canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', '녹음 파형. 누르면 해당 위치부터 재생'); canvas.tabIndex = 0;
+    let zoomIndex = 0, viewStart = 0, viewEnd = 1;
+    const controls = document.createElement('div'); controls.className = 'waveform-controls';
+    const zoomOut = document.createElement('button'); zoomOut.type = 'button'; zoomOut.className = 'quiet-button waveform-zoom'; zoomOut.textContent = '−'; zoomOut.setAttribute('aria-label', '파형 축소'); zoomOut.disabled = true;
+    const zoomLabel = document.createElement('span'); zoomLabel.className = 'waveform-zoom-level';
+    const zoomIn = document.createElement('button'); zoomIn.type = 'button'; zoomIn.className = 'quiet-button waveform-zoom'; zoomIn.textContent = '+'; zoomIn.setAttribute('aria-label', '파형 확대');
+    const range = document.createElement('span'); range.className = 'waveform-range-label';
+    const redraw = () => {
+      const total = Math.max(0.1, playableDuration || Number(recording.durationSeconds) || 0.1);
+      const cursor = Math.min(1, Math.max(0, audio.currentTime / total));
+      drawWaveform(canvas, recording.waveform, cursor, viewStart, viewEnd);
+      zoomLabel.textContent = `${[1, 2, 4, 8, 16][zoomIndex]}×`;
+      range.textContent = `${recordingTime(viewStart * total)} – ${recordingTime(viewEnd * total)}`;
+      zoomOut.disabled = zoomIndex === 0;
+      zoomIn.disabled = zoomIndex === 4;
+    };
+    redrawWaveform = redraw;
+    const setZoom = index => {
+      zoomIndex = Math.min(4, Math.max(0, index));
+      const scale = [1, 2, 4, 8, 16][zoomIndex];
+      if (scale === 1) { viewStart = 0; viewEnd = 1; }
+      else {
+        const span = 1 / scale;
+        const total = Math.max(0.1, playableDuration || Number(recording.durationSeconds) || 0.1);
+        const cursor = Math.min(1, Math.max(0, audio.currentTime / total));
+        viewStart = Math.min(1 - span, Math.max(0, cursor - span / 2));
+        viewEnd = viewStart + span;
+      }
+      redraw();
+    };
+    zoomOut.onclick = () => setZoom(zoomIndex - 1); zoomIn.onclick = () => setZoom(zoomIndex + 1);
+    const seekFromPointer = event => {
+      const rect = canvas.getBoundingClientRect(); if (!rect.width) return;
+      const fraction = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+      const total = Math.max(0.1, playableDuration || Number(recording.durationSeconds) || 0.1);
+      audio.currentTime = (viewStart + fraction * (viewEnd - viewStart)) * total;
+      audio.play().catch(() => {}); redraw();
+    };
+    canvas.onclick = seekFromPointer;
+    canvas.onkeydown = event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const total = Math.max(0.1, playableDuration || Number(recording.durationSeconds) || 0.1);
+      audio.currentTime = (viewStart + (rect.width ? 0.5 : 0) * (viewEnd - viewStart)) * total;
+      audio.play().catch(() => {}); redraw();
+    };
+    audio.ontimeupdate = () => {
+      const total = Math.max(0.1, playableDuration || Number(recording.durationSeconds) || 0.1);
+      const cursor = audio.currentTime / total, span = viewEnd - viewStart;
+      if (zoomIndex > 0 && (cursor < viewStart || cursor > viewEnd)) { viewStart = Math.min(1 - span, Math.max(0, cursor - span / 2)); viewEnd = viewStart + span; }
+      redraw();
+    };
+    controls.append(zoomOut, zoomLabel, zoomIn, range); item.append(canvas, controls); requestAnimationFrame(redraw);
+  }
+
+  async function loadRecordings(courseId = getCourse()?.id, fallbackNoteId = getEditor().id) {
+    const editor = getEditor();
+    const currentCourse = getCourse();
+    const requestVersion = ++version;
+    setLocked(el('start-recording'), !editor.id || !!activeRecording, !editor.id ? '노트를 먼저 저장하면 녹음할 수 있어요.' : (activeRecording ? '이미 녹음이 진행 중입니다.' : ''));
+    if (!courseId) { el('recordings').textContent = '과목을 선택하면 해당 과목의 녹음이 표시됩니다.'; return; }
+    const currentNotes = await request(`/api/courses/${encodeURIComponent(courseId)}/notes`);
+    if (requestVersion !== version) return;
+    let recordings;
+    try { recordings = await request(`/api/courses/${encodeURIComponent(courseId)}/recordings`); }
+    catch (error) {
+      if (!/not found/i.test(error.message)) throw error;
+      const referenceNoteId = fallbackNoteId || currentNotes[0]?.id;
+      if (!referenceNoteId) { renderRecordings([], currentNotes); return []; }
+      recordings = await request(`/api/notes/${encodeURIComponent(referenceNoteId)}/recordings`);
+    }
+    if (requestVersion !== version) return;
+    renderRecordings(recordings, currentNotes);
+    return recordings;
+  }
+
+  function elapsedRecording() {
+    if (!activeRecording) return 0;
+    return activeRecording.elapsed + (activeRecording.paused ? 0 : (performance.now() - activeRecording.since) / 1000);
+  }
+  function syncRailRecording(active, elapsed = 0) {
+    const status = el('rail-recording-status'), brand = status?.parentElement;
+    if (status) status.hidden = !active;
+    brand?.classList.toggle('recording-active', active);
+    const clock = el('rail-recording-clock'); if (clock) clock.textContent = `${recordingTime(elapsed)} / 60:00`;
+  }
+  function updateRecordingClock() {
+    const elapsed = elapsedRecording();
+    el('recording-timer').textContent = `${recordingTime(elapsed)} / 60:00`;
+    syncRailRecording(!!activeRecording, elapsed);
+    if (activeRecording && elapsed >= 3600) stopRecording(true);
+    else if (activeRecording) recordingTimer = setTimeout(updateRecordingClock, 250);
+  }
+
+  async function startRecording() {
+    const editor = getEditor(), course = getCourse();
+    if (!editor.id || activeRecording || !course) return;
+    const sourceNoteId = editor.id, sourceCourseId = course.id, sourceCourseName = course.name, sourceNoteTitle = editor.title;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { el('recording-message').textContent = '이 브라우저에서는 녹음을 지원하지 않습니다.'; return; }
+    const button = el('start-recording'); button.disabled = true; let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg'].find(value => MediaRecorder.isTypeSupported(value)) || '';
+      const recorder = mime ? new MediaRecorder(stream, {mimeType: mime}) : new MediaRecorder(stream);
+      const actualMime = recorder.mimeType?.split(',')[0] || 'audio/webm';
+      const created = await request(`/api/notes/${encodeURIComponent(sourceNoteId)}/recordings`, {method: 'POST', body: JSON.stringify({title: `강의 녹음 ${new Date().toLocaleString('ko-KR')}`, mimeType: actualMime})});
+      const session = {id: created.id, noteId: sourceNoteId, courseId: sourceCourseId, courseName: sourceCourseName, noteTitle: sourceNoteTitle, recorder, stream, sequence: 0, upload: Promise.resolve(), elapsed: 0, since: performance.now(), paused: false, stopping: false};
+      activeRecording = session;
+      recorder.ondataavailable = event => {
+        if (event.data.size) { const sequence = session.sequence++; session.upload = session.upload.then(() => uploadChunk(session.id, sequence, event.data)); }
+      };
+      recorder.onerror = () => { el('recording-message').textContent = '녹음 장치 오류가 발생했습니다. 저장된 구간까지만 보존됩니다.'; };
+      recorder.start(4000);
+      el('recording-message').textContent = '녹음 중입니다. 다른 학습 탭으로 이동해도 계속됩니다.';
+      el('recording-timer').classList.add('active'); syncRailRecording(true, 0);
+      button.classList.add('hidden'); el('pause-recording').textContent = '일시정지'; el('pause-recording').classList.remove('hidden'); el('stop-recording').classList.remove('hidden'); updateRecordingClock();
+    } catch (error) {
+      stream?.getTracks().forEach(track => track.stop());
+      el('recording-message').textContent = error.name === 'NotAllowedError' ? '마이크 권한이 없어 녹음을 시작하지 않았습니다.' : error.message;
+      button.disabled = false;
+    }
+  }
+
+  async function stopRecording(limit = false) {
+    const session = activeRecording;
+    if (!session || session.stopping) return;
+    session.stopping = true; clearTimeout(recordingTimer);
+    if (!session.paused) session.elapsed += (performance.now() - session.since) / 1000;
+    const duration = Math.min(3600, session.elapsed);
+    const stopped = new Promise(resolve => session.recorder.addEventListener('stop', resolve, {once: true}));
+    session.recorder.stop(); await stopped; session.stream.getTracks().forEach(track => track.stop());
+    try {
+      await session.upload;
+      const finished = await request(`/api/recordings/${session.id}/finish`, {method: 'POST', body: JSON.stringify({durationSeconds: Math.max(0.1, duration)})});
+      activeRecording = null;
+      let listRefreshError = null;
+      try { await loadRecordings(session.courseId, session.noteId); } catch (error) { listRefreshError = error; }
+      let waveformFailed = false;
+      try { updateRecordingRow(await createWaveform(finished)); }
+      catch (error) { waveformFailed = true; waveformFailures.add(finished.id); updateRecordingRow(finished); el('recording-message').textContent = `녹음은 저장됐지만 파형을 바로 만들지 못했습니다. 목록에서 다시 시도할 수 있어요. ${error.message}`; }
+      if (listRefreshError) el('recording-message').textContent = `녹음은 저장됐지만 목록을 새로고침하지 못했습니다. ${listRefreshError.message}`;
+      else if (!waveformFailed) el('recording-message').textContent = limit ? '60분 녹음이 저장되었습니다. 아래에서 연결할 강의노트를 변경할 수 있습니다.' : '녹음을 저장했습니다. 아래에서 연결할 강의노트를 선택하거나 변경할 수 있습니다.';
+    } catch (error) {
+      activeRecording = null;
+      el('recording-message').textContent = `녹음 저장을 마치지 못했습니다. ${error.message}`;
+      await loadRecordings(session.courseId, session.noteId).catch(() => {});
+    } finally {
+      syncRailRecording(false); el('recording-timer').classList.remove('active'); el('recording-timer').textContent = '00:00 / 60:00';
+      el('start-recording').classList.remove('hidden');
+      const editor = getEditor(); setLocked(el('start-recording'), !editor.id || !!activeRecording, '노트를 먼저 저장하면 녹음할 수 있어요.');
+      el('pause-recording').textContent = '일시정지'; el('pause-recording').classList.add('hidden'); el('stop-recording').classList.add('hidden');
+    }
+  }
+
+  el('start-recording').onclick = startRecording;
+  el('stop-recording').onclick = () => stopRecording(false);
+  el('pause-recording').onclick = () => {
+    const session = activeRecording; if (!session) return;
+    if (session.paused) { session.recorder.resume(); session.since = performance.now(); session.paused = false; el('pause-recording').textContent = '일시정지'; }
+    else { session.recorder.pause(); session.elapsed += (performance.now() - session.since) / 1000; session.paused = true; el('pause-recording').textContent = '계속 녹음'; }
+  };
+
+  return {loadRecordings, activeSession: () => activeRecording, isRecording: () => !!activeRecording};
+}

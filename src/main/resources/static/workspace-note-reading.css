@@ -1,0 +1,294 @@
+/* workspace-note-reading: ordered segment of the workspace cascade. */
+/* Note list and reading view: clear scan order, a calm text measure, and
+   actions kept beside the note heading instead of scattered across columns. */
+.notesup-workspace #note-list-card #notes{
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.notesup-workspace #note-list-card #notes > .list-item{
+  min-height: 64px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid #e8ecf3;
+  border-radius: 10px;
+  background: #fff;
+  color: #39465a;
+  text-align: left;
+}
+.notesup-workspace #note-list-card #notes > .list-item:hover{
+  border-color: #cfd9f2;
+  background: #f8faff;
+}
+.notesup-workspace #note-list-card #notes > .list-item[aria-pressed="true"]{
+  border-color: #cbd7fb;
+  background: #f0f4ff;
+  color: #405bb5;
+  box-shadow: 0 2px 8px rgba(63, 88, 170, .07), inset 0 0 0 1px rgba(116, 139, 216, .1);
+}
+.notesup-workspace #note-list-card #notes > .list-item strong{
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace #note-list-card #notes > .list-item small{
+  margin-top: 3px;
+  color: #8792a3;
+  font-size: 12px;
+}
+.notesup-workspace #note-list-card #notes > .list-item .note-row-date{
+  margin-top: 0;
+  color: #6f7d91;
+  font-size: 12px;
+}
+.notesup-workspace #note-list-card #notes > .list-item .note-row-excerpt{
+  display: none;
+}
+.notesup-workspace #note-list-card #notes > .list-item[aria-pressed="true"] small{ color:#7582a1; }
+
+/* Keep the subject name on its own full-width row; management controls and
+   collapse stay together below it, with the create action clearly separated. */
+.notesup-workspace .note-list-heading{
+  grid-template-columns:minmax(0,1fr) auto;
+  column-gap:10px;
+  align-items:center;
+  margin-bottom:0;
+  padding:0 0 4px;
+}
+.notesup-workspace .note-list-heading .note-list-title{
+  grid-column:1 / -1;
+  display:flex;
+  min-width:0;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+}
+.notesup-workspace .note-list-heading .note-list-title h2{
+  flex:1 1 auto;
+  min-width:0;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.notesup-workspace .note-list-heading #note-count{ flex:0 0 auto; }
+.notesup-workspace .note-list-heading .note-management{
+  grid-column:1;
+  grid-row:2;
+  justify-self:start;
+}
+.notesup-workspace .note-list-heading .rail-toggle{
+  grid-column:2;
+  grid-row:2;
+  justify-self:end;
+}
+.notesup-workspace .note-list-heading #new-note{
+  grid-column:1 / -1;
+  grid-row:3;
+  margin:4px 0 2px;
+}
+.notesup-workspace #note-list-card #notes{ margin-top:6px; }
+
+/* Edit fields share one centered reading measure instead of splitting into
+   a left title column and a separately centered Markdown column. */
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-title),
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){
+  width:100%;
+  justify-self:center;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-title){
+  padding-right:0;
+}
+
+.notesup-workspace .writing-panel:not(.view-mode) #note-title,
+.notesup-workspace .writing-panel:not(.view-mode) #note-body{
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.notesup-workspace .writing-panel.view-mode{
+  position:relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: min-content;
+  align-content: start;
+}
+.notesup-workspace .writing-panel:not(.view-mode){
+  position:relative;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-title){
+  width:100%;
+  box-sizing:border-box;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > .note-view-actions{
+  position: static;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){
+  width:100%;
+}
+.notesup-workspace .writing-panel.view-mode > label:has(> #note-title){
+  grid-column: 1;
+  grid-row: 1;
+  box-sizing:border-box;
+  margin: 0;
+  color: #8590a0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.notesup-workspace .writing-panel .note-title-label,
+.notesup-workspace .writing-panel .note-body-label{ display: none; }
+.notesup-workspace .writing-panel.view-mode #note-title{
+  display: block;
+  width: 100%;
+  min-height: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #263448;
+  font-size: 28px;
+  line-height: 1.35;
+  letter-spacing: -.6px;
+}
+.notesup-workspace .writing-panel.view-mode #note-title:focus{
+  outline: 0;
+  box-shadow: none;
+}
+.notesup-workspace .writing-panel:not(.view-mode) #note-meta{ display: none; }
+
+.notesup-workspace .writing-panel > .note-view-actions{
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+.notesup-workspace .writing-panel.view-mode > .note-view-actions{
+  position:absolute;
+  right:0;
+  top:4px;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: start;
+  margin-top:0;
+}
+.notesup-workspace .writing-panel.view-mode > .note-view-actions > button{
+  min-height: 38px;
+  margin: 0;
+}
+.notesup-workspace .writing-panel.view-mode > .note-view-actions > .secondary{
+  justify-self: auto;
+  padding: 0 13px;
+}
+.notesup-workspace .writing-panel.view-mode > .note-view-actions > #trash-note{
+  grid-column: auto;
+  grid-row: auto;
+  align-self: auto;
+  padding: 0 13px;
+}
+.notesup-workspace .writing-panel.view-mode > .note-read-view{
+  grid-column: 1 / -1;
+  border-color: #e6eaf0;
+}
+.notesup-workspace .writing-panel.view-mode > .note-read-view h1{
+  color: #263448;
+  font-size: 30px;
+  line-height: 1.4;
+}
+.notesup-workspace .writing-panel.view-mode > .note-read-view h2{
+  color: #34445c;
+  font-size: 22px;
+  line-height: 1.5;
+}
+.notesup-workspace .writing-panel.view-mode > .note-read-view h3{
+  color: #40516a;
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.notesup-workspace .writing-panel.view-mode > .note-read-view ul,
+.notesup-workspace .writing-panel.view-mode > .note-read-view ol{ padding-left: 26px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view li{ padding-left: 3px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view code{ font-size: 14px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view pre{ font-size: 13px; line-height: 1.7; }
+.notesup-workspace .attachment-picker{
+  min-width: 0;
+  max-width: 100%;
+}
+.notesup-workspace .attachment-picker input{
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 42px;
+  margin: 0;
+  border: 1px solid #dce3ed;
+  border-radius: 9px;
+  background: #fff;
+  color: #617084;
+  font-size: 12px;
+}
+.notesup-workspace .attachment-picker input::file-selector-button{
+  min-height: 30px;
+  margin-right: 10px;
+  padding: 0 12px;
+  border: 1px solid #dbe2ed;
+  border-radius: 6px;
+  background: #f6f8fb;
+  color: #4e5f75;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.notesup-workspace .attachment-picker input::file-selector-button:hover{ background:#edf2fa; }
+.notesup-workspace .attachment-picker input:focus-visible{ outline:2px solid #8ca4e8; outline-offset:2px; }
+.notesup-workspace .writing-panel:not(.view-mode) #note-body{
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+.notesup-workspace .writing-panel:not(.view-mode) #note-body:focus{
+}
+
+@media (max-width: 760px){
+
+  .notesup-workspace .writing-panel.view-mode{ grid-template-columns: minmax(0,1fr); }
+  .notesup-workspace .writing-panel.view-mode > label:has(> #note-title),
+  .notesup-workspace .writing-panel.view-mode > .note-view-actions,
+  .notesup-workspace .writing-panel.view-mode > .note-read-view{ grid-column: 1; }
+  .notesup-workspace .writing-panel.view-mode > .note-view-actions{ position:static; grid-row: 2; justify-content:flex-start; }
+    .notesup-workspace .writing-panel.view-mode > .note-read-view{ grid-row: 4; max-width: 100%; margin-top: 8px; }
+  .notesup-workspace .writing-panel.view-mode #note-title{ font-size: 24px; }
+}
+.notesup-workspace .practice-create-actions .generation-count{
+  display: grid;
+  gap: 6px;
+  color: #6f7d91;
+  font-size: 12px;
+  font-weight: 700;
+}
+.notesup-workspace .practice-create-actions .generation-count select{
+  min-height: 44px;
+  padding: 0 28px 0 10px;
+  font-size: 13px;
+}
+@media (max-width: 650px){
+  .notesup-workspace .practice-create-actions { grid-template-columns: 1fr; }
+}
+
+.notesup-workspace .dashboard-status{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  margin-bottom: 8px;
+}
+.notesup-workspace .dashboard-status #dashboard-message{ flex: 1; margin: 0; }
+.notesup-workspace .dashboard-status .quiet-button{ flex: 0 0 auto; min-height: 36px; }
+.notesup-workspace #note-editor-card.screen-transitioning .writing-panel,
+.notesup-workspace #note-editor-card.screen-transitioning #recording-panel:not([hidden]),
+.notesup-workspace #note-editor-card.screen-transitioning #learning-panel:not([hidden]){
+  animation: studyspace-panel-in .2s ease both;
+}
+@keyframes studyspace-panel-in{
+  from { opacity: .72; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

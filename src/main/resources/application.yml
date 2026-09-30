@@ -8,6 +8,10 @@ server:
         secure: ${STUDYSPACE_COOKIE_SECURE:false}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: ${STUDYSPACE_MAX_FILE_SIZE:50MB}
+      max-request-size: ${STUDYSPACE_MAX_REQUEST_SIZE:52MB}
   datasource:
     url: ${STUDYSPACE_DB_URL:jdbc:h2:file:./runtime/studyspace;MODE=MySQL;AUTO_SERVER=TRUE}
     username: ${STUDYSPACE_DB_USERNAME:sa}
@@ -23,6 +27,7 @@ spring:
 studyspace:
   auth:
     require-email-verification: ${STUDYSPACE_REQUIRE_EMAIL_VERIFICATION:false}
+    expose-development-links: ${STUDYSPACE_EXPOSE_DEV_AUTH_LINKS:false}
   features:
     stt:
       enabled: false
@@ -31,9 +36,23 @@ studyspace:
     rest-api-key: ${KAKAO_REST_API_KEY:}
     javascript-key: ${KAKAO_JAVASCRIPT_KEY:}
     client-secret: ${KAKAO_CLIENT_SECRET:}
+    client-secret-required: ${KAKAO_CLIENT_SECRET_REQUIRED:true}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8091/api/auth/kakao/callback}
     public-base-url: ${STUDYSPACE_PUBLIC_BASE_URL:http://localhost:8091}
+  ai:
+    model: ${STUDYSPACE_AI_MODEL:gemini-3.6-flash}
+    mock-enabled: ${STUDYSPACE_AI_MOCK_ENABLED:true}
+    gemini-api-key: ${GEMINI_API_KEY:}
 
 logging:
   level:
     org.springframework.security: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

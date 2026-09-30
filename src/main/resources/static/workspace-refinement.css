@@ -1,0 +1,8 @@
+/* Workspace component styles; import order preserves the established cascade. */
+@import url("/workspace-shell.css");
+@import url("/workspace-theme.css");
+@import url("/workspace-dashboard.css");
+@import url("/workspace-navigation.css");
+@import url("/workspace-practice-tools.css");
+@import url("/workspace-note-reading.css");
+@import url("/workspace-controls.css");

@@ -45,6 +45,11 @@ class SchoolTests {
         sync(owner); sync(owner);
         assertEquals(2,db.queryForObject("select count(*) from courses where user_id=?",Integer.class,id));
         assertEquals("본문",db.queryForObject("select body from notes where id='retained-note'",String.class));
+        mvc.perform(get("/api/school").with(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.courses[0].name").isNotEmpty())
+                .andExpect(jsonPath("$.courses[0].semester").value("2026년 2학기"))
+                .andExpect(jsonPath("$.courses[0].schedule").isNotEmpty());
         mvc.perform(delete("/api/school").with(owner).with(csrf())).andExpect(status().isOk());
         assertEquals(0,db.queryForObject("select count(*) from school_links where user_id=?",Integer.class,id));
         assertEquals(2,db.queryForObject("select count(*) from courses where user_id=?",Integer.class,id));

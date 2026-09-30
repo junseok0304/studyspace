@@ -40,13 +40,19 @@ public class SchoolController {
         Map<String,Object> result=new HashMap<>();
         result.put("saved",!rows.isEmpty());
         result.put("linked",!rows.isEmpty() && Boolean.TRUE.equals(rows.getFirst().get("linked")));
-        result.put("courses",db.queryForList("select c.name,c.semester,s.schedule from school_courses s join courses c on c.id=s.course_id where s.user_id=? order by c.semester desc,c.name",u));
+        result.put("courses",db.query(
+                "select c.name,c.semester,s.schedule from school_courses s join courses c on c.id=s.course_id where s.user_id=? order by c.semester desc,c.name",
+                (row,index) -> Map.of(
+                        "name",row.getString("name"),
+                        "semester",row.getString("semester"),
+                        "schedule",row.getString("schedule")
+                ),u));
         return result;
     }
     @PutMapping public Map<String,Boolean> save(Authentication auth,@Valid @RequestBody Credentials input) throws Exception {
         if(!input.saveConsent()) throw new AuthException("학교 로그인 정보 저장에 동의해 주세요.",400);
         long u=user(auth);
-        String plain=json.writeValueAsString(Map.of("username",input.username(),"password",input.password()));
+        String plain=json.writeValueAsString(Map.of("username",input.username().trim(),"password",input.password()));
         synchronized(lock(u)) {
             adapter.verify(plain);
             String encrypted=vault.encrypt(u,plain);
@@ -82,6 +88,8 @@ public class SchoolController {
             var data=json.readTree(previews.getFirst());
             return tx.execute(status -> {
                 String semester=data.path("year").asText()+"년 "+Map.of("1","1학기","2","2학기","3","여름학기","4","겨울학기").get(data.path("semester").asText());
+                try { db.update("insert into semesters(user_id,name) values(?,?)",u,semester); }
+                catch(org.springframework.dao.DuplicateKeyException ignored) { }
                 int count=0;
                 for(var row:data.path("courses")) {
                     String external=data.path("year").asText()+":"+data.path("semester").asText()+":"+row.path("code").asText()+":"+row.path("section").asText();

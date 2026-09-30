@@ -7,6 +7,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
+
+import java.net.URI;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class StudySpaceAuthTests {
     @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
 
     @Test
     void signupLoginMeAndLogout() throws Exception {
@@ -64,6 +68,20 @@ class StudySpaceAuthTests {
     }
 
     @Test
+    void repeatedWrongLoginsAreRateLimited() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            mvc.perform(post("/api/auth/login").with(SecurityMockMvcRequestPostProcessors.csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"limited@example.com\",\"password\":\"wrong-password\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post("/api/auth/login").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"limited@example.com\",\"password\":\"wrong-password\"}"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     void kakaoLoginIsExplicitlyDisabledUntilConfigured() throws Exception {
         mvc.perform(get("/api/auth/kakao"))
                 .andExpect(status().isServiceUnavailable())
@@ -83,5 +101,39 @@ class StudySpaceAuthTests {
         mvc.perform(get("/signup.html")).andExpect(status().isOk());
         mvc.perform(get("/terms.html")).andExpect(status().isOk());
         mvc.perform(get("/privacy.html")).andExpect(status().isOk());
+    }
+
+    @Test
+    void passwordResetDoesNotRevealAccountsAndTokenCanOnlyBeUsedOnce() throws Exception {
+        String email = "reset@example.com";
+        mvc.perform(post("/api/auth/signup").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\",\"nickname\":\"학생\",\"termsAccepted\":true,\"privacyAccepted\":true}"))
+                .andExpect(status().isCreated());
+
+        mvc.perform(post("/api/auth/password-reset/request").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"missing@example.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("가입된 이메일이라면 비밀번호 재설정 안내를 보냈습니다."))
+                .andExpect(jsonPath("$.developmentResetUrl").doesNotExist());
+
+        var result = mvc.perform(post("/api/auth/password-reset/request").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"" + email + "\"}"))
+                .andExpect(status().isOk()).andReturn();
+        String resetUrl = json.readTree(result.getResponse().getContentAsByteArray()).get("developmentResetUrl").asText();
+        String token = URI.create(resetUrl).getQuery().substring("token=".length());
+        String confirm = "{\"token\":\"" + token + "\",\"password\":\"new-password-456\"}";
+
+        mvc.perform(post("/api/auth/password-reset/confirm").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(confirm))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/auth/password-reset/confirm").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(confirm))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/auth/login").with(SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"new-password-456\"}"))
+                .andExpect(status().isOk());
     }
 }

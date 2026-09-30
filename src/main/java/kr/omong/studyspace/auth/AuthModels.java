@@ -22,6 +22,17 @@ public final class AuthModels {
             @NotBlank String password
     ) {}
 
+    public record PasswordResetRequest(
+            @NotBlank @Email @Size(max = 254) String email
+    ) {}
+
+    public record PasswordResetConfirmRequest(
+            @NotBlank @Size(max = 200) String token,
+            @NotBlank @Size(min = 8, max = 72) String password
+    ) {}
+
+    public record PasswordResetResponse(String message, String developmentResetUrl) {}
+
     public record UserResponse(
             long id,
             String email,

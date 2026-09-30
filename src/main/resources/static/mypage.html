@@ -1,21 +1,44 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>마이페이지 · StudySpace</title><link rel="stylesheet" href="/app.css"><link rel="icon" href="/assets/studyspace-logo.png"></head><body>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudySpace | 마이페이지</title><link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=1"><link rel="apple-touch-icon" href="/assets/studyspace-logo.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/pomodoro.css"></head><body>
 <main class="profile">
   <header><a href="/"><img src="/assets/studyspace-logo.png" alt="StudySpace 홈" width="48" height="48"></a><a href="/">학습 공간으로 돌아가기</a></header>
-  <p class="eyebrow">MY SPACE</p><h1>마이페이지</h1><p class="muted">이번 학기의 수업을 내 공간에 연결하세요.</p>
-  <section class="card"><h2>학교 계정 연동</h2><p class="muted">성공회대학교 LMS · 시간표는 학교 수강내역과 종합정보시스템에서 가져옵니다.</p>
+  <link rel="stylesheet" href="/profile-refinement.css">
+  <h1>마이페이지</h1>
+   <nav class="profile-nav" aria-label="설정 메뉴"><a href="#school-settings">학교 연동</a><a href="#schedule-settings">시간표·학기</a><a href="#data-settings">저장공간·데이터</a><a href="#account-settings">계정 관리</a></nav>
+  <p id="profile-message" class="message" role="status" aria-live="polite"></p>
+  <section class="card" id="school-settings"><h2>학교 연동</h2><p class="muted">성공회대학교</p>
     <p id="connection-state" role="status">연동 상태 확인 중</p>
+    <details id="school-account-editor" open><summary>연동 계정 설정</summary>
     <form id="school-form">
       <label>LMS 아이디<input id="school-id" required maxlength="80" autocomplete="off"></label>
       <label>LMS 비밀번호<input id="school-password" type="password" required maxlength="200" autocomplete="off"></label>
       <label class="check-row"><input type="checkbox" id="store-consent" required><span>시간표를 다시 불러올 수 있도록 학교 로그인 정보를 저장하는 데 동의합니다. 연동 해제 시 삭제됩니다.</span></label>
-      <button class="primary" id="register-school">로그인 확인하고 등록</button>
+      <div class="form-actions"><button class="primary" id="register-school">로그인 확인하고 등록</button></div>
     </form>
-    <button class="secondary" id="disconnect" hidden>연동 해제 · 저장 정보 삭제</button>
+    <div class="form-actions form-actions-secondary"><button class="secondary" id="disconnect" hidden>연동 해제 · 저장 정보 삭제</button></div>
+    </details>
   </section>
-  <section class="card"><h2>시간표 동기화</h2><p class="muted">저장된 계정으로 다시 불러옵니다. 수강 목록에서 사라진 과목과 기존 노트도 유지됩니다.</p>
-    <form id="sync-form"><div class="semester-row"><label>연도<input id="sync-year" type="number" min="2000" max="2100" required></label><label>학기<select id="sync-semester"><option value="1">1학기</option><option value="2">2학기</option><option value="3">여름학기</option><option value="4">겨울학기</option></select></label></div><button class="primary" id="sync" disabled>동기화 · 시간표 다시 불러오기</button></form>
-    <div id="preview"></div><button class="primary" id="confirm-import" hidden>확인하고 과목에 반영</button>
+   <section class="card" id="schedule-settings"><h2>시간표와 학기</h2><p class="muted">학기는 여기서 추가하고, 학습 공간에서는 등록한 학기를 선택해 과목을 만듭니다.</p>
+     <form id="semester-form" class="semester-form"><label>새 학기 이름<input id="semester-name" maxlength="40" placeholder="예: 2026년 2학기" required></label><div class="form-actions"><button class="secondary" type="submit">학기 추가</button></div></form>
+     <div id="semester-list" class="semester-list" aria-live="polite"></div>
+     <h3>시간표 동기화</h3>
+     <p class="muted">다시 불러와도 기존 과목과 노트는 유지됩니다.</p>
+    <form id="sync-form"><div class="semester-row"><label>연도<input id="sync-year" type="number" min="2000" max="2100" required></label><label>학기<select id="sync-semester"><option value="1">1학기</option><option value="2">2학기</option><option value="3">여름학기</option><option value="4">겨울학기</option></select></label></div><div class="form-actions"><button class="primary" id="sync" disabled>동기화 · 시간표 다시 불러오기</button></div></form>
+    <div id="preview"></div><div class="form-actions preview-actions"><button class="primary" id="confirm-import" hidden>확인하고 과목에 반영</button></div>
     <h3>가져온 과목</h3><div id="saved-courses"></div>
   </section>
-  <p id="profile-message" role="status" aria-live="polite"></p>
-</main><script src="/mypage.js" defer></script></body></html>
+  <section class="card" id="data-settings"><h2>저장공간·데이터</h2><p class="muted">노트와 첨부·녹음 파일을 한 번에 내려받습니다.</p>
+    <div class="storage-summary"><div><strong id="storage-used">계산 중</strong><span id="storage-detail"></span></div><progress id="storage-progress" max="100" value="0" aria-label="저장공간 사용률"></progress></div>
+    <a class="primary profile-download" href="/api/account/export" download>전체 데이터 ZIP 다운로드</a>
+  </section>
+  <section class="card danger-zone" id="account-settings"><h2>계정 관리</h2>
+    <details><summary>회원탈퇴 진행</summary>
+      <p class="muted">계정과 학습 기록이 즉시 삭제됩니다. 필요한 자료를 먼저 내려받아 주세요.</p>
+      <form id="delete-account-form">
+        <label id="delete-password-label">현재 비밀번호<input id="delete-password" type="password" maxlength="72" autocomplete="current-password"></label>
+        <label>확인을 위해 ‘회원탈퇴’ 입력<input id="delete-confirmation" maxlength="10" autocomplete="off" required></label>
+        <div class="form-actions"><button class="danger-button" type="submit">계정과 모든 데이터 삭제</button></div>
+      </form>
+      <p id="delete-account-message" class="message" role="status"></p>
+    </details>
+  </section>
+</main><script type="module" src="/mypage.js"></script></body></html>

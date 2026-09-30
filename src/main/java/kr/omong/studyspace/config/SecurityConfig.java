@@ -18,6 +18,8 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.http.HttpStatus;
 
 @Configuration
@@ -41,7 +43,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                            SecurityContextRepository securityContextRepository) throws Exception {
+                                            SecurityContextRepository securityContextRepository,
+                                            SessionRegistry sessionRegistry) throws Exception {
         CookieCsrfTokenRepository csrf = CookieCsrfTokenRepository.withHttpOnlyFalse();
         http
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
@@ -49,13 +52,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .sessionFixation(fixation -> fixation.changeSessionId())
-                        .maximumSessions(5))
+                        .maximumSessions(5).sessionRegistry(sessionRegistry))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/app.css", "/app.js", "/favicon.ico", "/assets/**",
+                        .requestMatchers("/", "/index.html", "/app.css", "/workspace.css", "/app.js", "/favicon.ico", "/assets/**",
+                                "/**/*.css", "/**/*.js", "/**/*.png", "/**/*.txt", "/**/*.ico", "/**/*.map",
                                 "/api/auth/signup", "/api/auth/login", "/api/auth/verify-email", "/api/auth/csrf",
+                                "/api/auth/password-reset/request", "/api/auth/password-reset/confirm",
                                 "/api/auth/kakao", "/api/auth/kakao/callback", "/api/auth/kakao/complete",
-                                "/signup.html", "/signup.js", "/terms.html", "/privacy.html",
-                                "/error").permitAll()
+                                "/signup.html", "/signup.js", "/reset-password.html", "/reset-password.js", "/terms.html", "/privacy.html",
+                                "/actuator/health", "/error").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
@@ -71,6 +76,9 @@ public class SecurityConfig {
                                 request -> request.getRequestURI().startsWith("/api/")));
         return http.build();
     }
+
+    @Bean
+    SessionRegistry sessionRegistry() { return new SessionRegistryImpl(); }
 
     @Bean
     DaoAuthenticationProvider authenticationProvider(StudySpaceUserDetailsService users,

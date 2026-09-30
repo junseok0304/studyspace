@@ -7,3 +7,5 @@ runtime/
 .env.*
 !.env.example
 docs/PRD.md
+node_modules/
+backups/

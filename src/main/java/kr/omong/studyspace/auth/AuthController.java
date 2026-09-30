@@ -63,4 +63,19 @@ public class AuthController {
         }
         return ResponseEntity.ok(new AuthModels.MessageResponse("이메일 인증이 완료되었습니다. 로그인해 주세요."));
     }
+
+    @PostMapping("/password-reset/request")
+    public AuthModels.PasswordResetResponse requestPasswordReset(
+            @Valid @RequestBody AuthModels.PasswordResetRequest request,
+            HttpServletRequest httpRequest) {
+        String baseUrl = httpRequest.getRequestURL().toString().replace("/api/auth/password-reset/request", "");
+        return authService.requestPasswordReset(request, baseUrl);
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public AuthModels.MessageResponse confirmPasswordReset(
+            @Valid @RequestBody AuthModels.PasswordResetConfirmRequest request) {
+        authService.resetPassword(request);
+        return new AuthModels.MessageResponse("비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요.");
+    }
 }
