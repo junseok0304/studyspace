@@ -1,19 +1,21 @@
-/** Coordinates the three note-scoped learning views and their lazy generation. */
+/** Coordinates note-scoped learning views and their lazy generation. */
 export function mountLearningWorkspace({document = globalThis.document, byId, getEditor, generation, quiz, flashcards, beforeOpen = async () => {}}) {
   const tabs = [...document.querySelectorAll('#learning-tabs [data-learning-view]')];
   const views = {
+    summary: byId('learning-summary-view'),
     infographic: byId('learning-infographic-view'),
     quiz: byId('learning-quiz-view'),
     flashcards: byId('learning-flashcards-view')
   };
   const openers = {
+    summary: () => generation.openSummary(),
     infographic: () => generation.openInfographic(),
     quiz: () => quiz.openForNote(),
-    flashcards: () => flashcards.openForNote()
+    flashcards: ({dueOnly = false} = {}) => dueOnly ? flashcards.openDueForNote() : flashcards.openForNote()
   };
   const panel = byId('learning-panel');
   const message = byId('learning-message');
-  let activeView = 'infographic';
+  let activeView = 'summary';
   let lastOpened = '';
   let sequence = 0;
   const pending = new Map();
@@ -27,7 +29,7 @@ export function mountLearningWorkspace({document = globalThis.document, byId, ge
     const task = Promise.resolve().then(() => beforeOpen(noteId)).then(async () => {
       if (getEditor()?.id !== noteId) return null;
       const results = await Promise.allSettled([
-        generation.openInfographic(),
+        (async () => { await generation.openSummary(); return generation.openInfographic(); })(),
         quiz.ensureForNote(),
         flashcards.ensureForNote()
       ]);
@@ -37,17 +39,17 @@ export function mountLearningWorkspace({document = globalThis.document, byId, ge
     return task;
   }
 
-  async function show(view = activeView, {force = false} = {}) {
+  async function show(view = activeView, {force = false, dueOnly = false} = {}) {
     activeView = Object.hasOwn(views, view) ? view : 'infographic';
     tabs.forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.learningView === activeView)));
-    Object.entries(views).forEach(([name, node]) => { node.hidden = name !== activeView; });
+    Object.entries(views).forEach(([name, node]) => { if (node) node.hidden = name !== activeView; });
     const editor = getEditor();
     if (!editor?.id) {
-      message.textContent = '저장된 노트를 열면 인포그래픽·퀴즈·플래시카드가 준비됩니다.';
+      message.textContent = '저장된 노트를 열면 요약·인포그래픽·퀴즈·플래시카드가 준비됩니다.';
       return;
     }
     message.textContent = '';
-    const key = `${activeView}:${editor.id}:${editor.version || 0}`;
+    const key = `${activeView}:${editor.id}:${editor.version || 0}${dueOnly ? ':due' : ''}`;
     const noteId = editor.id;
     const open = openers[activeView];
     if (!force && lastOpened === key) return;
@@ -56,7 +58,7 @@ export function mountLearningWorkspace({document = globalThis.document, byId, ge
     message.textContent = '현재 노트의 학습 자료를 불러오고 있습니다.';
     const request = Promise.resolve().then(() => prepareForNote(noteId)).then(() => {
       if (getEditor()?.id !== noteId || currentSequence !== sequence) return false;
-      return open();
+      return open({dueOnly});
     }).then(result => {
       if (currentSequence === sequence) {
         if (result !== false && result !== null) lastOpened = key;
@@ -71,7 +73,7 @@ export function mountLearningWorkspace({document = globalThis.document, byId, ge
 
   tabs.forEach(tab => tab.addEventListener('click', () => show(tab.dataset.learningView)));
   document.addEventListener('studyspace:tool-selected', event => {
-    if (event.detail?.id === 'learning-panel') show(event.detail.view || activeView);
+    if (event.detail?.id === 'learning-panel') show(event.detail.view || activeView, {dueOnly:event.detail.dueOnly});
   });
   document.addEventListener('studyspace:note-opened', () => {
     const noteId = getEditor()?.id;

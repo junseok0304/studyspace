@@ -41,7 +41,12 @@ class QuizTests {
         String attemptId=db.queryForObject("select id from quiz_attempts where user_id=?",String.class,userId);
         String firstQuestion=db.queryForObject("select question_id from quiz_attempt_questions where attempt_id=? and question_order=0",String.class,attemptId);
         mvc.perform(put("/api/quiz-attempts/"+attemptId+"/answers/"+firstQuestion).with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"selectedIndex\":0}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.questions[0].selectedIndex").value(0)).andExpect(jsonPath("$.questions[0].correct").doesNotExist());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.questions[0].selectedIndex").value(0)).andExpect(jsonPath("$.questions[0].correct").value(true))
+                .andExpect(jsonPath("$.questions[0].correctIndex").value(0)).andExpect(jsonPath("$.questions[0].explanation").isNotEmpty());
+        mvc.perform(put("/api/quiz-attempts/"+attemptId+"/answers/"+firstQuestion).with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"selectedIndex\":0}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.questions[0].correct").value(true));
+        mvc.perform(put("/api/quiz-attempts/"+attemptId+"/answers/"+firstQuestion).with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"selectedIndex\":1}"))
+                .andExpect(status().isConflict());
         for(int i=0;i<2;i++) mvc.perform(post("/api/quiz-attempts/"+attemptId+"/submit").with(owner).with(csrf()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED")).andExpect(jsonPath("$.correctAnswers").value(1)).andExpect(jsonPath("$.questions[0].correctIndex").value(0));
         String wrong="{\"requestId\":\"33333333-3333-4333-8333-333333333333\",\"wrongFromAttemptId\":\""+attemptId+"\"}";

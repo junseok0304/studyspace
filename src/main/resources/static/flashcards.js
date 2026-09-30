@@ -6,12 +6,27 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
   let version = 0;
   let loadedDecks = [];
   const generatingNotes = new Set();
+  let studySequence = 0;
+
+  function resetForContext() {
+    studySequence++;
+    const player = el('flashcard-player');
+    player.classList.add('hidden');
+    player.replaceChildren();
+    el('flashcard-message').textContent = '';
+  }
 
   function study(deck, shuffle = false, dueOnly = false) {
+    const activeNoteId = getEditor()?.id;
+    const deckNoteId = deck?.noteId || activeNoteId;
+    if (!deckNoteId || activeNoteId !== deckNoteId) return;
+    const sequence = ++studySequence;
+    const noteId = deckNoteId;
     const player = el('flashcard-player');
     player.classList.remove('hidden');
     const now = Date.now();
-    let cards = [...deck.cards].filter(card => !dueOnly || !card.nextReview || new Date(card.nextReview).getTime() <= now);
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    let cards = [...deck.cards].filter(card => !dueOnly || !card.nextReview || new Date(card.nextReview).getTime() <= todayEnd.getTime());
     if (shuffle) {
       for (let index = cards.length - 1; index > 0; index--) {
         const swap = Math.floor(Math.random() * (index + 1));
@@ -56,6 +71,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
           button.disabled = true;
           try {
           await request(`/api/flashcards/${card.id}/reviews`, {method: 'POST', body: JSON.stringify({requestId: crypto.randomUUID(), rating})});
+          if (sequence !== studySequence || getEditor()?.id !== noteId) return;
           index++; flipped = false; render();
           } catch (error) { el('flashcard-message').textContent = error.message; button.disabled = false; }
         };
@@ -118,9 +134,12 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     renderPracticeList(el('flashcard-decks'), noteDecks, deck => {
       const fetchDeck = () => loadDeck(deck.id);
       const open = async (shuffle, dueOnly = false) => {
+        const noteId = getEditor()?.id;
         try {
           const full = await fetchDeck();
-          if (dueOnly && !full.cards.some(card => !card.nextReview || new Date(card.nextReview).getTime() <= Date.now())) {
+          if (!noteId || getEditor()?.id !== noteId || full.noteId !== noteId) return;
+          const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+          if (dueOnly && !full.cards.some(card => !card.nextReview || new Date(card.nextReview).getTime() <= todayEnd.getTime())) {
             el('flashcard-message').textContent = '오늘 복습할 카드가 없습니다.'; return;
           }
           study(full, shuffle, dueOnly);
@@ -178,6 +197,8 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
   }
 
   el('create-flashcards').onclick = createDeck;
+  document.addEventListener('studyspace:note-opened', resetForContext);
+  document.addEventListener('studyspace:course-changing', resetForContext);
 
   async function ensureForNote() {
     const editor = getEditor(); const course = getCourse();
@@ -189,7 +210,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     return existing || createDeck({studyAfter: false});
   }
 
-  async function openForNote() {
+  async function openForNote({dueOnly = false} = {}) {
     const editor = getEditor(); const course = getCourse();
     if (!editor?.id || !course?.id) { el('flashcard-message').textContent = '저장된 노트를 열면 플래시카드를 준비할 수 있습니다.'; return null; }
     const noteId = editor.id;
@@ -202,9 +223,9 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     el('flashcard-message').textContent = '';
     const deck = await loadDeck(deckRow.id);
     if (getEditor().id !== noteId) return null;
-    study(deck);
+    study(deck, false, dueOnly);
     return deck;
   }
 
-  return {loadFlashcardDecks, openForNote, createDeck, ensureForNote};
+  return {loadFlashcardDecks, openForNote, openDueForNote: () => openForNote({dueOnly: true}), createDeck, ensureForNote, resetForContext};
 }

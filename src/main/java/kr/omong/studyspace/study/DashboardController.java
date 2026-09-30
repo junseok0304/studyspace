@@ -22,7 +22,7 @@ public class DashboardController {
     public record TodayClass(String courseId, String name, String semester, String start, String end, String room) {}
     public record Dashboard(int courses, int notes, int viewed, int activeDays, List<Day> days,
                             List<CourseSummary> courseStats, List<Recent> recent, List<TodayClass> todayClasses,
-                            int quizAttempts,Double quizAccuracy,int wrongAnswers,int flashcardsDue,
+                            int quizAttempts,Double quizAccuracy,int wrongAnswers,int flashcardsDue,int newFlashcards,int reviewFlashcards,
                             Recent quizTarget,Recent reviewTarget) {}
     private static final Pattern SCHEDULE = Pattern.compile("([월화수목금토일])요일?\\s*/\\s*(\\d{1,2}:\\d{2})\\s*~\\s*(\\d{1,2}:\\d{2})(?:\\s*/\\s*([^,]+))?");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("H:mm");
@@ -111,17 +111,20 @@ public class DashboardController {
             """,(row,index)->new QuizStats(row.getInt("attempts"),row.getInt("correct_total"),row.getInt("question_total"),row.getInt("wrong_total")),user,semester,semester).getFirst();
         Double accuracy=quiz.questions()==0?null:Math.round(quiz.correct()*1000.0/quiz.questions())/10.0;
         java.sql.Timestamp reviewBefore=java.sql.Timestamp.valueOf(today.plusDays(1).atStartOfDay());
-        Integer flashcardsDue=db.queryForObject("""
-            select count(*) from flashcards f join flashcard_decks d on d.id=f.deck_id
+        FlashcardCounts flashcardCounts=db.queryForObject("""
+            select coalesce(sum(case when not exists(select 1 from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id) then 1 else 0 end),0) new_cards,
+              coalesce(sum(case when exists(select 1 from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id)
+                and (select r.next_review_at from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id order by r.reviewed_at desc limit 1) < ? then 1 else 0 end),0) review_cards
+            from flashcards f join flashcard_decks d on d.id=f.deck_id
             join courses c on c.id=d.course_id and c.user_id=d.user_id
             join notes n on n.id=d.note_id and n.user_id=d.user_id
             left join course_settings s on s.course_id=c.id and s.user_id=c.user_id
             where d.user_id=? and coalesce(s.archived,false)=false
               and not exists(select 1 from note_trash t where t.note_id=n.id and t.user_id=n.user_id)
-              and (?='' or c.semester=?) and (
-              not exists(select 1 from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id)
-              or (select r.next_review_at from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id order by r.reviewed_at desc limit 1) < ?)
-            """,Integer.class,user,semester,semester,reviewBefore);
+              and (?='' or c.semester=?) and (not exists(select 1 from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id)
+                or (select r.next_review_at from flashcard_reviews r where r.card_id=f.id and r.user_id=d.user_id order by r.reviewed_at desc limit 1) < ?)
+            """,(row,index)->new FlashcardCounts(row.getInt("new_cards"),row.getInt("review_cards")),reviewBefore,user,semester,semester,reviewBefore);
+        int flashcardsDue=flashcardCounts.newCards()+flashcardCounts.reviewCards();
         var dueNotes=db.query("""
             select n.id,n.course_id,n.title,c.name from flashcards f
             join flashcard_decks d on d.id=f.deck_id and d.user_id=?
@@ -137,7 +140,8 @@ public class DashboardController {
             """,(r,n)->new Recent(r.getString("id"),r.getString("course_id"),r.getString("title"),r.getString("name")),user,semester,semester,reviewBefore);
         Recent reviewTarget=dueNotes.isEmpty()?null:dueNotes.getFirst();
         return new Dashboard(stats.size(),stats.stream().mapToInt(CourseSummary::notes).sum(),
-                stats.stream().mapToInt(CourseSummary::viewed).sum(),counts.size(),days,stats,recent,todayClasses,quiz.attempts(),accuracy,quiz.wrong(),flashcardsDue==null?0:flashcardsDue,quizTarget,reviewTarget);
+                stats.stream().mapToInt(CourseSummary::viewed).sum(),counts.size(),days,stats,recent,todayClasses,quiz.attempts(),accuracy,quiz.wrong(),flashcardsDue,flashcardCounts.newCards(),flashcardCounts.reviewCards(),quizTarget,reviewTarget);
     }
     private record QuizStats(int attempts,int correct,int questions,int wrong) {}
+    private record FlashcardCounts(int newCards,int reviewCards) {}
 }

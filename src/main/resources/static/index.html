@@ -69,7 +69,7 @@
       <article class="dashboard-card weekly-card"><div class="dashboard-card-heading"><div><p class="eyebrow">LAST 7 DAYS</p><h3>최근 7일 활동</h3><p class="activity-caption" id="activity-chart-description">하루 동안 열어 본 노트 수 · 같은 노트는 하루 1회만 집계</p></div></div><div id="activity-chart" class="activity-chart bar-chart" aria-label="최근 7일 하루별 노트 열람 수" aria-describedby="activity-chart-description"></div></article>
        <article class="dashboard-card quiz-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">QUIZ</p><h3>퀴즈 기록</h3></div></div><div id="quiz-stats"></div><button id="dashboard-quiz-button" class="secondary dashboard-card-action" type="button" disabled>최근 노트에서 퀴즈 보기</button></article>
       <article class="dashboard-card course-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">COURSE FOCUS</p><h3>과목별 노트</h3></div></div><div id="course-progress"></div></article>
-      <article class="dashboard-card flash-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">REVIEW</p><h3>오늘 복습 카드</h3></div></div><strong class="stat-big" id="metric-flashcards-due">—</strong><p class="fine-print">처음 보거나 복습할 카드</p><button id="dashboard-review-button" class="secondary dashboard-card-action" type="button" disabled>복습 시작</button></article>
+      <article class="dashboard-card flash-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">REVIEW</p><h3>오늘 학습 카드</h3></div></div><strong class="stat-big" id="metric-flashcards-due">—</strong><p class="fine-print" id="metric-flashcards-breakdown">미학습 카드와 오늘 복습할 카드</p><button id="dashboard-review-button" class="secondary dashboard-card-action" type="button" disabled>학습 시작</button></article>
     </div>
   </section>
   <section id="tips-panel" class="card hidden" aria-labelledby="tips-title">
@@ -140,10 +140,16 @@
         </div>
         <p id="generation-source-summary" class="fine-print learning-source-summary">현재 노트와 분석이 끝난 강의자료를 바탕으로 생성합니다.</p>
         <nav id="learning-tabs" class="tool-subtabs learning-tabs" aria-label="AI 학습 자료">
-          <button type="button" data-learning-view="infographic" aria-pressed="true">인포그래픽</button>
+          <button type="button" data-learning-view="summary" aria-pressed="true">요약</button>
+          <button type="button" data-learning-view="infographic" aria-pressed="false">인포그래픽</button>
           <button type="button" data-learning-view="quiz" aria-pressed="false">퀴즈</button>
           <button type="button" data-learning-view="flashcards" aria-pressed="false">플래시카드</button>
         </nav>
+        <section id="learning-summary-view" class="learning-view" aria-label="노트 요약">
+          <div class="learning-view-heading"><div><h4>현재 노트 요약</h4><p>강의노트와 분석된 자료의 핵심을 글로 정리합니다.</p></div><button id="generate-summary" class="quiet-button" type="button" disabled>다시 생성</button></div>
+          <p id="summary-message" class="fine-print" role="status" aria-live="polite"></p>
+          <article id="summary-stage" class="note-summary-stage"></article>
+        </section>
         <section id="learning-infographic-view" class="learning-view" aria-label="인포그래픽">
           <div class="learning-view-heading"><div><h4>한눈에 보는 인포그래픽</h4><p>현재 노트의 핵심 내용을 페이지별로 정리합니다.</p></div><button id="generate-infographic" class="quiet-button" type="button" disabled>다시 생성</button></div>
           <p id="generation-message" class="fine-print" role="status" aria-live="polite"></p>

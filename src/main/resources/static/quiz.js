@@ -20,6 +20,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     const index = Math.max(0, Math.min(Math.max(0, total - 1), requestedIndex ?? fallbackIndex));
     const question = questions[index];
     const complete = attempt.status === 'COMPLETED';
+    const questionAnswered = question?.selectedIndex !== null && question?.selectedIndex !== undefined;
     const answered = questions.filter(item => item.selectedIndex !== null && item.selectedIndex !== undefined).length;
     const percent = complete ? 100 : Math.round(answered * 100 / Math.max(1, total));
     activeQuestionByAttempt.set(attempt.id, index);
@@ -50,30 +51,32 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     const prompt = document.createElement('h4'); prompt.className = 'quiz-prompt'; prompt.textContent = question.prompt; block.append(prompt);
     question.options.forEach((option, optionIndex) => {
       const label = document.createElement('label');
-      const correct = complete && optionIndex === question.correctIndex;
-      const wrong = complete && optionIndex === question.selectedIndex && question.correct === false;
+      const answered = question.selectedIndex !== null && question.selectedIndex !== undefined;
+      const correct = (answered || complete) && optionIndex === question.correctIndex;
+      const wrong = answered && optionIndex === question.selectedIndex && question.correct === false;
       label.className = `quiz-option${correct ? ' is-correct' : ''}${wrong ? ' is-wrong' : ''}`;
       const marker = document.createElement('span'); marker.className = 'quiz-option-marker'; marker.textContent = String.fromCharCode(65 + optionIndex);
       const text = document.createElement('span'); text.className = 'quiz-option-text'; text.textContent = option;
       const radio = document.createElement('input'); radio.type = 'radio'; radio.name = `question-${question.id}`; radio.value = optionIndex;
-      radio.checked = question.selectedIndex === optionIndex; radio.disabled = complete;
+      radio.checked = question.selectedIndex === optionIndex; radio.disabled = complete || answered;
       radio.onchange = async () => {
         try {
           const updated = await request(`/api/quiz-attempts/${attempt.id}/answers/${question.id}`, {method: 'PUT', body: JSON.stringify({selectedIndex: optionIndex})});
           if (getEditor().id !== noteId) return;
-          el('quiz-message').textContent = '답을 저장했습니다.'; renderAttempt(updated, index);
+          el('quiz-message').textContent = '채점했습니다. 정답과 해설을 확인해 보세요.'; renderAttempt(updated, index);
         } catch (error) { el('quiz-message').textContent = error.message; }
       };
       label.append(marker, text, radio); block.append(label);
     });
-    if (!complete) {
+    if (!complete && !questionAnswered) {
       const hint = document.createElement('details'); hint.className = 'quiz-hint';
       const summary = document.createElement('summary'); summary.textContent = '힌트 보기';
       const hintText = document.createElement('p'); hintText.textContent = question.hint || '노트에서 이 개념의 정의와 특징을 설명하는 문장을 찾아보세요.';
       hint.append(summary, hintText); block.append(hint);
-    } else {
+    } else if (questionAnswered || complete) {
       const explanation = document.createElement('p'); explanation.className = `quiz-explanation ${question.correct ? 'correct' : 'wrong'}`;
-      explanation.textContent = `${question.correct ? '정답' : '오답'} · 정답 ${question.correctIndex + 1}번 · ${question.explanation} · ${question.source}`;
+      const result = questionAnswered ? (question.correct ? '정답' : '오답') : '미응답';
+      explanation.textContent = `${result} · 정답 ${question.correctIndex + 1}번 · ${question.explanation} · ${question.source}`;
       block.append(explanation);
     }
     player.append(block);
@@ -84,7 +87,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
       if (index < total - 1) {
         const next = document.createElement('button'); next.type = 'button'; next.className = 'primary'; next.textContent = '다음'; next.onclick = () => renderAttempt(attempt, index + 1); actions.append(next);
       } else {
-        const submit = document.createElement('button'); submit.type = 'button'; submit.className = 'primary'; submit.textContent = '제출하고 채점하기';
+        const submit = document.createElement('button'); submit.type = 'button'; submit.className = 'primary'; submit.textContent = '퀴즈 마치기';
         submit.onclick = async () => {
           submit.disabled = true;
           try { const result = await request(`/api/quiz-attempts/${attempt.id}/submit`, {method: 'POST'}); if (getEditor().id !== noteId) return; renderAttempt(result, index); await Promise.all([loadQuizSets(getCourse()?.id), loadDashboard()]); }

@@ -215,6 +215,16 @@ export async function start(request, userId) {
   }
 
   function renderGenerations(rows) {
+    const summaryStage=byId('summary-stage');
+    const summaryResult=rows.find(row=>row.kind==='SUMMARY'&&row.sourceNoteVersion===editor.version&&matchesAiMode(row));
+    summaryStage.replaceChildren();
+    if (!editor.id) byId('summary-message').textContent='노트를 저장하면 요약을 준비할 수 있습니다.';
+    else if (summaryResult?.status==='PENDING'||summaryResult?.status==='RUNNING') summaryStage.append(emptyState('노트 내용을 요약하고 있습니다.','완료되면 핵심 내용을 글로 보여드립니다.'));
+    else if (summaryResult?.status==='FAILED') summaryStage.append(emptyState('요약을 만들지 못했습니다.','다시 생성을 눌러 새 요약을 요청해 주세요.'));
+    else if (summaryResult?.status==='COMPLETED'&&summaryResult.content) {
+      summaryStage.append(renderMarkdown(summaryResult.content));
+      const meta=document.createElement('p');meta.className='fine-print';meta.textContent=`${summaryResult.mockResult?'모의 요약':'AI 요약'} · 노트 버전 ${summaryResult.sourceNoteVersion} · 자료 ${summaryResult.attachmentCount||0}개`;summaryStage.append(meta);
+    }
     const stage=byId('infographic-stage');
     const badge=byId('learning-mode-badge');
     const result=rows.find(row=>row.kind==='INFOGRAPHIC'&&row.sourceNoteVersion===editor.version&&matchesAiMode(row));
@@ -238,10 +248,6 @@ export async function start(request, userId) {
     if (result.status==='COMPLETED'&&result.content) {
       const title=byId('note-title').value.trim()||'현재 노트';
       renderInfographicPages(document,stage,{title,content:result.content,renderMarkdown});
-      const noteVersion=document.createElement('p');
-      noteVersion.className='fine-print infographic-source-note';
-      noteVersion.textContent=`${result.mockResult?'모의 생성 결과':'AI 생성 결과'} · 노트 버전 ${result.sourceNoteVersion} · 첨부 ${result.attachmentCount||0}개`;
-      stage.append(noteVersion);
     }
   }
 
@@ -291,6 +297,7 @@ export async function start(request, userId) {
     const courseChanged = course?.id !== row.id;
     navigating = true;
     try {
+    if (courseChanged) document.dispatchEvent(new CustomEvent('studyspace:course-changing',{detail:{courseId:row.id}}));
     editor.close(); course = row;
     if (courseChanged) document.dispatchEvent(new CustomEvent('studyspace:select-tool',{detail:{id:'note'}}));
     byId('course-heading').textContent = row.name;

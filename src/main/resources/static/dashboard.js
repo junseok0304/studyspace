@@ -43,14 +43,14 @@ export function mountDashboard({request, byId, getCourse, selectCourse, button, 
     return courses;
   }
 
-  async function openPracticeFromDashboard(view, note) {
+  async function openPracticeFromDashboard(view, note, dueOnly = false) {
     const semester = el('dashboard-semester').value;
     const target = note && courses.find(item => item.id === note.courseId)
       || courses.find(item => !item.archived && item.semester === semester)
       || courses.find(item => !item.archived);
     if (!target) return;
     await selectCourse(target, note?.id);
-    document.dispatchEvent(new CustomEvent('studyspace:select-tool', {detail: {id: 'learning-panel', view}}));
+    document.dispatchEvent(new CustomEvent('studyspace:select-tool', {detail: {id: 'learning-panel', view, dueOnly}}));
   }
 
   async function loadDashboard() {
@@ -86,10 +86,12 @@ export function mountDashboard({request, byId, getCourse, selectCourse, button, 
         return chip;
       }));
       el('metric-flashcards-due').textContent = `${data.flashcardsDue}장`;
+      const flashcardBreakdown = el('metric-flashcards-breakdown');
+      if (flashcardBreakdown) flashcardBreakdown.textContent = `새 카드 ${data.newFlashcards ?? 0}장 · 복습 예정 ${data.reviewFlashcards ?? 0}장`;
       const reviewButton = el('dashboard-review-button');
       if (reviewButton) {
         reviewButton.disabled = data.flashcardsDue < 1 || !reviewTarget;
-        reviewButton.onclick = () => openPracticeFromDashboard('flashcards', reviewTarget).catch(error => tell(error.message));
+        reviewButton.onclick = () => openPracticeFromDashboard('flashcards', reviewTarget, true).catch(error => tell(error.message));
       }
       const quizButton = el('dashboard-quiz-button');
       if (quizButton) {

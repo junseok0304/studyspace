@@ -121,7 +121,6 @@ public class GenerationWorker {
                 String content=String.join("\n\n",passages.subList(start,end).stream().map(value->"- "+value).toList());
                 pages.add("## 핵심 개념 "+page+"\n\n"+content);
             }
-            if(!sources.isEmpty()) pages.add(sourcePreview(sources));
             return String.join("\n\n---PAGE---\n\n",pages);
         }
         if("AI_NOTE".equals(input.kind())) return """

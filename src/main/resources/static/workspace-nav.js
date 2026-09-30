@@ -285,15 +285,17 @@ export function mountWorkspaceNavigation(doc = document) {
   }
 
   tips.onclick = () => showTips(true);
-  noteToggle.onclick = () => {
-    const collapsed = study.classList.toggle('note-rail-collapsed');
+  const setNoteRailCollapsed = collapsed => {
+    study.classList.toggle('note-rail-collapsed', collapsed);
     try { doc.defaultView?.sessionStorage?.setItem('studyspace.noteRailCollapsed', String(collapsed)); } catch {}
     noteToggle.setAttribute('aria-expanded', String(!collapsed));
     noteToggle.setAttribute('aria-label', collapsed ? '강의노트 목록 펼치기' : '강의노트 목록 접기');
     noteToggle.textContent = collapsed ? '›' : '목록 접기';
   };
+  noteToggle.onclick = () => setNoteRailCollapsed(!study.classList.contains('note-rail-collapsed'));
+  doc.addEventListener('studyspace:course-changing', () => setNoteRailCollapsed(false));
 
-  function select(requestedId, view) {
+  function select(requestedId, view, options = {}) {
     const id = ['practice', 'practice-panel', 'generation-panel'].includes(requestedId) ? 'learning-panel' : requestedId;
     const beforeSelect = new CustomEventType('studyspace:before-tool-select', {cancelable: true, detail: {id}});
     doc.dispatchEvent(beforeSelect);
@@ -321,7 +323,7 @@ export function mountWorkspaceNavigation(doc = document) {
       (doc.defaultView?.setTimeout || setTimeout)(() => card.classList.remove('screen-transitioning'), 220);
     });
     updateContext();
-    doc.dispatchEvent(new CustomEventType('studyspace:tool-selected', {detail: {id, view}}));
+    doc.dispatchEvent(new CustomEventType('studyspace:tool-selected', {detail: {id, view, dueOnly: Boolean(options.dueOnly)}}));
   }
 
   doc.getElementById('new-note').addEventListener('click', () => select('note'));
@@ -332,7 +334,7 @@ export function mountWorkspaceNavigation(doc = document) {
     const activeTool = card.dataset.activeTool;
     select(activeTool === 'attachment-panel' || activeTool === 'recording-panel' || activeTool === 'learning-panel' ? activeTool : 'note');
   });
-  doc.addEventListener('studyspace:select-tool', event => select(event.detail.id, event.detail.view));
+  doc.addEventListener('studyspace:select-tool', event => select(event.detail.id, event.detail.view, event.detail));
   doc.addEventListener('studyspace:view', event => {
     showTips(false);
     noteOpen = false;

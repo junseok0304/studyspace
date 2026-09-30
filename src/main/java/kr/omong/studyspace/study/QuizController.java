@@ -130,6 +130,11 @@ public class QuizController {
     @PutMapping("/quiz-attempts/{attemptId}/answers/{questionId}")
     public Attempt answer(Authentication auth,@PathVariable String attemptId,@PathVariable String questionId,@Valid @RequestBody SaveAnswer input) {
         long user=owner(auth); requireInProgress(attemptId,user);
+        var previous=db.queryForList("select selected_index from quiz_answers where attempt_id=? and question_id=?",Integer.class,attemptId,questionId);
+        if(!previous.isEmpty()) {
+            if(previous.getFirst()==input.selectedIndex()) return attempt(attemptId,user,false);
+            throw new AuthException("이 문항은 이미 답을 제출해 채점이 끝났습니다.",409);
+        }
         var correct=db.queryForList("select q.correct_index from quiz_attempt_questions aq join quiz_questions q on q.id=aq.question_id where aq.attempt_id=? and aq.question_id=?",Integer.class,attemptId,questionId);
         if(correct.isEmpty()) throw new AuthException("문항을 찾을 수 없습니다.",404); boolean value=correct.getFirst()==input.selectedIndex();
         int updated=db.update("update quiz_answers set selected_index=?,correct=?,answered_at=current_timestamp where attempt_id=? and question_id=?",input.selectedIndex(),value,attemptId,questionId);
@@ -191,7 +196,10 @@ public class QuizController {
     private Attempt attempt(String id,long user,boolean reveal) {
         var attempts=db.query("select * from quiz_attempts where id=? and user_id=?",(row,index)->new AttemptBase(row.getString("id"),row.getString("quiz_set_id"),row.getString("mode"),row.getString("status"),row.getInt("total_questions"),(Integer)row.getObject("correct_answers"),row.getTimestamp("started_at").toInstant().toString(),row.getTimestamp("completed_at")==null?null:row.getTimestamp("completed_at").toInstant().toString()),id,user);
         if(attempts.isEmpty()) throw new AuthException("풀이 기록을 찾을 수 없습니다.",404); AttemptBase base=attempts.getFirst(); boolean show=reveal||"COMPLETED".equals(base.status());
-        var questions=db.query("select q.*,aq.question_order attempt_order,a.selected_index,a.correct from quiz_attempt_questions aq join quiz_questions q on q.id=aq.question_id left join quiz_answers a on a.attempt_id=aq.attempt_id and a.question_id=q.id where aq.attempt_id=? order by aq.question_order",(row,index)->new Question(row.getString("id"),row.getInt("attempt_order"),row.getString("prompt"),List.of(row.getString("option_a"),row.getString("option_b"),row.getString("option_c"),row.getString("option_d")),(Integer)row.getObject("selected_index"),show?(Boolean)row.getObject("correct"):null,show?row.getInt("correct_index"):null,row.getString("hint_text"),show?row.getString("explanation"):null,row.getString("source_label")),id);
+        var questions=db.query("select q.*,aq.question_order attempt_order,a.selected_index,a.correct from quiz_attempt_questions aq join quiz_questions q on q.id=aq.question_id left join quiz_answers a on a.attempt_id=aq.attempt_id and a.question_id=q.id where aq.attempt_id=? order by aq.question_order",(row,index)->{
+            boolean revealAnswer=show||row.getObject("selected_index")!=null;
+            return new Question(row.getString("id"),row.getInt("attempt_order"),row.getString("prompt"),List.of(row.getString("option_a"),row.getString("option_b"),row.getString("option_c"),row.getString("option_d")),(Integer)row.getObject("selected_index"),revealAnswer?(Boolean)row.getObject("correct"):null,revealAnswer?row.getInt("correct_index"):null,row.getString("hint_text"),revealAnswer?row.getString("explanation"):null,row.getString("source_label"));
+        },id);
         return new Attempt(base.id(),base.setId(),base.mode(),base.status(),base.total(),base.correct(),base.started(),base.completed(),questions);
     }
     private boolean isComplete(String id,long user) { Integer count=db.queryForObject("select count(*) from quiz_attempts where id=? and user_id=? and status='COMPLETED'",Integer.class,id,user); return count!=null&&count==1; }

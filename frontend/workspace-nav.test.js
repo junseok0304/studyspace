@@ -54,9 +54,9 @@ test('recording opens a focused workspace and navigation keeps controls mounted'
   assert.equal(doc.getElementById('learning-panel').hidden,false);
   assert.equal(doc.getElementById('recording-panel').hidden,true);
   const learningTabs=doc.querySelectorAll('#learning-tabs [data-learning-view]');
-  assert.equal(learningTabs.length,3);
-  assert.deepEqual([...learningTabs].map(button=>button.textContent),['인포그래픽','퀴즈','플래시카드']);
-  assert.equal(doc.getElementById('learning-panel').querySelector('#learning-tabs').nextElementSibling.id,'learning-infographic-view');
+  assert.equal(learningTabs.length,4);
+  assert.deepEqual([...learningTabs].map(button=>button.textContent),['요약','인포그래픽','퀴즈','플래시카드']);
+  assert.equal(doc.getElementById('learning-panel').querySelector('#learning-tabs').nextElementSibling.id,'learning-summary-view');
   assert.equal(doc.querySelector('.writing-panel').hidden,true);
   doc.getElementById('notes').click();
   assert.equal(body.value,'저장 전 필기');
@@ -104,5 +104,8 @@ test('recording opens a focused workspace and navigation keeps controls mounted'
   assert.equal(doc.getElementById('tips-panel').classList.contains('hidden'),true);
   assert.equal(doc.getElementById('note-editor-card').classList.contains('hidden'),false);
   assert.equal(doc.getElementById('learning-panel').hidden,false);
+  doc.dispatchEvent(new dom.window.Event('studyspace:course-changing'));
+  assert.equal(doc.getElementById('study').classList.contains('note-rail-collapsed'),false);
+  assert.equal(railToggle.textContent,'목록 접기');
   dom.window.close();
 });

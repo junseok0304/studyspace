@@ -1,6 +1,6 @@
 /** Split a generated infographic into readable, navigable pages. */
 export function paginateInfographic(markdown, maxChars = 1400) {
-  const source = String(markdown || '').trim();
+  const source = stripInfographicSources(markdown).trim();
   if (!source) return [];
   const explicit = source.split(/^\s*(?:---PAGE---|<!--\s*PAGE\s*-->)\s*$/m).map(page => page.trim()).filter(Boolean);
   if (explicit.length > 1) return explicit;
@@ -34,6 +34,28 @@ export function paginateInfographic(markdown, maxChars = 1400) {
   }
   if (current) pages.push(current);
   return pages.length ? pages : [source];
+}
+
+/** Remove citation-only sections and markers, including from older saved results. */
+export function stripInfographicSources(markdown) {
+  const lines = String(markdown || '').split('\n');
+  const kept = [];
+  let droppingSection = false;
+  for (const line of lines) {
+    if (/^\s*---PAGE---\s*$/.test(line)) { droppingSection = false; kept.push(line); continue; }
+    if (/^\s{0,3}#{1,6}\s/.test(line)) {
+      droppingSection = /^\s{0,3}#{1,6}\s*.*(?:출처|참고|근거|reference|citation)/i.test(line);
+      if (!droppingSection) kept.push(line);
+      continue;
+    }
+    if (droppingSection || /^\s*(?:[-*+]\s*)?(?:출처|참고(?:\s*자료|문헌)?|자료\s*출처|근거(?:\s*자료)?|references?|citations?)\s*[:：]/i.test(line)) continue;
+    if (/^\s*\[\^?\d+\]:/.test(line)) continue;
+    kept.push(line.replace(/\[\^?\d+\]/g, '')
+      .replace(/\s*\[(?:출처|참고|자료|근거)[^\]]*\]/gi, '')
+      .replace(/\s*\((?:출처|참고|자료|근거)[^)]*\)/gi, '')
+      .replace(/\s*\([^)]*(?:\.pdf|\.pptx?|\.hwp|\.png)[^)]*(?:p(?:age)?\.?\s*\d+|페이지\s*\d+|슬라이드\s*\d+)[^)]*\)/gi, ''));
+  }
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
 export function renderInfographicPages(document, container, {title, content, renderMarkdown}) {
