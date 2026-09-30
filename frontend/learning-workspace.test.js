@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
 import {mountLearningWorkspace} from '../src/main/resources/static/learning-workspace.js';
 import {paginateInfographic, renderInfographicPages} from '../src/main/resources/static/infographic-view.js';
+import {renderMarkdown} from '../src/main/resources/static/markdown.js';
 
 test('learning views switch directly and reuse the current note version', async () => {
   const dom = new JSDOM(`<!doctype html><section id="learning-panel"><nav id="learning-tabs">
@@ -82,4 +83,34 @@ test('infographic content is paginated with working accessible navigation', () =
   previous.click();
   assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 2');
   dom.window.close();
+});
+
+test('infographic cover does not repeat the current note title as body text', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const container = dom.window.document.getElementById('stage');
+  renderInfographicPages(dom.window.document, container, {
+    title: '강의노트',
+    content: '# 강의노트\n\n## 핵심 한눈에 보기\n\n강의노트\n\n실제 핵심 내용입니다.',
+    renderMarkdown: value => {
+      const fragment = dom.window.document.createDocumentFragment();
+      const paragraph = dom.window.document.createElement('p'); paragraph.textContent = value; fragment.append(paragraph);
+      return fragment;
+    }
+  });
+  assert.equal(container.querySelector('.infographic-page').textContent.includes('실제 핵심 내용입니다.'), true);
+  assert.doesNotMatch(container.querySelector('.infographic-page').textContent.replace('강의노트', ''), /강의노트/);
+});
+
+test('infographic skips a title-only cover and starts on the first useful page', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const container = dom.window.document.getElementById('stage');
+  renderInfographicPages(dom.window.document, container, {
+    title: '강의노트',
+    content: '# 강의노트\n\n## 핵심 한눈에 보기\n\n강의노트\n\n---PAGE---\n\n## 핵심 개념 1\n\n실제 핵심 내용입니다.',
+    renderMarkdown: value => renderMarkdown(value, dom.window)
+  });
+  assert.equal(container.querySelector('.infographic-page-number').textContent, '1 / 1');
+  assert.equal(container.querySelector('.infographic-page h1').textContent, '강의노트');
+  assert.equal(container.querySelector('.infographic-page').textContent.includes('실제 핵심 내용입니다.'), true);
+  assert.equal(container.querySelector('.infographic-page h2').textContent, '핵심 개념 1');
 });

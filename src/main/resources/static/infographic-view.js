@@ -64,7 +64,8 @@ export function stripInfographicSources(markdown) {
 }
 
 export function renderInfographicPages(document, container, {title, content, renderMarkdown}) {
-  const pages = paginateInfographic(content);
+  const pages = paginateInfographic(removeRepeatedCoverTitle(content, title));
+  if (pages.length > 1 && !hasInfographicBody(pages[0])) pages.shift();
   container.replaceChildren();
   if (!pages.length) return 0;
 
@@ -112,4 +113,32 @@ export function renderInfographicPages(document, container, {title, content, ren
   next.onclick = () => { if (page < pages.length - 1) { page++; show(); } };
   show();
   return pages.length;
+}
+
+function hasInfographicBody(markdown) {
+  return String(markdown || '').split('\n').some(line => {
+    const value = line.trim();
+    return value && !/^#{1,6}\s/.test(value) && !/^(?:---PAGE---|---+)$/.test(value);
+  });
+}
+
+function removeRepeatedCoverTitle(markdown, title) {
+  const normalize = value => String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+  const expected = normalize(title);
+  if (!expected) return String(markdown || '');
+  const lines = String(markdown || '').split('\n');
+  let coverTitleFound = false;
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim();
+    const h1 = line.match(/^#\s+(.+)$/);
+    if (!coverTitleFound && h1 && normalize(h1[1]) === expected) {
+      coverTitleFound = true;
+      continue;
+    }
+    if (coverTitleFound && !/^#{1,6}\s/.test(line) && normalize(line) === expected) {
+      lines[index] = '';
+      break;
+    }
+  }
+  return lines.join('\n');
 }
