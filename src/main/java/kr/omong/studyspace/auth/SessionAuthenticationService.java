@@ -24,6 +24,8 @@ public class SessionAuthenticationService {
                      HttpServletRequest request,
                      HttpServletResponse response) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
+        if (request.getSession(false) != null) request.changeSessionId();
+        request.getSession(true).removeAttribute("school.prompt.shown");
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);

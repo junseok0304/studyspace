@@ -12,13 +12,26 @@ public final class AuthModels {
     public record SignupRequest(
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 8, max = 72) String password,
-            @NotBlank @Size(min = 1, max = 50) String nickname
+            @NotBlank @Size(min = 1, max = 50) String nickname,
+            boolean termsAccepted,
+            boolean privacyAccepted
     ) {}
 
     public record LoginRequest(
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank String password
     ) {}
+
+    public record PasswordResetRequest(
+            @NotBlank @Email @Size(max = 254) String email
+    ) {}
+
+    public record PasswordResetConfirmRequest(
+            @NotBlank @Size(max = 200) String token,
+            @NotBlank @Size(min = 8, max = 72) String password
+    ) {}
+
+    public record PasswordResetResponse(String message, String developmentResetUrl) {}
 
     public record UserResponse(
             long id,

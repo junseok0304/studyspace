@@ -58,6 +58,11 @@ public class UserAccountRepository {
                 userId, provider, providerUserId, providerEmail);
     }
 
+    public void saveConsent(long userId) {
+        jdbc.update("insert into user_consents(user_id, terms_version, privacy_version) values (?, ?, ?)",
+                userId, "2026-09-19-draft", "2026-09-19-draft");
+    }
+
     public void saveVerificationToken(long userId, String token, Instant expiresAt) {
         jdbc.update("insert into email_verification_tokens(user_id, token_hash, expires_at) values (?, ?, ?)",
                 userId, token, expiresAt);
@@ -68,6 +73,25 @@ public class UserAccountRepository {
         if (updated == 0) return false;
         jdbc.update("update email_verification_tokens set used_at = current_timestamp where token_hash = ?", token);
         return true;
+    }
+
+    public void savePasswordResetToken(long userId, String token, Instant expiresAt) {
+        jdbc.update("update password_reset_tokens set used_at = current_timestamp where user_id = ? and used_at is null", userId);
+        jdbc.update("insert into password_reset_tokens(user_id, token_hash, expires_at) values (?, ?, ?)",
+                userId, token, expiresAt);
+    }
+
+    public boolean resetPassword(String token, String passwordHash) {
+        int updated = jdbc.update("update users set password_hash = ? where id = (select user_id from password_reset_tokens where token_hash = ? and used_at is null and expires_at > current_timestamp)",
+                passwordHash, token);
+        if (updated == 0) return false;
+        jdbc.update("update password_reset_tokens set used_at = current_timestamp where token_hash = ? and used_at is null", token);
+        return true;
+    }
+
+    public boolean hasSocialIdentity(long userId) {
+        Integer count = jdbc.queryForObject("select count(*) from social_identities where user_id = ?", Integer.class, userId);
+        return count != null && count > 0;
     }
 
     private UserAccount map(ResultSet rs, int rowNum) throws SQLException {

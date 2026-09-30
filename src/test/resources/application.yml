@@ -9,3 +9,4 @@ spring:
 studyspace:
   auth:
     require-email-verification: false
+    expose-development-links: true

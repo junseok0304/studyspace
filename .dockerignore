@@ -1,0 +1,11 @@
+.git
+.gradle
+build
+node_modules
+runtime
+docs/PRD.md
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
