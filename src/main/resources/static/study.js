@@ -1,5 +1,6 @@
 import { renderMarkdown } from './markdown.js';
 import { removeDuplicateLeadingTitle } from './note-markdown.js';
+import { stripSummarySourceLabels } from './summary-view.js';
 import { DraftStore, NoteEditor } from './note-editor.js';
 import { renderInfographicPages } from './infographic-view.js';
 import { mountWorkspaceNavigation } from './workspace-nav.js';
@@ -224,7 +225,7 @@ export async function start(request, userId) {
     else if (summaryResult?.status==='PENDING'||summaryResult?.status==='RUNNING') summaryStage.append(emptyState('노트 내용을 요약하고 있습니다.','완료되면 핵심 내용을 글로 보여드립니다.'));
     else if (summaryResult?.status==='FAILED') summaryStage.append(emptyState('요약을 만들지 못했습니다.','다시 생성을 눌러 새 요약을 요청해 주세요.'));
     else if (summaryResult?.status==='COMPLETED'&&summaryResult.content) {
-      summaryStage.append(renderMarkdown(summaryResult.content));
+      summaryStage.append(renderMarkdown(stripSummarySourceLabels(summaryResult.content)));
     }
     const stage=byId('infographic-stage');
     const badge=byId('learning-mode-badge');

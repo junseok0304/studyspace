@@ -4,6 +4,7 @@ import {JSDOM} from 'jsdom';
 import {mountLearningWorkspace} from '../src/main/resources/static/learning-workspace.js';
 import {paginateInfographic, renderInfographicPages} from '../src/main/resources/static/infographic-view.js';
 import {renderMarkdown} from '../src/main/resources/static/markdown.js';
+import {stripSummarySourceLabels} from '../src/main/resources/static/summary-view.js';
 
 test('learning views switch directly and reuse the current note version', async () => {
   const dom = new JSDOM(`<!doctype html><section id="learning-panel"><nav id="learning-tabs">
@@ -32,6 +33,15 @@ test('learning views switch directly and reuse the current note version', async 
   assert.deepEqual(calls,['summary','infographic','infographic','summary','infographic','quiz','summary','infographic','flashcards']);
   assert.equal(byId('learning-flashcards-view').hidden,false);
   dom.window.close();
+});
+
+test('summary view removes repeated note citations without touching prose', () => {
+  const content = '## 표준 출력\n\ncout은 표준 출력 스트림 객체입니다. (노트: 0902 2차시 (버전 1))\n\n참조(reference)는 별칭입니다. (Call-by-Reference)\n\n출처: 강의자료.pdf';
+  const clean = stripSummarySourceLabels(content);
+  assert.match(clean, /cout은 표준 출력 스트림 객체입니다\./);
+  assert.match(clean, /참조\(reference\)는 별칭입니다\. \(Call-by-Reference\)/);
+  assert.match(clean, /cout은 표준 출력 스트림 객체입니다\.\n\n참조/);
+  assert.doesNotMatch(clean, /노트:|강의자료\.pdf|^출처:/m);
 });
 
 test('learning waits for source loading and permits retry after failed generation', async () => {
