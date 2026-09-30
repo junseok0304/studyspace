@@ -1,0 +1,496 @@
+/* workspace-navigation: ordered segment of the workspace cascade. */
+/* Consolidated duplicate selectors. */
+.workspace-tabs{
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+.workspace-tabs button{
+  background: transparent;
+  font-size: 15px;
+  padding: 12px 6px;
+  min-width: 0;
+  white-space: normal;
+}
+.study{
+  align-items: start;
+  padding-bottom: 160px;
+}
+.generation-actions button.ai-action{
+  flex: 1 1 180px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 14px 18px;
+  text-align: left;
+  display: flex;
+}
+#note-editor-card{
+  padding: 28px;
+  container-type: inline-size;
+}
+.study .quiz-set-row strong{
+  font-size: 18px;
+  line-height: 1.5;
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.study .quiz-set-row .fine-print{
+  font-size: 14px;
+  flex: 1 1 100%;
+}
+.notesup-workspace .course-menu{
+  order: 2;
+  margin: 0 0 18px;
+}
+.notesup-workspace .course-rail > h2{
+  order: 1;
+  margin: 24px 12px 8px;
+  color: #9aa4b1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.notesup-workspace .rail-section-label{
+  order: 3;
+  display: flex;
+  align-items: center;
+  margin: 0 12px 8px;
+  color: #9aa4b1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.notesup-workspace #courses{
+  order: 4;
+  display: grid;
+  gap: 3px;
+}
+.notesup-workspace .course-management{
+  order: 5;
+}
+.notesup-workspace .rail-footer{
+  order: 7;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: auto 4px 0;
+  padding: 16px 8px 2px;
+  color: #8b96a5;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.notesup-workspace .rail-semester-filter{
+  order: 0;
+  display: grid;
+  gap: 7px;
+  margin: 18px 12px 4px;
+  color: #9aa4b1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.notesup-workspace .study-dashboard .dashboard-heading{
+  align-items: flex-start;
+  margin: 0 0 22px;
+  margin-top: 12px;
+}
+.notesup-workspace .study-dashboard .dashboard-heading h1{
+  margin: 0;
+  color: #303846;
+  font-size: 25px;
+  font-weight: 760;
+  letter-spacing: -.85px;
+}
+.notesup-workspace .study-dashboard .study-stat{
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #e6e9ef;
+  border-radius: 10px;
+  background: #fff;
+  display: block;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
+  min-height: 110px;
+}
+.notesup-workspace .study-dashboard .study-stat-value{
+  display: block;
+  margin: 8px 0 0;
+  color: #3e4d67;
+  font-size: 19px;
+  letter-spacing: -.8px;
+  align-self: center;
+  line-height: 1.3;
+}
+.notesup-workspace .study-dashboard .study-stat-featured .study-stat-value{
+  color: #526bd3;
+}
+.notesup-workspace .study-dashboard .dashboard-main-grid{
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+}
+.notesup-workspace .study-dashboard .dashboard-card-heading h3{
+  color: #3a4351;
+  font-size: 16px;
+  font-weight: 740;
+  letter-spacing: -.35px;
+}
+.notesup-workspace .study-dashboard .dashboard-card-heading .eyebrow{
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+.notesup-workspace .study-dashboard .today-class-row{
+  display: flex !important;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 !important;
+  border-top: 1px solid #f0f2f5;
+  min-width: 0;
+  overflow: visible !important;
+  min-height: 0;
+}
+.notesup-workspace .study-dashboard .today-class-row:first-child{
+  border-top: 0;
+  padding-top: 10px !important;
+}
+.notesup-workspace .study-dashboard .today-class-row strong{
+  color: #8893a2;
+  font-size: 12px;
+  font-weight: 650;
+  grid-row: auto;
+  margin: 0;
+  overflow: visible !important;
+  line-height: 18px;
+  white-space: nowrap;
+  flex: 0 0 82px;
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  padding: 0;
+  vertical-align: middle;
+}
+.notesup-workspace .study-dashboard .today-class-row > span{
+  color: #9aa3ae;
+  font-size: 11px;
+  white-space: nowrap;
+  grid-column: auto;
+  margin: 0;
+  overflow: visible !important;
+  line-height: 18px;
+  text-align: right;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  vertical-align: middle;
+}
+.notesup-workspace .study-dashboard .today-class-link{
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #4b5d7a;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .study-dashboard .bar-chart{
+  display: flex;
+  grid-template-columns: repeat(7,minmax(0,1fr));
+  align-items: flex-end;
+  height: 158px;
+  gap: 10px;
+  padding-top: 8px;
+}
+.notesup-workspace .study-dashboard .bar-column{
+  display: flex;
+  grid-template-rows: 16px 92px 16px;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  text-align: center;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.notesup-workspace .study-dashboard .bar-track{
+  height: auto !important;
+  margin: 4px 0;
+  border-radius: 7px 7px 3px 3px;
+  background: #f0f2f7;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  width: 100%;
+  max-width: 27px;
+  min-height: 4px;
+}
+.notesup-workspace .study-dashboard .bar-fill{
+  width: 100%;
+  min-height: 4px;
+  border-radius: 7px 7px 3px 3px;
+  background: linear-gradient(180deg, #7691f4, #5b78e7);
+}
+.notesup-workspace .study-dashboard .study-stat-hint{
+  align-self: start;
+  display: block;
+  margin-top: 6px;
+  color: #8b97a8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.notesup-workspace .study-dashboard .course-progress-row{
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 4px 12px;
+  padding: 9px 0;
+  border-top: 1px solid #f0f2f5;
+  display: grid;
+  align-items: center;
+  min-width: 0;
+}
+.notesup-workspace .study-dashboard .course-progress-row:first-child{
+  padding-top: 0;
+  border-top: 0;
+}
+.notesup-workspace .study-dashboard .course-progress-row progress{
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 5px;
+  accent-color: #7e91df;
+}
+.notesup-workspace .note-list-heading h2{
+  color: #354052;
+  font-size: 16px;
+  font-weight: 750;
+}
+.notesup-workspace .note-list-heading{
+  display: grid;
+  gap: 8px;
+}
+
+.notesup-workspace .note-list-heading .note-management{
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.notesup-workspace .note-list-heading .note-management > summary{
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 7px;
+  color: #68778b;
+  background: #f5f7fa;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+.notesup-workspace .note-list-heading .note-management > summary::-webkit-details-marker{ display:none; }
+.notesup-workspace .note-list-heading .note-management > summary:hover,
+.notesup-workspace .note-list-heading .note-management[open] > summary{ color:#3555c6; background:#eef3ff; }
+.notesup-workspace .note-management-menu{
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(260px, calc(100vw - 32px));
+  max-height: min(60vh, 440px);
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid #e6eaf0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(27, 39, 61, .14);
+}
+.notesup-workspace .note-management-menu .course-settings,
+.notesup-workspace .note-management-menu .note-import,
+.notesup-workspace .note-management-menu .trash-panel{ margin: 8px 0; padding: 0; border: 0; }
+
+.notesup-workspace .note-list-heading .rail-toggle{
+  min-height: 30px;
+  margin: 0;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+.notesup-workspace .note-list-heading #new-note{
+  justify-self: stretch;
+  width: 100%;
+  min-height: 38px;
+  border-color: #e0e6f3;
+  border-radius: 9px;
+  background: #f8faff;
+  font-size: 13px;
+}
+.notesup-workspace .workspace-tabs button{
+  min-height: 38px;
+  border-radius: 7px;
+  color: #7d8695;
+  background: transparent;
+  font-size: 14px;
+}
+.notesup-workspace .workspace-tabs button[aria-pressed="true"]{
+  color: #3555c6;
+  background: #fff;
+  box-shadow: 0 2px 7px rgba(31,41,55,.08);
+}
+.notesup-workspace .attachment-heading h3,
+.notesup-workspace .generation-panel h3,
+.notesup-workspace .quiz-panel h3{
+  color: #354052;
+  font-size: 16px;
+}
+.notesup-workspace .dashboard-main-grid > .dashboard-card{
+  display: block;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+}
+.notesup-workspace .rail-brand{
+  display: flex;
+  order: -2;
+  align-items: center;
+  padding-top: 0;
+}
+.notesup-workspace .rail-account{
+  order: 8;
+  display: grid;
+  align-items: stretch;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid #edf0f4;
+  border-radius: 0;
+  background: transparent;
+  grid-template-columns: minmax(0, 1fr);
+}
+.notesup-workspace #courses .course-tab{
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #657083;
+  background: #fff;
+  text-align: left;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.notesup-workspace #courses .course-tab:hover{
+  border-color: #cbd4fa;
+  color: #526aab;
+  background: #fbfcff;
+  transform: translateY(-1px);
+}
+.notesup-workspace #courses .course-tab:active{
+  transform: scale(.985);
+}
+.notesup-workspace #courses .course-tab .course-dot{
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border: 2px solid #aab7ef;
+  border-radius: 50%;
+  background: #fff;
+}
+.notesup-workspace #courses .course-tab strong{
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+}
+.notesup-workspace #courses .course-tab small{
+  display: block;
+  margin-top: 5px;
+  color: #7d899b;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notesup-workspace #courses .course-tab[aria-pressed="true"]{
+  color: var(--course-accent, #2e4ebd);
+  border-color: color-mix(in srgb, var(--course-accent, #4f70d8) 30%, white);
+  background: color-mix(in srgb, var(--course-accent, #4f70d8) 12%, white);
+  box-shadow: none;
+}
+.notesup-workspace #courses .course-tab[aria-pressed="true"] .course-dot{
+  border-color: var(--course-accent, #4f70d8);
+  background: var(--course-accent, #4f70d8);
+}
+.notesup-workspace .rail-brand .workspace-brand{
+  display: block;
+  color: #26344a;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+.notesup-workspace .rail-account .profile-link,
+.notesup-workspace .rail-account #logout-button{
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: #657083;
+  font-size: 12px;
+  text-decoration: none;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #e3e8f0;
+  background: #fff;
+  font-weight: 700;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+.notesup-workspace .rail-account .profile-link:hover,
+.notesup-workspace .rail-account #logout-button:hover{
+  color: #3555c6;
+  background: #edf3ff;
+  border-color: #d1ddf7;
+}
+.notesup-workspace .study-dashboard .study-stat-label{
+  display: block;
+  color: #77859b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.notesup-workspace .study-dashboard .today-classes{
+  display: block !important;
+  gap: 3px !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-auto-rows: auto !important;
+  align-content: start !important;
+  margin-top: 0 !important;
+  overflow: visible !important;
+}
+.notesup-workspace .study-dashboard .today-class-row .today-class-link{
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 8px;
+  min-height: 0;
+}

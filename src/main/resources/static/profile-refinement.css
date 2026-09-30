@@ -1,0 +1,100 @@
+/* Mypage aligned with the NotesUp design language: 14px body, quiet cards,
+   blue accents only for actions and the active section. */
+.profile { width:min(1180px,calc(100% - 56px)); max-width:none; padding:24px 0 90px; margin:0 auto; }
+.profile header { display:flex; align-items:center; gap:12px; margin-bottom:30px; }
+.profile header .brand-logo { width:34px; height:34px; margin:0; }
+.profile header .profile-brand { color:#26344a; font-size:18px; font-weight:800; letter-spacing:-.04em; }
+.profile header .back-link { margin-left:auto; color:#788292; font-size:13px; font-weight:700; text-decoration:none; }
+.profile header .back-link:hover { color:#3555c6; }
+.profile h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.9px; color:#303846; }
+.profile h2 { font-size:21px; margin:0 0 10px; letter-spacing:-.6px; color:#303846; }
+.profile h3 { font-size:16px; margin-top:24px; color:#3a4351; }
+.profile p, .profile label, .profile summary, .profile input, .profile select, .profile button { font-size:14px; line-height:1.6; }
+.profile input, .profile select { background:#fafbfc; border-color:#dce5f2; border-radius:8px; padding:10px 12px; }
+.profile input:focus, .profile select:focus { border-color:#bbc8ff; box-shadow:0 0 0 3px #edf3ff; }
+.profile label:not(.check-row) > input, .profile label:not(.check-row) > select { margin-top:2px; }
+.profile .muted { color:#71809a; margin:6px 0 16px; font-size:13px; line-height:1.65; }
+.profile > .card { border:1px solid #dce5f2; box-shadow:0 12px 30px rgba(63,86,128,.08); border-radius:14px; padding:26px 30px; scroll-margin-top:90px; background:#fff; }
+.profile-nav { position:sticky; top:0; z-index:10; display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; background:#f0f2f8; border-bottom:1px solid #e2e8f0; }
+.profile-nav a { padding:11px 14px; background:#fff; border:1px solid #e2e8f0; border-radius:9px; font-size:14px; font-weight:600; text-decoration:none; color:#657083; }
+.profile-nav a:hover { color:#3555c6; background:#eef3ff; }
+.profile-nav a[aria-current=page] { border-color:#d1ddf7; color:#3555c6; background:#eef3ff; font-weight:700; }
+.profile > .card[hidden] { display:none; }
+.profile details summary { cursor:pointer; color:#52657b; padding:12px 0; font-weight:600; }
+.profile #connection-state { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:#e8f7f0; color:#237b5e; font-size:12px; font-weight:700; margin:0 0 14px; }
+.profile #connection-state::before { content:''; width:7px; height:7px; border-radius:50%; background:#238b67; }
+.profile #school-form { max-width:720px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
+.profile #school-form label { margin:0; }
+.profile #school-form .check-row { grid-column:1 / -1; }
+.profile .check-row { align-items:start; font-weight:400; font-size:13px; color:#52657b; }
+.profile .check-row input { margin-top:4px; }
+.profile #sync-form { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:end; max-width:640px; }
+.profile #sync-form .semester-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0; }
+.profile #delete-account-form { display:grid; gap:12px; max-width:480px; }
+.profile #delete-account-form label { margin:0; }
+.profile .form-actions { display:flex; align-items:center; gap:10px; margin-top:16px; }
+.profile .form-actions button, .profile .form-actions a { white-space:nowrap; }
+.profile #school-form .form-actions { grid-column:1 / -1; margin-top:2px; justify-self:start; }
+.profile .form-actions-secondary { margin-top:10px; }
+.profile .semester-form .form-actions, .profile #sync-form .form-actions, .profile #delete-account-form .form-actions { margin-top:0; }
+.profile .semester-form .form-actions { justify-self:end; }
+.profile .preview-actions { margin-top:14px; }
+.profile details[open] > p.muted { margin:10px 0 18px; }
+.profile details[open] > form { margin-top:14px; }
+.semester-form { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:end; margin:20px 0 18px; }
+.semester-form label { margin:0; font-size:12px; color:#71809a; }
+.semester-form button { white-space:nowrap; }
+.profile .form-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:8px; }
+.profile .form-actions-secondary { margin-top:12px; }
+.profile .preview-actions { margin-top:14px; }
+.profile .form-actions > .primary,
+.profile .form-actions > .secondary,
+.profile .form-actions > .danger-button { margin-top:0; }
+.profile .form-actions > .primary,
+.profile .form-actions > .secondary,
+.profile .form-actions > .danger-button { flex:0 1 auto; min-width:156px; min-height:44px; padding:0 18px; white-space:normal; text-align:center; }
+.profile #school-form .form-actions > .primary { min-width:214px; }
+.profile #sync-form .form-actions > .primary { min-width:248px; }
+.profile #delete-account-form .form-actions > .danger-button { min-width:228px; }
+.semester-list { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 24px; }
+.semester-list span { padding:6px 11px; border:1px solid #dce5f2; border-radius:999px; color:#52657b; background:#f8f9fb; font-size:12px; }
+.profile #sync { width:auto; white-space:nowrap; min-height:44px; }
+.profile .schedule-row { padding:14px 0; border-bottom:1px solid #f0f2f5; }
+.profile .schedule-row strong { font-size:14px; color:#3a4351; }
+.profile .schedule-row span { color:#98a2ae; font-size:12px; }
+.profile .storage-summary { padding:20px 22px; border-radius:12px; border:1px solid #e6e9ef; background:#f8f9fb; }
+.profile .storage-summary strong { font-size:16px; color:#3a4351; }
+.profile .storage-summary span { margin-left:14px; color:#98a2ae; font-size:12px; }
+.profile .storage-summary progress { display:block; width:100%; margin-top:14px; height:6px; accent-color:#5878e8; }
+.profile .danger-zone { border-color:#ecdcdc; }
+.profile .message:empty { display:none; }
+.profile .primary, .profile .secondary, .profile .danger-button { min-height:44px; border-radius:9px; font-size:14px; }
+.profile .primary { background:#5878e8; }
+.profile .primary:hover { background:#4969dc; }
+.profile .profile-download { display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:214px; padding:0 18px; text-decoration:none; }
+@media(min-width:900px) {
+  .profile { display:grid; grid-template-columns:214px minmax(0,1fr); column-gap:28px; align-items:start; }
+  .profile header { grid-column:1 / -1; margin-bottom:26px; }
+  .profile h1 { grid-column:1; margin:0; padding:12px; font-size:24px; letter-spacing:-.8px; }
+  .profile-nav { grid-column:1; position:sticky; top:22px; display:grid; gap:3px; padding:12px; border:1px solid #e1e5eb; border-radius:14px; background:#fff; box-shadow:0 12px 30px rgba(63,86,128,.06); }
+  .profile-nav a { border:0; border-radius:8px; background:transparent; padding:11px 12px; font-size:14px; }
+  .profile-nav a:hover { background:#f4f6fb; }
+  .profile-nav a[aria-current=page] { border-color:transparent; background:#eef3ff; color:#3555c6; }
+  .profile > .message, .profile > .card { grid-column:2; }
+  .profile > .card { margin-top:0; margin-bottom:14px; padding:24px 28px; border-radius:14px; }
+  .profile > .message:not(:empty) { margin:0 0 12px; }
+}
+@media(max-width:650px) {
+  .profile { padding:20px 16px 100px; }
+  .profile > .card { padding:20px; }
+  .profile #sync-form, .profile .semester-form { grid-template-columns:1fr; }
+  .profile #school-form { grid-template-columns:1fr; }
+  .profile .form-actions { width:100%; margin-top:12px; }
+  .profile .form-actions > .primary,
+  .profile .form-actions > .secondary,
+  .profile .form-actions > .danger-button,
+  .profile #sync,
+  .profile .profile-download { width:100%; min-width:0; }
+  .profile-nav { gap:6px; }
+  .profile-nav a { font-size:14px; padding:10px; }
+}

@@ -1,0 +1,55 @@
+.pomodoro { position: fixed; right: 22px; bottom: 22px; z-index: 40; width: 232px; padding: 16px 16px 14px; border: 1px solid #f0dcdc; border-radius: 20px; background: rgba(255,255,255,.97); box-shadow: 0 16px 42px rgba(42,67,91,.18); backdrop-filter: blur(12px); text-align: center; }
+.pomodoro-ring { position: relative; display: grid; place-items: center; width: 136px; height: 136px; margin: 0 auto; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.pomodoro-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow:visible; }
+.ring-track { fill: none; stroke: #f2e4e4; stroke-width: 7; }
+.ring-progress { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset .25s linear, stroke .25s linear; }
+.ring-overflow { fill:none; stroke-width:3; stroke-linecap:round; transition:stroke-dasharray .25s linear,opacity .2s ease; }
+.pomodoro-center { position: relative; display: grid; place-items: center; }
+.pomodoro-phase { display: inline-flex; align-items: center; gap: 6px; }
+.pomodoro-phase-icon svg { width: 13px; height: 13px; display: block; }
+.pomodoro-clock { color: #20364b; font-size: 27px; font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.pomodoro-panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3ecec; display: grid; gap: 10px; }
+.pomodoro-mode { display: grid; grid-template-columns:minmax(0,1fr) 34px 34px; align-items: center; gap: 6px; }
+.pomodoro-phase { width:100%; min-width:0; white-space: nowrap; padding: 7px 8px; border: 1px solid #eadede; border-radius: 10px; background: #fdf7f7; color: #b3403a; font-size: 12px; font-weight: 800; cursor: pointer; }
+.pomodoro-phase-icon{display:inline-flex;align-items:center;flex:0 0 auto;}
+.pomodoro-phase-icon svg{width:16px;height:16px;display:block;}
+.pomodoro-phase > span { white-space: nowrap; }
+.pomodoro-phase:hover { border-color: #ffb3ad; background: #fff3f2; }
+.pomodoro.break-mode .pomodoro-phase { border-color:#cbdcf8; background:#f1f6ff; color:#3169c7; }
+.pomodoro.break-mode .pomodoro-phase:hover { border-color:#9ebbf0; background:#e7f0ff; }
+.pomodoro.break-mode .pomodoro-phase:disabled:hover { border-color:#cbdcf8; background:#f1f6ff; }
+.pomodoro-step { width:34px; height:34px; min-height:34px; padding:0; border:1px solid #e4e0e0; border-radius:9px; background:#fff; color:#6b5b5b; font-size:15px; font-weight:800; cursor:pointer; box-sizing:border-box; }
+.pomodoro-step:hover { border-color: #ffb3ad; background: #fff4f3; }
+.pomodoro-step:disabled, .pomodoro-phase:disabled { opacity: .45; cursor: not-allowed; }
+.pomodoro-step:disabled:hover, .pomodoro-phase:disabled:hover { border-color: #e4e0e0; background: #fff; }
+.pomodoro-actions { display: grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap: 8px; align-items: center; }
+.pomodoro-actions .primary,
+.pomodoro-actions .quiet-button { width: 100%; height:44px; min-height:44px; max-height:44px; padding: 0 10px; border-radius: 10px; justify-content: center; align-items:center; line-height:1; box-sizing: border-box; }
+.pomodoro-actions .primary { flex: none; }
+.pomodoro-actions .quiet-button { flex: none; border: 1px solid #eadede; background: #fff; color: #8b6f6f; font-size: 12px; font-weight: 700; }
+.pomodoro-actions .quiet-button:hover { border-color: #f0c4c0; background: #fff7f6; }
+.pomodoro-minimize { position: absolute; top: 10px; right: 12px; width: auto; min-height: 0; padding: 4px 8px; border: 0; background: transparent; color: #a09797; font-size: 12px; font-weight: 700; cursor: pointer; }
+.pomodoro-minimize:hover { color: #b3403a; }
+
+.pomodoro.minimized { width: 84px; padding: 6px; background: rgba(255,255,255,.72); box-shadow: 0 10px 26px rgba(42,67,91,.14); }
+.pomodoro.minimized .pomodoro-ring { width: 72px; height: 72px; }
+.pomodoro.minimized .pomodoro-clock { font-size: 15px; }
+.pomodoro.minimized .ring-track, .pomodoro.minimized .ring-progress { stroke-width: 8; }
+.pomodoro.minimized .pomodoro-panel { display: none; }
+.pomodoro.minimized:hover { background: rgba(255,255,255,.97); box-shadow: 0 14px 32px rgba(42,67,91,.22); }
+
+/* Keep the timer visible but out of the way on the dashboard and writing tips.
+   Clicking the ring restores the user's expanded timer without pausing it. */
+.pomodoro.dashboard-context-compact:not(.minimized) { width:84px; padding:6px; background:rgba(255,255,255,.9); box-shadow:0 10px 26px rgba(42,67,91,.14); }
+.pomodoro.dashboard-context-compact:not(.minimized) .pomodoro-ring { width:72px; height:72px; }
+.pomodoro.dashboard-context-compact:not(.minimized) .pomodoro-clock { font-size:15px; }
+.pomodoro.dashboard-context-compact:not(.minimized) .ring-track,
+.pomodoro.dashboard-context-compact:not(.minimized) .ring-progress { stroke-width:8; }
+.pomodoro.dashboard-context-compact:not(.minimized) .pomodoro-panel { display:none; }
+.pomodoro.dashboard-context-compact:not(.minimized):hover { background:rgba(255,255,255,.97); box-shadow:0 14px 32px rgba(42,67,91,.22); }
+
+.pomodoro.finished { animation: timer-finish .4s ease 2 alternate; }
+@keyframes timer-finish { to { transform: scale(1.07); box-shadow: 0 18px 48px rgba(255,95,86,.4); } }
+@media(max-width:650px) { .pomodoro { right: 12px; bottom: 12px; width: 208px; } .pomodoro.minimized { width: 116px; } }
+.pomodoro-ring.draggable { cursor: grab; touch-action: none; user-select: none; }
+.pomodoro-ring.draggable:active { cursor: grabbing; }

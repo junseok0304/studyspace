@@ -1,0 +1,673 @@
+/* workspace-dashboard: ordered segment of the workspace cascade. */
+/* Dashboard cards use explicit tracks so content cannot push into a neighbor. */
+.notesup-workspace .study-dashboard,
+.notesup-workspace .dashboard-main-grid,
+.notesup-workspace .dashboard-main-grid > .dashboard-card,
+.notesup-workspace .today-classes,
+.notesup-workspace .recent-notes,
+.notesup-workspace #course-progress,
+.notesup-workspace #quiz-stats{ min-width: 0; }
+
+.notesup-workspace .dashboard-card-heading{ min-width: 0; }
+.notesup-workspace .dashboard-card-heading h3,
+.notesup-workspace .dashboard-card-heading p{ overflow-wrap: anywhere; }
+.notesup-workspace .today-classes{ grid-template-columns: minmax(0, 1fr); }
+.notesup-workspace .today-class-row{
+  display: grid;
+  grid-template-columns: minmax(76px, 88px) minmax(0, 1fr) minmax(0, max-content);
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  padding: 9px 0;
+}
+.notesup-workspace .today-class-row strong,
+.notesup-workspace .today-class-row .today-class-link,
+.notesup-workspace .today-class-row > span{
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.notesup-workspace .today-class-row strong{
+  grid-row: auto;
+  color: #8893a2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.notesup-workspace .today-class-row .today-class-link{
+  display: block;
+  width: 100%;
+  padding: 7px 8px;
+  color: #4b5d7a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: left;
+}
+.notesup-workspace .today-class-row > span{
+  color: #98a3b0;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+}
+.notesup-workspace .today-class-row .today-class-link:hover{ background: #f4f6fb; color: #4f68ce; }
+.notesup-workspace .dashboard-link-row{
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.notesup-workspace .dashboard-link-row strong,
+.notesup-workspace .dashboard-link-row span{ min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px){
+  .notesup-workspace .today-class-row {
+    grid-template-columns: minmax(68px, 80px) minmax(0, 1fr);
+  }
+  .notesup-workspace .today-class-row > span {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
+/* NotesUp dashboard order and bottom-pinned tips navigation. */
+.notesup-workspace .rail-account ~ #tips-tab,
+.notesup-workspace > .course-rail > #tips-tab{
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  padding: 11px 12px;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #6078bb;
+  background: #f4f7ff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  transition: color .16s, background-color .16s, border-color .16s, box-shadow .16s, transform .16s;
+}
+.notesup-workspace .rail-account ~ #tips-tab:hover,
+.notesup-workspace > .course-rail > #tips-tab:hover,
+.notesup-workspace .rail-account ~ #tips-tab[aria-pressed="true"],
+.notesup-workspace > .course-rail > #tips-tab[aria-pressed="true"]{
+  border-color: #d1ddf7;
+  color: #3555c6;
+  background: #edf3ff;
+  font-weight: 700;
+}
+.notesup-workspace .course-menu > .course-menu-button:last-of-type{
+  margin-bottom: 22px;
+}
+
+
+/* Match NotesUp's rail hierarchy: a compact context selector, mode buttons,
+   dense course tabs, then the writing guide at the end of the rail. */
+
+
+.notesup-workspace #tips-tab{ order:9; width:100%; margin-top:14px; border-top:1px solid #edf0f4; border-radius:0; padding-top:16px; }
+
+
+
+
+.notesup-workspace #courses .course-tab.active,
+.notesup-workspace #courses .course-tab[aria-pressed="true"]{ border-color:#d8e0f1; color:#526aab; background:#eef2f8; box-shadow:0 2px 6px rgba(69,105,223,.05); }
+
+.notesup-workspace #courses .course-tab-row{ display:flex; gap:8px; align-items:center; min-width:0; }
+
+.notesup-workspace #courses .course-tab.active .course-dot{ background:#6078bb; }
+
+
+.notesup-workspace #courses .course-tab.active small{ color:#7a88a6; }
+@media (min-width: 651px){
+  .study.notesup-workspace {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  .study.notesup-workspace > aside.left-rail {
+    margin-left: 0 !important;
+    border-left: 0;
+    border-radius: 0 14px 14px 0;
+  }
+}
+
+/* NotesUp course tabs in the left rail. Overrides later than the generic
+   list-item rules so the dot + name + count tab wins in the workspace. */
+
+
+
+
+
+
+
+
+.notesup-workspace .study-dashboard .progress-track{
+  height: 5px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e0e5f7;
+}
+.notesup-workspace .study-dashboard .progress-track span{
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #5878e8;
+}
+
+/* NotesUp left-rail reference values. Keep this block last so the reference
+   surface is not diluted by the generic StudySpace card rules above. */
+.notesup-workspace .left-rail{
+  --green: #238b67;
+  --red: #bd5c5c;
+  --coral: #d46378;
+  --yellow: #d0a047;
+  --bg: #f0f2f8;
+  --panel: #ffffff;
+  --ink: #26344a;
+  --muted: #71809a;
+  --line: #dce5f2;
+  --blue: #5878e8;
+  --blue-soft: #edf3ff;
+  --teal: #2e9d91;
+  --purple: #8968d6;
+  --orange: #d79552;
+  --shadow: 0 12px 30px rgba(63, 86, 128, .08);
+color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  font-size: 14px;
+  box-sizing: border-box;
+  position: static;
+  top: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  padding: 0 16px 20px;
+  border-right: 1px solid #dfe3ea;
+  border-right-color: #d6e0ed;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 5px 0 20px rgba(65, 87, 126, .06);
+}
+.notesup-workspace > aside.course-rail.left-rail{
+  padding-top: 0 !important;
+}
+.notesup-workspace #notes,
+.notesup-workspace .note-rail-content{
+  max-height: none;
+  overflow: visible;
+}
+html,
+body,
+.notesup-workspace,
+.notesup-workspace *{
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.notesup-workspace::-webkit-scrollbar,
+.notesup-workspace *::-webkit-scrollbar{
+  display: none;
+  width: 0;
+  height: 0;
+}
+.workspace-shell.rail-only-shell,
+body:has(#study:not(.hidden)) .workspace-shell{
+  display: none !important;
+}
+
+.notesup-workspace .rail-brand .brand-logo{
+  margin: 0;
+}
+
+
+
+
+
+@media (max-width: 1000px){
+  .notesup-workspace .left-rail {
+    position: static;
+    min-height: 0;
+    padding: 20px 16px;
+    border-right: 0;
+    border-bottom: 1px solid #d6e0ed;
+  }
+}
+
+/* NotesUp's desktop workspace starts at the viewport edge; do not center the
+   course rail inside an additional outer gutter. */
+@media (min-width: 1001px){
+  .study.notesup-workspace {
+    width: 100% !important;
+    max-width: none;
+    margin-left: 0 !important;
+    margin-right: 0;
+    padding-left: 0 !important;
+    padding-right: 16px;
+  }
+  .study.notesup-workspace > aside.left-rail {
+    margin-left: 0 !important;
+    border-left: 0;
+    border-radius: 0 14px 14px 0;
+  }
+}
+
+/* Last word: NotesUp uses one page scroll. Nothing inside the workspace may
+   be sticky or clip its own scroll area, so the left rail and note list ride
+   the same document scroll as the editor and dashboard. */
+.study.notesup-workspace > aside.course-rail,
+.notesup-workspace > aside.course-rail,
+.notesup-workspace .left-rail,
+.notesup-workspace #note-list-card,
+.notesup-workspace #notes,
+.notesup-workspace .note-rail-content,
+.notesup-workspace .note-list-heading{
+  position: static !important;
+  top: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* NotesUp weekly chart, verbatim structure: flex columns, centered numbers,
+   centered dates, full-width bar tracks. Overrides the grid version. */
+
+
+.notesup-workspace .study-dashboard .bar-column > span:first-child{
+  height: 17px;
+  color: #7d8798;
+  font-size: 11px;
+  line-height: 17px;
+  text-align: center;
+}
+
+
+.notesup-workspace .study-dashboard .bar-column > span:last-child{
+  margin-top: 7px;
+  color: #a0a8b5;
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+}
+
+/* NotesUp study stats, verbatim: block rows with consistent label/value/hint
+   spacing so the caption never touches the number above it. */
+
+
+
+
+
+.notesup-workspace .study-dashboard .study-stat .progress-track{
+  margin-top: 12px;
+}
+
+/* NotesUp today-class rows, verbatim: fixed time column, flexible course
+   column, right-aligned room. Nothing is clipped and the row never shrinks
+   below its content. */
+
+
+
+
+
+
+.notesup-workspace .artifact-source-list{
+  display: grid;
+  gap: 5px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.notesup-workspace .artifact-source-list a{
+  color: #526aab;
+  font-weight: 650;
+  text-decoration: none;
+}
+.notesup-workspace .artifact-source-list a:hover{ text-decoration: underline; }
+
+.notesup-workspace .study-dashboard .today-class-link:hover{
+  background: #f4f6fb;
+  color: #4f68ce;
+}
+
+/* A small breathing room on the left of the workspace cards. */
+
+
+/* Remove the temporary left breathing room again. */
+@media (min-width: 651px){
+  .study.notesup-workspace {
+    padding-left: 0 !important;
+  }
+}
+
+/* Rail account actions: quiet full-width buttons with icons, NotesUp style. */
+
+
+
+.notesup-workspace .rail-account .profile-link .nav-icon,
+.notesup-workspace .rail-account #logout-button .nav-icon{
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+/* Stack the rail account actions vertically, full width. */
+
+
+
+/* Continue-studying and today-class rows are quiet rows, not cards. Reset
+   any list-item surface that the button helper leaves behind. */
+.notesup-workspace .study-dashboard .dashboard-link-row.list-item,
+.notesup-workspace .study-dashboard .today-class-link.list-item{
+  margin: 0;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  text-align: left;
+}
+
+/* A little breathing room above the dashboard heading. */
+
+
+/* Same breathing room above the note editor tool tabs. */
+.notesup-workspace #note-editor-card .workspace-tabs{
+  margin-top: 12px;
+}
+
+/* Hard reset for today-class rows: one column, auto rows, nothing clipped.
+   Neutralizes the legacy auto-fit column grid from workspace.css. */
+
+.notesup-workspace .study-dashboard .today-class-row,
+.notesup-workspace .study-dashboard .today-class-row strong,
+.notesup-workspace .study-dashboard .today-class-row > span,
+.notesup-workspace .study-dashboard .today-class-link{
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+/* Dashboard palette: distinguish metrics at a glance without using saturated
+   surfaces. Reuse the blue, teal, orange, purple, coral, and gold accents. */
+.notesup-workspace .study-dashboard .study-stats > .study-stat:first-child{ border-color:#cfdbff; background:#eef3ff; }
+.notesup-workspace .study-dashboard .study-stats > .study-stat:first-child .study-stat-value{ color:#4f70d8 !important; }
+.notesup-workspace .study-dashboard .study-stat:nth-child(2){ border-color: #cfece5; background: #effbf8; }
+.notesup-workspace .study-dashboard .study-stat:nth-child(2) .study-stat-value{ color: #2f9d8f !important; }
+.notesup-workspace .study-dashboard .study-stat:nth-child(3){ border-color: #f1d9c6; background: #fff8f1; }
+.notesup-workspace .study-dashboard .study-stat:nth-child(3) .study-stat-value{ color: #d97843 !important; }
+.notesup-workspace .study-dashboard .study-stat:nth-child(4){ border-color: #e2d6f7; background: #f8f4ff; }
+.notesup-workspace .study-dashboard .study-stat:nth-child(4) .study-stat-value{ color: #8968d6 !important; }
+
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 1) .bar-fill{ background:linear-gradient(180deg,#7894f2,#4f70d8); }
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 2) .bar-fill{ background:linear-gradient(180deg,#55b9a9,#2f9d8f); }
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 3) .bar-fill{ background:linear-gradient(180deg,#f0aa72,#d97843); }
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 4) .bar-fill{ background:linear-gradient(180deg,#b39aeb,#8968d6); }
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 5) .bar-fill{ background:linear-gradient(180deg,#e68ba0,#c45d76); }
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n + 6) .bar-fill{ background:linear-gradient(180deg,#d6b45e,#a8791c); }
+.notesup-workspace .study-dashboard .bar-column:nth-child(7n) .bar-fill{ background:linear-gradient(180deg,#7894f2,#4f70d8); }
+
+.notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 1){ --course-progress-accent:#4f70d8; --course-progress-soft:#eef3ff; }
+.notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 2){ --course-progress-accent:#2f9d8f; --course-progress-soft:#effbf8; }
+.notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 3){ --course-progress-accent:#c56a35; --course-progress-soft:#fff5e9; }
+.notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 4){ --course-progress-accent:#7956bd; --course-progress-soft:#f5efff; }
+.notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n + 5){ --course-progress-accent:#b94f68; --course-progress-soft:#fff1f4; }
+.notesup-workspace .study-dashboard .course-progress-table tbody tr:nth-child(6n){ --course-progress-accent:#92701b; --course-progress-soft:#fff8e8; }
+.notesup-workspace .study-dashboard .course-progress-table .course-progress-name{ display:flex; align-items:center; gap:8px; color:var(--course-progress-accent); }
+.notesup-workspace .study-dashboard .course-progress-table .course-progress-name::before{ content:""; width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:var(--course-progress-accent); }
+.notesup-workspace .study-dashboard .course-progress-table .course-progress-name:hover{ background:var(--course-progress-soft); color:var(--course-progress-accent); }
+.notesup-workspace .study-dashboard .course-progress-table progress{ accent-color:var(--course-progress-accent); }
+.notesup-workspace .study-dashboard .course-progress-table .progress-percent{ color:var(--course-progress-accent); }
+
+.notesup-workspace #courses .course-tab:nth-child(1){ --course-accent: #4f70d8; }
+.notesup-workspace #courses .course-tab:nth-child(2){ --course-accent: #2b9a86; }
+.notesup-workspace #courses .course-tab:nth-child(3){ --course-accent: #d17b3e; }
+.notesup-workspace #courses .course-tab:nth-child(4){ --course-accent: #8a62c8; }
+.notesup-workspace #courses .course-tab:nth-child(5){ --course-accent: #c45d76; }
+.notesup-workspace #courses .course-tab:nth-child(6){ --course-accent: #b1862d; }
+
+
+
+
+/* Final rail-account definition: vertical, full-width, bordered buttons.
+   Resets the legacy profile-link left margin and conflicting surfaces. */
+
+.notesup-workspace .rail-account #welcome,
+.notesup-workspace .rail-account #account-detail{
+  display: none;
+}
+
+
+
+/* NotesUp type scale: one size per role so the same kind of content is
+   always the same size. 14px body, 16px panel titles, 12px captions. */
+.notesup-workspace,
+.notesup-workspace button,
+.notesup-workspace input,
+.notesup-workspace select,
+.notesup-workspace textarea{
+  font-size: 14px;
+}
+
+.notesup-workspace .course-menu-button,
+.notesup-workspace .course-menu a,
+.notesup-workspace #courses .course-tab strong{ font-size: 14px; }
+.notesup-workspace #courses .course-tab small,
+.notesup-workspace .rail-section-label,
+.notesup-workspace .rail-semester-filter,
+.notesup-workspace .rail-footer,
+.notesup-workspace .workspace-context{ font-size: 12px; }
+.notesup-workspace .rail-semester-filter select,
+.notesup-workspace #courses .course-tab small{ font-size: 12px; }
+.notesup-workspace h2{ font-size: 21px; }
+.notesup-workspace h3{ font-size: 16px; }
+.notesup-workspace h4{ font-size: 14px; }
+
+
+.notesup-workspace .study .fine-print,
+.notesup-workspace .study .muted,
+.notesup-workspace .study label,
+.notesup-workspace .study summary,
+.notesup-workspace .study .semester-filter{ font-size: 12px; }
+
+
+
+
+
+
+.notesup-workspace .study-dashboard .today-class-link,
+.notesup-workspace .study-dashboard .dashboard-link-row strong{ font-size: 13px; }
+.notesup-workspace .study-dashboard .today-class-row strong,
+.notesup-workspace .study-dashboard .dashboard-link-row span,
+.notesup-workspace .study-dashboard .today-class-row > span,
+.notesup-workspace .study-dashboard .fine-print{ font-size: 12px; }
+.notesup-workspace .study-dashboard .bar-column > span,
+.notesup-workspace .study-dashboard .bar-column small{ font-size: 11px; }
+
+.notesup-workspace .generation-actions button.ai-action strong{ font-size: 15px; }
+.notesup-workspace .generation-actions button.ai-action small{ font-size: 12px; }
+.notesup-workspace .quiz-set-row strong{ font-size: 15px; }
+.notesup-workspace .quiz-set-row .fine-print{ font-size: 12px; }
+
+
+/* NotesUp left-rail button tints: each mode keeps its own quiet accent. */
+.notesup-workspace .course-menu > .course-menu-button{
+  border: 1px solid transparent;
+}
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(3){
+  color: #2f958b;
+  background: #f0fbf9;
+}
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(3):hover,
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(3)[aria-pressed="true"]{
+  color: #237c73;
+  border-color: #bfe7df;
+  background: #e5f7f3;
+}
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(4){
+  color: #8662ce;
+  background: #f8f4ff;
+}
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(4):hover,
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(4)[aria-pressed="true"]{
+  color: #7655b9;
+  border-color: #dfd2f6;
+  background: #f1eaff;
+}
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(5){
+  color: #9b5b13;
+  background: linear-gradient(135deg, #fff8e9, #fffdf7);
+}
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(5):hover,
+.notesup-workspace .course-menu > .course-menu-button:nth-of-type(5)[aria-pressed="true"]{
+  color: #8d4d08;
+  border-color: #f2c36b;
+  background: #fff4d7;
+}
+
+/* Today-class rows as a plain flex list: no implicit grid rows, no clipping.
+   The card is a normal block so nothing can cut the first row. */
+.notesup-workspace .dashboard-main-grid > .today-dashboard-card{
+  display: block;
+}
+
+
+
+
+
+
+
+/* Continue-studying and course rows stay compact: lists align to the top so
+   a single item never stretches to fill the whole card. */
+.notesup-workspace .study-dashboard .recent-notes,
+.notesup-workspace .study-dashboard #course-progress,
+.notesup-workspace .study-dashboard #quiz-stats{
+  align-self: start;
+  align-content: start;
+}
+
+
+.notesup-workspace .study-dashboard .course-progress-name{
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #526273;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .study-dashboard .course-progress-name:hover{
+  background: #f4f6fb;
+  color: #4f68ce;
+}
+
+
+/* Dashboard cards are plain blocks: content rows can never stretch to fill
+   the card, which keeps single-item lists compact at the top. */
+
+
+/* Narrow screens: today-class rows wrap so the room stays on its own line. */
+@media (max-width: 430px){
+  .notesup-workspace .study-dashboard .today-class-row {
+    flex-wrap: wrap;
+  }
+  .notesup-workspace .study-dashboard .today-class-row > span {
+    width: 100%;
+    padding-left: 90px;
+    text-align: left;
+  }
+}
+
+/* Editor polish: the writing area and its toolbar share NotesUp spacing. */
+.notesup-workspace .writing-panel{
+  gap: 18px;
+}
+.notesup-workspace .workspace-context{
+  color: #52657b;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+
+/* Learning tool panels become quiet NotesUp-style cards inside the editor. */
+.notesup-workspace .generation-panel,
+.notesup-workspace .quiz-panel,
+.notesup-workspace .flashcard-panel,
+.notesup-workspace .recording-panel,
+.notesup-workspace .attachment-panel{
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #dce5f2;
+  border-radius: 14px;
+  background: #fff;
+}
+.notesup-workspace .generation-panel{
+  border-color: #eadff7;
+  background: linear-gradient(180deg, #fff 0%, #fcf9ff 100%);
+}
+.notesup-workspace .quiz-panel,
+.notesup-workspace .flashcard-panel{
+  border-color: #dce5f2;
+}
+
+/* New-note action: subtle text button in the note list heading. */
+.notesup-workspace .note-list-heading #new-note{
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  color: #526bc2;
+  font-weight: 700;
+}
+.notesup-workspace .note-list-heading #new-note:hover{
+  border-color: #d9e0f8;
+  background: #f4f6ff;
+}
+
+/* Note-list toggle: compact pill aligned to the right, NotesUp style. */
+.notesup-workspace .rail-toggle{
+  display: block;
+  margin: 0 0 10px auto;
+  width: fit-content;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid #e4e7ee;
+  border-radius: 7px;
+  color: #6f7a8b;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.notesup-workspace .rail-toggle:hover{
+  border-color: #cdd5f9;
+  color: #526bd3;
+  background: #f8f9ff;
+}
+
+/* Status lines stay quiet and readable. */
+.notesup-workspace #dashboard-message,
+.notesup-workspace #study-message{
+  font-size: 13px;
+  color: #71809a;
+  line-height: 1.7;
+}
+.notesup-workspace #courses:empty{
+  color: #98a2b1;
+  font-size: 12px;
+}

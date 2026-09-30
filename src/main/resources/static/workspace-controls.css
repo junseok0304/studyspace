@@ -1,0 +1,569 @@
+/* workspace-controls: ordered segment of the workspace cascade. */
+@media (prefers-reduced-motion: reduce){
+  .notesup-workspace #note-editor-card.screen-transitioning .writing-panel,
+  .notesup-workspace #note-editor-card.screen-transitioning #recording-panel:not([hidden]),
+  .notesup-workspace #note-editor-card.screen-transitioning #learning-panel:not([hidden]) { animation: none; }
+}
+
+/* 문항 수 선택: 컴팩트 셀렉트. */
+.notesup-workspace #quiz-count,
+.notesup-workspace #flashcard-count{
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  box-sizing: border-box;
+  min-width: 110px;
+  margin: 0;
+  padding: 0 28px 0 10px;
+  border: 1px solid #dce5f2;
+  border-radius: 8px;
+  background: #fff;
+  color: #3a4351;
+  font-size: 13px;
+}
+
+/* 전체 작업 목록. */
+.notesup-workspace .all-jobs{
+  margin: 20px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid #e4e9f0;
+  border-radius: 12px;
+  background: #f8f9fb;
+}
+.notesup-workspace .all-jobs > summary{
+  cursor: pointer;
+  color: #52657b;
+  font-size: 13px;
+  font-weight: 700;
+}
+.notesup-workspace .all-jobs[open] > summary{ margin-bottom: 12px; }
+.notesup-workspace #all-jobs-list{
+  display: grid;
+  gap: 4px;
+}
+.notesup-workspace .all-job-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+}
+.notesup-workspace .all-job-row strong{
+  overflow: hidden;
+  font-size: 13px;
+  color: #4d5869;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notesup-workspace .all-job-row .job-status{ flex: 0 0 auto; }
+.notesup-workspace .all-job-row:not(:disabled):hover{
+  background: #eef3ff;
+  color: #3555c6;
+}
+.notesup-workspace .all-job-row:disabled{
+  cursor: default;
+  opacity: .8;
+}
+
+/* 퀴즈 플레이어: 문항 번호와 진행 표시. */
+.notesup-workspace .quiz-question-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.notesup-workspace .quiz-question-order {
+  flex: 0 0 auto;
+  color: #98a2ae;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.notesup-workspace .quiz-question-head h4 { margin: 0; }
+
+/* 대시보드 카드 하단 액션 버튼 일관 스타일. */
+.notesup-workspace .dashboard-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin-top: 14px;
+  padding: 0 14px;
+  border: 1px solid #dce5f2;
+  border-radius: 9px;
+  background: #fff;
+  color: #4f68ce;
+  font-size: 12px;
+  font-weight: 700;
+}
+.notesup-workspace .dashboard-card-action:hover {
+  background: #eef3ff;
+}
+.notesup-workspace .dashboard-card-action:disabled {
+  color: #a6aebd;
+  background: #f6f7f9;
+  cursor: not-allowed;
+}
+
+@media(max-width:650px){
+  .workspace-tabs{ grid-template-columns:repeat(4,minmax(72px,1fr)); }
+}
+
+/* 편집 모드: 제목 입력과 저장 버튼을 한 줄로, 본문은 아래 전체 폭. */
+.notesup-workspace .writing-panel:not(.view-mode){
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 14px;
+  align-items: end;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-title){
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: stretch;
+  max-width: none;
+  margin: 0;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > .note-view-actions{
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  justify-self: end;
+  margin: 0;
+  padding: 0;
+}
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-self: stretch;
+  max-width: none;
+  margin-top: 2px;
+}
+@media (max-width: 650px){
+  .notesup-workspace .writing-panel:not(.view-mode){ grid-template-columns: minmax(0, 1fr); }
+  .notesup-workspace .writing-panel:not(.view-mode) > .note-view-actions{ grid-column: 1; grid-row: 2; justify-self: stretch; }
+  .notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){ grid-row: 3; }
+}
+
+/* 제목 입력 플레이스홀더: 반투명 안내. */
+.notesup-workspace .writing-panel #note-title::placeholder{
+  color: rgba(120, 133, 153, .55);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* 노트 본문은 카드가 아닌 문서형 Markdown 표면으로 표시한다. */
+.notesup-workspace .writing-panel.view-mode{
+  align-items: stretch;
+  gap: 8px 16px;
+}
+.notesup-workspace .writing-panel.view-mode > label:has(> #note-title){
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  padding-right: 190px;
+}
+.notesup-workspace .writing-panel.view-mode #note-meta{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  color: #778397;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.notesup-workspace .writing-panel.view-mode > .note-read-view{
+  grid-row: 3;
+  justify-self: stretch;
+  width: 100%;
+  max-width: none;
+  min-height: 60vh;
+  margin: 8px 0 0;
+  padding: 24px 0 40px;
+  border: 0;
+  border-top: 1px solid #dfe5f0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #303b4b;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.85;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .writing-panel.view-mode > .note-read-view h1{ margin: 0 0 12px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view h2{ margin: 16px 0 6px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view h3{ margin: 13px 0 5px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view p{ margin: 0 0 10px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view ul,
+.notesup-workspace .writing-panel.view-mode > .note-read-view ol{ margin: 6px 0 12px; }
+.notesup-workspace .writing-panel.view-mode > .note-read-view li{ margin: 3px 0; }
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-title),
+.notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){
+  max-width: none;
+}
+.notesup-workspace .writing-panel:not(.view-mode) #note-body{
+  min-height: 60vh;
+  margin: 0;
+  padding: 24px 0 40px;
+  border: 0;
+  border-top: 1px solid #dfe5f0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #303b4b;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.85;
+  resize: vertical;
+}
+.notesup-workspace .writing-panel:not(.view-mode) #note-body:focus{
+  border-color: #dfe5f0;
+  background: transparent;
+  box-shadow: none;
+  outline: 0;
+}
+
+/* Left rail: restore the brand, clear spacing, and keep course controls in
+   the heading they belong to. */
+.notesup-workspace .rail-brand{
+  min-height: 48px;
+  margin: 10px 12px 4px;
+  padding: 0;
+  gap: 10px;
+}
+.notesup-workspace .rail-brand .brand-logo{
+  display: block;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: contain;
+}
+.notesup-workspace .rail-brand .workspace-brand{ font-size: 16px; }
+.notesup-workspace .rail-semester-filter{
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+.notesup-workspace .course-rail > h2{
+  margin-top: 12px;
+  margin-bottom: 10px;
+}
+.notesup-workspace .rail-section-label{
+  justify-content: space-between;
+}
+.notesup-workspace .rail-course-label-main{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.notesup-workspace .rail-course-label-main .course-management{
+  order: initial;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.notesup-workspace .rail-course-label-main .course-management > summary{
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #66758b;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.notesup-workspace .rail-course-label-main .course-management > summary:hover{
+  color: #435fc0;
+  background: #f0f3ff;
+}
+.notesup-workspace .rail-course-label-main .course-management[open]{
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(226px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #e4e9f1;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(30, 43, 66, .16);
+}
+.notesup-workspace .rail-course-label-main .course-management[open] > summary{
+  display: none;
+}
+.notesup-workspace .course-management-popover-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #34425a;
+  font-size: 14px;
+}
+.notesup-workspace .course-management-close{
+  min-height: 30px;
+  padding: 4px 9px;
+  border: 1px solid #e1e7f1;
+  border-radius: 7px;
+  color: #66758b;
+  background: #f8faff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.notesup-workspace .course-management-close:hover{
+  color: #405bb5;
+  border-color: #cbd7fb;
+  background: #f0f4ff;
+}
+.notesup-workspace .rail-course-label-main .course-management[open] > .show-archived,
+.notesup-workspace .rail-course-label-main .course-management[open] > .add-course{
+  width: 100%;
+  box-sizing: border-box;
+}
+.notesup-workspace .rail-course-label-main .course-management[open] > .show-archived{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+  white-space: normal;
+}
+.notesup-workspace .rail-course-label-main .course-management[open] .add-course{
+  margin: 0;
+  padding: 8px 0 0;
+  border-top: 1px solid #edf0f4;
+}
+.notesup-workspace .rail-course-label-main .course-management[open] #course-form,
+.notesup-workspace .rail-course-label-main .course-management[open] #course-form label{
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+  box-sizing: border-box;
+}
+.notesup-workspace .rail-course-label-main .course-management[open] #course-form{
+  gap: 10px;
+  margin-top: 10px;
+}
+.notesup-workspace .rail-course-label-main .course-management[open] #course-form input,
+.notesup-workspace .rail-course-label-main .course-management[open] #course-form select{
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.notesup-workspace .course-menu > #tips-tab{
+  order: 0;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #6078bb;
+  background: transparent;
+}
+.notesup-workspace .course-menu > #tips-tab:hover,
+.notesup-workspace .course-menu > #tips-tab[aria-pressed="true"]{
+  border-color: #d1ddf7;
+  color: #3555c6;
+  background: #edf3ff;
+}
+.notesup-workspace .course-menu > #dashboard-button{
+  color: #5368c5;
+  border: 1px solid #e1e7ff;
+  background: #f2f4ff;
+}
+.notesup-workspace .course-menu > #dashboard-button:hover,
+.notesup-workspace .course-menu > #dashboard-button[aria-pressed="true"]{
+  color: #3e53b0;
+  border-color: #cbd4fa;
+  background: #e9edff;
+}
+.notesup-workspace .note-list-heading{
+  row-gap: 11px;
+  padding-top: 3px;
+  padding-bottom: 7px;
+}
+.notesup-workspace .note-list-heading .note-list-title h2{
+  line-height: 1.5;
+}
+.notesup-workspace .note-list-heading .note-management > summary,
+.notesup-workspace .note-list-heading .rail-toggle{
+  min-height: 32px;
+}
+.notesup-workspace .note-list-heading .note-list-title h2{
+  font-size: 18px;
+}
+.study.notesup-workspace.note-rail-collapsed #note-list-card{
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 64px !important;
+  min-width: 64px;
+  max-width: 64px;
+  min-height: 56px !important;
+  height: auto !important;
+  padding: 6px !important;
+  overflow: visible !important;
+}
+.study.notesup-workspace.note-rail-collapsed #note-list-card .note-rail-content,
+.study.notesup-workspace.note-rail-collapsed #note-list-card .note-list-heading > :not(.rail-toggle){
+  display: none !important;
+}
+.study.notesup-workspace.note-rail-collapsed #note-list-card .note-list-heading{
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+.study.notesup-workspace.note-rail-collapsed #note-list-card .rail-toggle{
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #dce5f2;
+  border-radius: 10px;
+  color: transparent;
+  background: #fff;
+  font-size: 0;
+  line-height: 1;
+  writing-mode: horizontal-tb;
+}
+.study.notesup-workspace.note-rail-collapsed #note-list-card .rail-toggle::before{
+  content: "›";
+  color: #5878e8;
+  font-size: 30px;
+  font-weight: 500;
+}
+.study.notesup-workspace.note-rail-collapsed #note-list-card .rail-toggle:hover{
+  border-color: #c8d5fa;
+  background: #f7f9ff;
+}
+
+/* Lecture material upload: one clear, accessible picker and drop target. */
+.notesup-workspace #attachment-panel .attachment-limit{
+  margin: 0 0 16px;
+  color: #78859a;
+}
+.notesup-workspace .attachment-dropzone{
+  display: flex;
+  min-height: 112px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  border: 1.5px dashed #cbd5e7;
+  border-radius: 15px;
+  color: #45536b;
+  background: #f9fbff;
+  text-align: center;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+.notesup-workspace .attachment-dropzone.is-dragover{
+  border-color: #6882df;
+  background: #f0f4ff;
+  box-shadow: inset 0 0 0 1px rgba(104,130,223,.16);
+}
+.notesup-workspace .attachment-dropzone[aria-disabled="true"]{ opacity: .6; }
+.notesup-workspace .attachment-dropzone-icon{
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: #536fd0;
+  background: #edf2ff;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+}
+.notesup-workspace .attachment-dropzone > strong{ font-size: 16px; }
+.notesup-workspace .attachment-dropzone-hint{ color: #97a1af; font-size: 12px; }
+.notesup-workspace .attachment-picker{
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid #d5def0;
+  border-radius: 8px;
+  color: #4763c2;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.notesup-workspace .attachment-picker:hover{ border-color: #b8c7f3; background: #f8faff; }
+.notesup-workspace .attachment-picker input{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+.notesup-workspace .attachment-picker:focus-within{ outline: 2px solid #8ca4e8; outline-offset: 2px; }
+.notesup-workspace .attachment-selection:not([hidden]){
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #e1e8f4;
+  border-radius: 9px;
+  color: #596984;
+  background: #fff;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .attachment-upload-row{
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 8px;
+}
+.notesup-workspace .attachment-upload-row > .fine-print{ margin: 0; }
+.notesup-workspace .attachment-row{
+  align-items: center;
+  padding: 13px 15px;
+  border-color: #e3e9f2;
+  border-radius: 10px;
+  background: #fff;
+}
+@media (max-width:650px){
+  .notesup-workspace .attachment-upload-row{ align-items: stretch; }
+  .notesup-workspace .attachment-upload-row > .fine-print{ text-align: center; }
+  .notesup-workspace .attachment-dropzone{ min-height: 96px; padding: 14px 12px; gap: 8px; }
+}
+@media (max-width: 760px){
+  .notesup-workspace .writing-panel.view-mode > label:has(> #note-title){ padding-right: 0; }
+  .notesup-workspace .writing-panel.view-mode > .note-read-view{ padding: 20px 0 32px; }
+  .notesup-workspace .writing-panel:not(.view-mode) #note-body{ min-height: 55vh; padding: 20px 0 32px; }
+}
+.notesup-workspace .attachment-summary{
+  margin: 3px 0 0;
+  color: #52677d;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .waveform-empty-message{
+  margin:12px 0 8px;
+  padding:10px 14px;
+}
+.notesup-workspace .recording-note-select{width:clamp(130px,18vw,210px);min-width:0;min-height:34px;padding:5px 8px;border:1px solid #d6e0ea;border-radius:7px;background:#fff;color:#405a72;font-size:11px;}
+@media(max-width:650px){.notesup-workspace .recording-note-select{width:min(42vw,180px);}}

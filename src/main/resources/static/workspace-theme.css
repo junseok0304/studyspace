@@ -1,0 +1,371 @@
+/* workspace-theme: ordered segment of the workspace cascade. */
+/* NotesUp base CSS is loaded before the StudySpace styles. These are the
+   deliberately adapted desktop rules: the original local-vault workflow is
+   replaced by the authenticated server workspace without changing auth UI. */
+.notesup-workspace .course-rail{ display:flex; flex-direction:column; }
+
+
+
+
+
+
+.notesup-workspace .rail-footer span{ width:7px; height:7px; flex:0 0 auto; border-radius:50%; background:#238b67; }
+.notesup-workspace #course-count, .notesup-workspace #note-count{ display:inline-grid; min-width:18px; height:18px; place-items:center; padding:0 5px; border-radius:999px; color:#526bd3; background:#edf1ff; font-size:10px; letter-spacing:0; }
+
+.notesup-workspace .rail-semester-filter select{ width:100%; min-height:40px; padding:9px 30px 9px 10px; border:1px solid #e3e7ee; border-radius:8px; color:#536276; background:#fff; font-size:13px; font-weight:600; letter-spacing:0; text-transform:none; }
+.notesup-workspace .note-list-title{ display:flex; align-items:center; gap:7px; min-width:0; }
+.notesup-workspace .note-list-title h2{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+@media (min-width:1001px){
+  .study.notesup-workspace { width:calc(100% - 32px); grid-template-columns:258px 240px minmax(0,1fr); gap:8px; padding-bottom:90px; }
+  .study.notesup-workspace > aside.course-rail { position:sticky; top:76px; min-height:calc(100vh - 92px); max-height:calc(100vh - 92px); padding:24px 16px 18px; overflow:auto; border-color:#dfe3ea; border-radius:14px; box-shadow:5px 0 18px rgba(31,41,55,.035); }
+  .notesup-workspace #note-list-card { padding:14px; border-radius:14px; }
+  .notesup-workspace #note-editor-card { min-height:660px; border-radius:14px; }
+  .notesup-workspace .course-menu { gap:4px; margin:0; }
+  .notesup-workspace .course-menu-button, .notesup-workspace .course-menu a { min-height:42px; padding:10px 12px; border-radius:9px; font-size:14px; }
+  .notesup-workspace .course-menu a { color:#6078bb; background:#f4f7ff; }
+  .notesup-workspace .course-menu-button[aria-pressed="true"] { color:#3555c6; background:#eef3ff; }
+  .notesup-workspace #courses .list-item { min-height:0; margin:0; padding:10px 11px; border:0; border-radius:8px; color:#5f6b7d; }
+  .notesup-workspace #courses .list-item:hover, .notesup-workspace #courses .list-item[aria-pressed="true"] { color:#3454c7; border-color:transparent; background:#eef3ff; }
+  .notesup-workspace .course-management { margin-top:14px; }
+  .notesup-workspace .course-management > summary { padding:10px 12px; border-radius:8px; }
+  .notesup-workspace .course-management > summary:hover { color:#526bd3; background:#f4f6ff; }
+  .notesup-workspace .note-list-heading { position:sticky; top:0; z-index:2; padding:2px 0 12px; background:#fff; }
+  .notesup-workspace #notes { max-height:calc(100vh - 330px); }
+  .notesup-workspace .workspace-tabs { margin-bottom:20px; padding:4px; border:1px solid #e4e9f0; border-radius:10px; background:#f8f9fb; }
+  .notesup-workspace .workspace-tabs button[aria-pressed="true"] { background:#fff; box-shadow:0 1px 3px rgba(30,45,65,.08); }
+}
+
+/* NotesUp dashboard adapted to the server-side learning records. These
+   rules intentionally use its quiet panel scale instead of colored widgets. */
+.notesup-workspace .study-dashboard{ grid-column:2 / -1; padding:22px 24px 30px; border:1px solid #e1e5eb; border-radius:14px; background:#fff; }
+
+.notesup-workspace .study-dashboard .eyebrow{ margin:0 0 7px; color:#8c97a7; font-size:11px; font-weight:800; letter-spacing:.1em; }
+
+.notesup-workspace .study-dashboard .today-label{ padding-top:4px; color:#98a2b1; font-size:12px; }
+.notesup-workspace .study-dashboard .study-stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:0 0 20px; }
+
+.notesup-workspace .study-dashboard .study-stat-featured{ border-color:#dbe3ff; background:#f7f9ff; }
+.notesup-workspace .study-dashboard .study-stat-label,.notesup-workspace .study-dashboard .study-stat-hint{ display:block; overflow:hidden; color:#8994a4; font-size:11px; line-height:1.45; text-overflow:ellipsis; white-space:nowrap; }
+
+
+
+.notesup-workspace .study-dashboard .dashboard-card{ min-width:0; padding:19px; border:1px solid #e4e8ee; border-radius:11px; background:#fff; box-shadow:none; }
+.notesup-workspace .study-dashboard .dashboard-card-heading{ margin-bottom:15px; }
+
+
+.notesup-workspace .study-dashboard .today-classes,.notesup-workspace .study-dashboard .recent-notes{ display:grid; gap:3px; }
+
+
+
+
+.notesup-workspace .study-dashboard .today-class-link,.notesup-workspace .study-dashboard .dashboard-link-row{ display:grid; min-height:0; padding:7px 8px; border:0; border-radius:7px; background:transparent; color:#4b5d7a; text-align:left; }
+
+.notesup-workspace .study-dashboard .today-class-link:hover,.notesup-workspace .study-dashboard .dashboard-link-row:hover{ background:#f4f6fb; color:#4f68ce; }
+.notesup-workspace .study-dashboard .dashboard-link-row{ gap:2px; border-top:1px solid #f0f2f5; }
+.notesup-workspace .study-dashboard .dashboard-link-row:first-child{ border-top:0; }
+.notesup-workspace .study-dashboard .dashboard-link-row strong{ overflow:hidden; color:#4d5869; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
+.notesup-workspace .study-dashboard .dashboard-link-row span{ color:#98a2ae; font-size:11px; }
+
+
+.notesup-workspace .study-dashboard .bar-column > span{ display:block; overflow:hidden; color:#98a2ae; font-size:10px; line-height:16px; text-overflow:ellipsis; white-space:nowrap; }
+
+
+
+
+
+.notesup-workspace .study-dashboard #quiz-stats .stat-big,.notesup-workspace .study-dashboard .flash-dashboard-card .stat-big{ display:block; color:#526bd3; font-size:28px; letter-spacing:-1px; }
+.notesup-workspace .study-dashboard .fine-print{ margin:6px 0 0; color:#929ca9; font-size:12px; line-height:1.55; }
+
+
+.notesup-workspace .study-dashboard .course-progress-row .list-item{ min-height:0; padding:0; color:#526273; font-size:13px; }
+.notesup-workspace .study-dashboard .course-progress-row > span{ color:#98a2ae; font-size:11px; }
+
+
+/* Views share a single stable rail-and-work area. A panel may be hidden, but
+   never changes the width reserved for the course and note rails. */
+@media (min-width:1001px){
+  .study.notesup-workspace,
+  .study.notesup-workspace:has(#dashboard.hidden) { grid-template-columns:258px 240px minmax(0,1fr); gap:8px; }
+  .study.notesup-workspace.note-rail-collapsed,
+  .study.notesup-workspace.note-rail-collapsed:has(#dashboard.hidden) { grid-template-columns:258px 64px minmax(0,1fr) !important; }
+}
+@media (max-width:1180px) and (min-width:1001px){ .notesup-workspace .study-dashboard .study-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:760px){ .notesup-workspace .study-dashboard { padding:18px; } .notesup-workspace .study-dashboard .study-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }  }
+@media (max-width:430px){ .notesup-workspace .study-dashboard .today-class-row { grid-template-columns:70px minmax(0,1fr); } .notesup-workspace .study-dashboard .today-class-row > span { grid-column:2; } }
+
+/* NotesUp visual contract: quiet surfaces, stable rails, and one clear work area. */
+.notesup-workspace{
+  --workspace-blue: #5b78e7;
+  --workspace-ink: #3d4757;
+  --workspace-muted: #8994a4;
+  --workspace-line: #e3e8f0;
+  width: min(1680px, calc(100% - 32px));
+  grid-template-columns: 258px 240px minmax(0, 1fr) !important;
+  gap: 8px !important;
+  align-items: start;
+}
+.notesup-workspace > aside.course-rail,
+.notesup-workspace #note-list-card,
+.notesup-workspace #note-editor-card,
+.notesup-workspace .study-dashboard{
+  border: 1px solid var(--workspace-line);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(52,72,112,.055);
+}
+.notesup-workspace > aside.course-rail{
+  position: static;
+  align-self: start;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  padding: 0 16px 20px;
+  overflow: visible;
+  background: #fff;
+}
+.notesup-workspace #note-list-card{
+  min-width: 0;
+  padding: 14px;
+  background: #fff;
+}
+.notesup-workspace #note-editor-card{
+  min-width: 0;
+  min-height: 660px;
+  padding: 22px 24px 30px;
+  background: #fff;
+}
+.notesup-workspace .course-menu-button,
+.notesup-workspace .course-menu a{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: #788292;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+}
+.notesup-workspace .course-menu-button .nav-icon,
+.notesup-workspace .course-menu a .nav-icon{
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+
+
+
+
+
+.notesup-workspace .course-menu-button:hover,
+.notesup-workspace .course-menu a:hover,
+.notesup-workspace .course-menu-button[aria-pressed="true"]{
+  color: #3555c6;
+  background: #eef3ff;
+}
+.notesup-workspace .course-menu a{ color: #6078bb; background: #f4f7ff; }
+.notesup-workspace .rail-section-label,
+.notesup-workspace .course-rail > h2,
+.notesup-workspace .rail-semester-filter{
+  color: #a0a8b5;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.notesup-workspace #courses .list-item{
+  min-height: 0;
+  margin: 0;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 8px;
+  color: #5f6b7d;
+  background: transparent;
+  font-size: 14px;
+}
+.notesup-workspace #courses .list-item:hover,
+.notesup-workspace #courses .list-item[aria-pressed="true"]{
+  border-color: transparent;
+  color: #3454c7;
+  background: #eef3ff;
+}
+.notesup-workspace .note-list-heading{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.notesup-workspace #notes{ max-height: calc(100vh - 330px); overflow: auto; }
+.notesup-workspace #notes .list-item{
+  margin: 0 0 3px;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 8px;
+  color: #5f6b7d;
+  background: transparent;
+}
+.notesup-workspace #notes .list-item:hover,
+.notesup-workspace #notes .list-item[aria-pressed="true"]{
+  border-color: transparent;
+  color: #3454c7;
+  background: #eef3ff;
+}
+.notesup-workspace .workspace-tabs{
+  margin-bottom: 20px;
+  padding: 4px;
+  border: 1px solid #e4e9f0;
+  border-radius: 10px;
+  background: #f8f9fb;
+}
+
+
+.notesup-workspace .writing-panel #note-title{
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  color: var(--workspace-ink);
+  background: transparent;
+  font-size: 22px;
+  font-weight: 800;
+}
+.notesup-workspace .writing-panel #note-title:focus{
+  border-bottom-color: var(--workspace-line);
+  box-shadow: none;
+}
+.notesup-workspace .writing-panel #note-body{
+  min-height: 535px;
+  padding: 18px;
+  border: 0;
+  border-radius: 0;
+  color: #334155;
+  background: #fff;
+  font: 13px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.notesup-workspace .writing-panel #note-body:focus{ box-shadow: none; }
+.notesup-workspace .attachment-panel,
+.notesup-workspace .recording-panel,
+.notesup-workspace .generation-panel,
+.notesup-workspace .quiz-panel{ border-color: var(--workspace-line); }
+
+.notesup-workspace .generation-actions button,
+.notesup-workspace .recording-actions button,
+.notesup-workspace .attachment-upload-row button{ border-radius: 8px; }
+.notesup-workspace .empty-state{
+  border-color: #d9dde6;
+  border-radius: 10px;
+  background: #fbfcfe;
+  color: #8994a4;
+}
+.notesup-tips-panel{
+  grid-column: 2 / -1;
+  min-height: calc(100vh - 170px);
+  padding: 28px 30px;
+  border: 1px solid #e3e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(52,72,112,.055);
+}
+.notesup-tips-panel .tips-heading{
+  align-items: flex-start;
+  margin-bottom: 26px;
+}
+.notesup-tips-panel .tips-heading h1{
+  margin: 0 0 10px;
+  color: #303846;
+  font-size: 27px;
+  line-height: 1.4;
+  letter-spacing: -.7px;
+}
+.notesup-tips-panel .tips-heading .muted{
+  max-width: 760px;
+  margin: 0;
+  color: #596779;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.notesup-tips-panel .tips-badge{
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #d8e2ff;
+  color: #405fbf;
+  background: #f0f4ff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.notesup-tips-panel .tips-grid{ gap: 16px; }
+.notesup-tips-panel .tips-grid article{
+  min-height: 0;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid #e1e7ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(52,72,112,.035);
+}
+.notesup-tips-panel .tips-grid article > span{
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  flex: 0 0 38px;
+  border-radius: 12px;
+  color: #5878e8;
+  background: #edf3ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.notesup-tips-panel .tips-grid article > div{ min-width: 0; }
+.notesup-tips-panel .tips-grid h3{ margin: 1px 0 8px; color: #354052; font-size: 18px; line-height: 1.45; }
+.notesup-tips-panel .tips-grid p,
+.notesup-tips-panel .tips-grid li{ color: #536176; font-size: 14px; line-height: 1.75; }
+.notesup-tips-panel .tips-grid p{ margin: 0; color: #596779; font-size: 14px; line-height: 1.75; }
+.notesup-tips-panel .tips-grid ul{ margin: 9px 0 0; padding-left: 19px; }
+.notesup-tips-panel .tips-grid li{ margin: 4px 0; padding-left: 2px; }
+.notesup-tips-panel .tips-template{
+  align-items: center;
+  gap: 22px;
+  margin-top: 20px;
+  border: 1px solid #d8e8e2;
+  border-radius: 14px;
+  background: #f2faf7;
+}
+.notesup-tips-panel .tips-template > div{ min-width: 0; }
+.notesup-tips-panel .tips-template h3{ margin: 0 0 8px; color: #304d49; font-size: 18px; line-height: 1.5; }
+.notesup-tips-panel .tips-template .muted{ margin: 0; color: #536c67; font-size: 14px; line-height: 1.75; }
+.notesup-tips-panel .tips-template pre{ min-width: 0; padding: 18px; border: 1px solid #e0eee8; color: #345b56; background: rgba(255,255,255,.9); white-space: pre-wrap; overflow-wrap: anywhere; }
+.notesup-tips-panel .tips-template code{ color: inherit; font: 13px/1.85 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+@media (max-width: 800px){
+  .notesup-tips-panel .tips-grid,
+  .notesup-tips-panel .tips-template{ grid-template-columns: 1fr; }
+}
+@media (max-width: 1000px){
+  .notesup-workspace { grid-template-columns: 210px minmax(0,1fr) !important; }
+  .notesup-workspace > aside.course-rail { position: static; height: auto; min-height: 0; max-height: none; }
+}
+@media (max-width: 650px){
+  .notesup-workspace { width: calc(100% - 24px); display: block; }
+  .notesup-workspace > aside.course-rail,
+  .notesup-workspace #note-list-card,
+  .notesup-workspace #note-editor-card { margin-bottom: 10px; }
+  .notesup-workspace > aside.course-rail { padding: 16px 12px; }
+  .notesup-workspace #note-editor-card { padding: 16px; }
+  .notesup-workspace #notes { max-height: 260px; }
+  .notesup-workspace .writing-panel #note-body { min-height: 360px; }
+  .notesup-tips-panel { min-height: 0; padding: 22px 18px 28px; }
+  .notesup-tips-panel .tips-heading { display: block; }
+  .notesup-tips-panel .tips-badge { display: inline-block; margin-top: 12px; }
+}

@@ -3,37 +3,177 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StudySpace</title>
+  <title>StudySpace | 로그인</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=1">
+  <link rel="apple-touch-icon" href="/assets/studyspace-logo.png">
+  <link rel="stylesheet" href="/notesup-base.css">
   <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/workspace.css">
+  <link rel="stylesheet" href="/workspace-refinement.css">
+  <link rel="stylesheet" href="/pomodoro.css">
 </head>
 <body>
 <main class="shell">
   <section class="hero">
-    <p class="eyebrow">STUDYSPACE</p>
-    <h1>나만의 학습 공간</h1>
-    <p class="muted">강의노트와 복습을 한곳에서 관리하세요.</p>
+    <h1>오늘 배운 것,<br>내일의 내 것으로.</h1>
+    <p class="muted login-tagline">흩어진 강의노트를 한곳에.<br>내 속도로 쌓아가는 공부를 시작하세요.</p>
   </section>
   <section id="auth-card" class="card">
-    <div class="tabs" role="tablist">
-      <button class="tab active" data-mode="login">로그인</button>
-      <button class="tab" data-mode="signup">회원가입</button>
-    </div>
+    <h2>로그인</h2>
     <form id="auth-form">
       <label>이메일<input id="email" type="email" autocomplete="email" required></label>
       <label id="nickname-label" class="hidden">닉네임<input id="nickname" maxlength="50" autocomplete="nickname"></label>
-      <label>비밀번호<input id="password" type="password" minlength="8" autocomplete="current-password" required></label>
+      <label id="password-label">비밀번호<input id="password" type="password" minlength="8" autocomplete="current-password" required></label>
       <button class="primary" type="submit" id="submit-button">로그인</button>
     </form>
-    <a class="kakao" href="/api/auth/kakao">카카오로 로그인</a>
+    <p class="auth-assist"><a href="/reset-password.html">비밀번호를 잊으셨나요?</a></p>
+    <div class="divider">또는</div>
+    <a class="kakao" href="/api/auth/kakao">카카오로 시작하기</a>
+    <p class="auth-foot">처음 오셨나요? <a href="/signup.html">이메일로 회원가입</a></p>
     <p id="message" class="message" role="status"></p>
   </section>
   <section id="account-card" class="card hidden">
-    <p class="eyebrow">ACCOUNT</p>
     <h2 id="welcome"></h2>
     <p id="account-detail" class="muted"></p>
     <button class="secondary" id="logout-button">로그아웃</button>
+    <a class="profile-link" href="/mypage.html">마이페이지</a>
   </section>
 </main>
-<script src="/app.js" defer></script>
+<section id="study" class="study hidden" aria-label="학습 공간">
+  <aside class="card">
+    <nav class="study-nav" aria-label="학습 메뉴">
+      <button id="dashboard-button" class="primary" aria-pressed="true">학습 현황</button>
+      <a class="secondary" href="/mypage.html">시간표 · 학교 연동</a>
+    </nav>
+    <h2>내 과목</h2>
+    <div id="courses"></div>
+    <details class="course-management"><summary>과목 관리</summary>
+    <label class="show-archived"><input id="show-archived" type="checkbox"><span>보관한 과목 표시</span></label>
+    <details class="add-course"><summary>새 과목 추가</summary>
+     <form id="course-form">
+       <label>학기<select id="course-semester" required></select></label>
+       <label>과목명<input id="course-name" maxlength="120" required></label>
+      <button class="primary">과목 추가</button>
+    </form>
+    </details>
+    </details>
+  </aside>
+  <section id="dashboard" class="dashboard study-dashboard" aria-labelledby="dashboard-title">
+    <header class="dashboard-heading"><div><p class="eyebrow">STUDY PULSE</p><h1 id="dashboard-title">이번 학기 학습 현황</h1></div><span class="today-label" id="dashboard-date"></span></header>
+    <div class="dashboard-status"><p id="dashboard-message" role="status">학습 현황을 불러오는 중입니다.</p><button id="dashboard-retry" class="quiet-button" type="button" hidden>다시 시도</button></div>
+
+    <div class="dashboard-summary study-stats" id="dashboard-summary"></div>
+    <div class="dashboard-grid dashboard-main-grid">
+      <article class="dashboard-card today-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">STUDY HOURS</p><h3>오늘 수업</h3></div></div><div id="today-classes" class="today-classes"></div></article>
+       <article class="dashboard-card recent-notes-card"><div class="dashboard-card-heading"><div><p class="eyebrow">CONTINUE</p><h3>이어서 공부하기</h3></div></div><div id="recent-notes" class="recent-notes"></div></article>
+      <article class="dashboard-card weekly-card"><div class="dashboard-card-heading"><div><p class="eyebrow">LAST 7 DAYS</p><h3>최근 7일 활동</h3></div></div><div id="activity-chart" class="activity-chart bar-chart" aria-label="최근 7일 일별 노트 열람 수"></div></article>
+       <article class="dashboard-card quiz-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">QUIZ</p><h3>퀴즈 기록</h3></div></div><div id="quiz-stats"></div><button id="dashboard-quiz-button" class="secondary dashboard-card-action" type="button" disabled>최근 노트에서 퀴즈 보기</button></article>
+      <article class="dashboard-card course-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">COURSE FOCUS</p><h3>과목별 노트</h3></div></div><div id="course-progress"></div></article>
+      <article class="dashboard-card flash-dashboard-card"><div class="dashboard-card-heading"><div><p class="eyebrow">REVIEW</p><h3>오늘 복습 카드</h3></div></div><strong class="stat-big" id="metric-flashcards-due">—</strong><p class="fine-print">처음 보거나 복습할 카드</p><button id="dashboard-review-button" class="secondary dashboard-card-action" type="button" disabled>복습 시작</button></article>
+    </div>
+  </section>
+  <section id="tips-panel" class="card hidden" aria-labelledby="tips-title">
+    <div class="tips-heading"><div><p class="eyebrow">수업노트 작성 팁</p><h1 id="tips-title">나중에 다시 보기 좋은 노트 쓰기</h1><p class="muted">수업 내용을 모두 받아 적을 필요는 없어요. 중요한 흐름과 궁금한 점을 먼저 적고, 수업이 끝난 뒤 필요한 부분을 보태 보세요.</p></div><span class="tips-badge">수업 중 메모 · 수업 후 정리</span></div>
+    <div class="tips-grid">
+      <article><span>01</span><div><h3>핵심 개념을 짧게 적기</h3><p>개념이 나오면 아래 질문을 떠올려 보세요.</p><ul><li>무엇인지 한 문장으로 말하면?</li><li>왜 필요하고, 어떤 문제를 해결하나?</li><li>어떤 순서로 동작하나?</li><li>코드나 상황으로 예를 들 수 있나?</li></ul></div></article>
+      <article><span>02</span><div><h3>강조한 내용은 표시해 두기</h3><p>시험·과제·실습 이야기가 나오면 나중에 찾기 쉽도록 따로 남겨 두세요.</p><ul><li>시험이나 과제에 나온다고 한 내용</li><li>여러 번 설명한 개념</li><li>서로 헷갈리기 쉬운 개념의 차이</li><li>자주 틀리는 부분과 주의점</li></ul></div></article>
+      <article><span>03</span><div><h3>헷갈리는 점은 질문으로 남기기</h3><p>모르는 부분을 표시하고, 무엇을 확인할지 함께 적어 두세요.</p><ul><li>어디까지 이해했는지</li><li>어떤 설명에서 막혔는지</li><li>교재나 강의자료에서 다시 볼 곳</li><li>다음 수업에서 물어볼 내용</li></ul></div></article>
+      <article><span>04</span><div><h3>코드와 예제는 실행 결과까지</h3><p>코드만 옮겨 두면 나중에 맥락을 놓치기 쉬워요. 실행 조건과 결과도 함께 적어 보세요.</p><ul><li>입력값과 실행 조건</li><li>실행 결과나 오류 메시지</li><li>핵심이 되는 코드 한두 줄</li><li>내 말로 풀어 쓴 동작 원리</li></ul></div></article>
+      <article><span>05</span><div><h3>수업 끝나고 5분만 정리하기</h3><p>짧게 돌아보는 것만으로도 다음에 복습할 부분이 또렷해져요.</p><ul><li>오늘 기억할 내용 세 가지</li><li>아직 자신 없는 부분 하나</li><li>다음 수업 전까지 할 일</li></ul></div></article>
+      <article><span>06</span><div><h3>다시 펼쳤을 때 바로 이해되게</h3><p>몇 주 뒤에 읽어도 무슨 내용인지 알 수 있으면 잘 정리된 노트예요.</p><ul><li>한 문단에는 한 가지 내용만</li><li>제목은 구체적으로 붙이기</li><li>수업 내용과 내 생각을 구분하기</li><li>과목과 수업 날짜를 적어 두기</li></ul></div></article>
+    </div>
+    <div class="tips-template"><div><p class="eyebrow">간단한 노트 틀</p><h3>필요한 항목만 골라 적어도 괜찮아요</h3><p class="muted">수업 중에는 키워드만 적어 두고, 끝난 뒤 문장을 다듬어 보세요. 비워 둔 항목은 다음에 확인할 질문으로 남겨 두면 됩니다.</p></div><pre><code>## 수업 내용&#10;- 오늘 배운 핵심 개념&#10;- 작동 원리와 예시&#10;&#10;## 교수님 강조 내용&#10;- 반복해서 강조한 내용&#10;- 시험·과제와 관련된 점&#10;&#10;## 질문과 헷갈린 점&#10;- 다시 확인할 부분&#10;- 다음 수업에서 물어볼 것&#10;&#10;## 다음 수업까지 할 일&#10;- 복습하거나 실습할 내용</code></pre></div>
+  </section>
+  <section id="note-list-card" class="card hidden">
+    <h2 id="course-heading">과목을 선택하세요</h2>
+    <button id="new-note" class="secondary" disabled>새 강의노트</button>
+    <details class="course-settings"><summary>과목 설정</summary><form id="course-settings-form"><label>표시 이름<input id="course-settings-name" maxlength="120" required></label><label class="check-row"><input id="course-settings-archived" type="checkbox"><span>이 과목 보관하기</span></label><button class="secondary">설정 저장</button></form></details>
+    <div id="notes"></div>
+    <details class="note-import"><summary>Markdown 가져오기</summary>
+      <div class="note-import-controls"><input id="note-import-file" type="file" accept=".md,text/markdown,text/plain"><button id="preview-note-import" class="secondary" type="button">내용 확인</button></div>
+      <section id="note-import-preview" class="note-import-preview hidden" aria-label="가져올 노트 미리보기">
+        <strong id="note-import-title"></strong><p id="note-import-summary" class="fine-print"></p>
+        <button id="confirm-note-import" class="primary" type="button">이 과목에 가져오기</button>
+      </section>
+      <p id="note-import-message" class="fine-print" role="status"></p>
+    </details>
+    <details class="trash-panel"><summary>휴지통 <span id="trash-count"></span></summary><div id="trash-notes"></div></details>
+  </section>
+  <section id="note-editor-card" class="card hidden">
+    <h2>강의노트</h2>
+    <div id="draft-banner" class="draft-banner hidden" role="status"><p>이 탭에 저장하지 못한 초안이 있습니다. 복구하거나 서버 내용을 유지할 수 있어요.</p><button id="restore-draft" class="secondary" type="button">초안 복구</button><button id="discard-draft" class="secondary" type="button">초안 버리기</button></div>
+    <form id="note-form" class="hidden">
+      <label><span class="note-title-label">제목</span><input id="note-title" maxlength="200" placeholder="제목을 입력해주세요" required><span id="note-meta" class="note-meta" aria-live="polite"></span></label>
+      <label id="note-input-label"><textarea id="note-body" rows="20" maxlength="60000" placeholder="# 오늘의 강의&#10;&#10;핵심 개념부터 적어 보세요."></textarea></label>
+      <button id="save-note" class="primary">저장</button>
+      <button id="reload-note" class="secondary hidden" type="button">서버 내용 다시 열기</button>
+      <button id="trash-note" class="danger-button hidden" type="button">휴지통으로 이동</button>
+      <section id="attachment-panel" class="attachment-panel" aria-labelledby="attachment-title">
+        <div class="attachment-heading"><div><h3 id="attachment-title">강의자료</h3></div><span id="attachment-count" class="fine-print"></span></div>
+        <p class="fine-print attachment-limit">PDF · PPTX · HWP · PNG / 파일당 최대 50MB · PNG AI 분석은 20MB 이하</p>
+        <div id="attachment-dropzone" class="attachment-dropzone" aria-disabled="true">
+          <span class="attachment-dropzone-icon" aria-hidden="true">↑</span>
+          <strong>파일을 끌어다 놓으세요</strong>
+          <span class="attachment-dropzone-hint">또는</span>
+          <label class="attachment-picker"><span>파일 선택</span><input id="attachment-input" type="file" aria-label="첨부 파일 선택" accept=".pdf,.pptx,.hwp,.png,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/x-hwp,image/png" multiple disabled></label>
+        </div>
+        <p id="attachment-selection" class="attachment-selection fine-print" aria-live="polite" hidden></p>
+        <div class="attachment-upload-row"><span class="fine-print">업로드시 자료를 분석해 AI 요약을 생성합니다.</span><button id="upload-attachments" class="secondary" type="button" disabled>업로드</button></div>
+        <p id="attachment-message" class="fine-print" role="status"></p>
+        <div id="attachments" class="attachment-list"></div>
+      </section>
+      <section id="recording-panel" class="recording-panel" aria-labelledby="recording-title">
+        <div class="attachment-heading"><div><h3 id="recording-title">강의 녹음</h3></div><span id="recording-timer" class="recording-timer">00:00 / 60:00</span></div>
+        <p class="fine-print">녹음은 과목을 기준으로 보관되며, 노트와 연결할 수 있습니다. 최대 60분까지 저장됩니다.</p>
+        <div class="recording-actions">
+          <button id="start-recording" class="secondary" type="button" disabled>녹음 시작</button>
+          <button id="pause-recording" class="secondary hidden" type="button">일시정지</button>
+          <button id="stop-recording" class="danger-button hidden" type="button">종료하고 저장</button>
+        </div>
+        <p id="recording-message" class="fine-print" role="status"></p>
+        <div id="recordings" class="recording-list"></div>
+      </section>
+      <section id="learning-panel" class="learning-panel" aria-labelledby="learning-title" hidden>
+        <div class="learning-heading">
+          <div><h3 id="learning-title">AI 학습</h3><p id="generation-note-context" class="workspace-context generation-note-context">현재 선택한 노트가 없습니다.</p></div>
+          <span id="learning-mode-badge" class="development-badge learning-mode-badge" title="현재 설정과 저장된 결과의 생성 방식을 표시합니다.">AI 연결 확인 중</span>
+        </div>
+        <p id="generation-source-summary" class="fine-print learning-source-summary">현재 노트와 분석이 끝난 강의자료를 바탕으로 생성합니다.</p>
+        <nav id="learning-tabs" class="tool-subtabs learning-tabs" aria-label="AI 학습 자료">
+          <button type="button" data-learning-view="infographic" aria-pressed="true">인포그래픽</button>
+          <button type="button" data-learning-view="quiz" aria-pressed="false">퀴즈</button>
+          <button type="button" data-learning-view="flashcards" aria-pressed="false">플래시카드</button>
+        </nav>
+        <section id="learning-infographic-view" class="learning-view" aria-label="인포그래픽">
+          <div class="learning-view-heading"><div><h4>한눈에 보는 인포그래픽</h4><p>현재 노트의 핵심 내용을 페이지별로 정리합니다.</p></div><button id="generate-infographic" class="quiet-button" type="button" disabled>다시 생성</button></div>
+          <p id="generation-message" class="fine-print" role="status" aria-live="polite"></p>
+          <div id="infographic-stage" class="infographic-stage"></div>
+        </section>
+        <section id="learning-quiz-view" class="learning-view" aria-label="퀴즈" hidden>
+          <div class="learning-view-heading"><div><h4>현재 노트 퀴즈</h4><p>답변과 오답 기록은 저장되어 다시 풀기에 반영됩니다.</p></div><div class="quiz-create-controls"><label for="quiz-count">문항 수</label><select id="quiz-count" aria-label="퀴즈 문항 수"><option value="3">3문항</option><option value="5" selected>5문항</option><option value="8">8문항</option><option value="10">10문항</option></select><button id="create-speed-quiz" class="quiet-button" type="button" disabled>새 퀴즈 만들기</button></div></div>
+          <p id="quiz-message" class="fine-print" role="status" aria-live="polite"></p>
+          <div id="quiz-player" class="quiz-player hidden"></div>
+          <details id="quiz-history" class="learning-history"><summary>이 노트의 퀴즈 기록</summary><div id="quiz-sets" class="quiz-set-list"></div></details>
+        </section>
+        <section id="learning-flashcards-view" class="learning-view" aria-label="플래시카드" hidden>
+          <div class="learning-view-heading"><div><h4>현재 노트 플래시카드</h4><p>카드를 눌러 답을 확인하고 복습 여부를 기록하세요.</p></div><button id="create-flashcards" class="quiet-button" type="button" disabled>새 카드 만들기</button></div>
+          <p id="flashcard-message" class="fine-print" role="status" aria-live="polite"></p>
+          <div id="flashcard-player" class="flashcard-player hidden"></div>
+          <details id="flashcard-history" class="learning-history"><summary>이 노트의 카드 덱</summary><div id="flashcard-decks" class="quiz-set-list"></div></details>
+        </section>
+        <p id="learning-message" class="fine-print" role="status" aria-live="polite"></p>
+      </section>
+    </form>
+    <p id="study-message" role="status">과목을 추가하고 첫 노트를 작성해 보세요.</p>
+  </section>
+</section>
+<script type="module" src="/app.js"></script>
+<dialog id="school-prompt" aria-labelledby="school-prompt-title">
+
+  <h2 id="school-prompt-title">이번 학기, 한 번에 정리해요.</h2>
+  <p>학교 계정을 연결하면 시간표를 가져와<br>과목별 공부를 시작할 수 있어요.</p>
+  <a class="primary" href="/mypage.html">LMS 연동하러 가기</a>
+  <form method="dialog"><button class="secondary">나중에</button></form>
+</dialog>
 </body>
 </html>

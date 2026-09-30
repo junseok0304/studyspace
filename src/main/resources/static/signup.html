@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StudySpace | 회원가입</title><link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=1"><link rel="apple-touch-icon" href="/assets/studyspace-logo.png"><link rel="stylesheet" href="/app.css"></head>
+<body>
+<main class="shell auth-shell auth-compact-shell">
+  <section class="card">
+    <p class="eyebrow auth-kicker">계정 만들기</p><h1 id="signup-heading">회원가입</h1>
+    <p class="auth-intro" id="signup-intro">계정을 만들고 나만의 학습 공간을 열어 보세요.</p>
+    <form id="signup-form">
+      <div id="email-fields">
+        <label>닉네임<input id="nickname" autocomplete="nickname" required maxlength="50"></label>
+        <label>이메일<input id="email" type="email" autocomplete="email" required maxlength="254"></label>
+        <label>비밀번호<input id="password" type="password" autocomplete="new-password" required minlength="8" maxlength="72" aria-describedby="password-hint"></label>
+        <small id="password-hint">8자 이상 입력해 주세요.</small>
+      </div>
+      <fieldset class="consents"><legend>서비스 이용 동의</legend>
+        <label class="check-row"><input id="terms" type="checkbox" required><span>[필수] <a id="terms-link" href="/terms.html">이용약관</a>에 동의합니다.</span></label>
+        <label class="check-row"><input id="privacy" type="checkbox" required><span>[필수] <a id="privacy-link" href="/privacy.html">개인정보 처리방침 및 수집·이용 안내</a>를 읽고 동의합니다.</span></label>
+      </fieldset>
+      <button class="primary" id="signup-submit">동의하고 가입하기</button>
+    </form>
+    <div id="social-entry"><div class="divider">또는</div><a class="kakao" href="/api/auth/kakao">카카오로 시작하기</a><p class="fine-print">처음 이용하는 경우 카카오 인증 후 약관에 동의하면 가입됩니다.</p></div>
+    <p id="signup-message" role="status" class="message"></p>
+    <p class="auth-foot">이미 계정이 있나요? <a href="/">로그인</a></p>
+  </section>
+</main><script type="module" src="/signup.js"></script></body></html>

@@ -1,0 +1,583 @@
+/* workspace-practice-tools: ordered segment of the workspace cascade. */
+/* Tool modes hide the lecture list so the tool gets the full work area. */
+.study.notesup-workspace.tool-mode{
+  grid-template-columns: 258px minmax(0, 1fr) !important;
+}
+.study.notesup-workspace.tool-mode #note-list-card{
+  display: none !important;
+}
+/* Tool modes replace the note-list rail with a full-width work area. Keep the
+   collapsed rail preference for when the user returns to notes, but do not
+   let its 64px grid track squeeze recording, AI review, or practice panels. */
+@media (min-width:1001px){
+  .study.notesup-workspace.note-rail-collapsed.tool-mode,
+  .study.notesup-workspace.note-rail-collapsed.tool-mode:has(#dashboard.hidden){
+    grid-template-columns:258px minmax(0,1fr) !important;
+  }
+}
+/* Note rows: title plus a quiet updated date, NotesUp note-item style. */
+.notesup-workspace #notes .list-item{
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+.notesup-workspace #notes .list-item small{
+  color: #9aa4b1;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.notesup-workspace #notes .list-item[aria-pressed="true"] small{
+  color: #7484b3;
+}
+
+/* Artifact whose source note changed since generation. */
+.notesup-workspace .generation-stale{
+  margin-top: 8px;
+  color: #b1862d;
+  font-weight: 700;
+}
+
+/* Note read mode: rendered Markdown replaces the raw textarea. */
+.notesup-workspace .writing-panel.view-mode #note-title{
+  margin-top: 2px;
+  font-weight: 800;
+}
+.notesup-workspace .note-read-view{
+  grid-column: 1 / -1;
+  order: 2;
+  min-height: 420px;
+  width: 100%;
+  max-width: 920px;
+  box-sizing: border-box;
+  justify-self: center;
+  padding: 16px 34px;
+  border: 1px solid #e6e9ef;
+  border-radius: 12px;
+  background: #fff;
+  color: #3d4757;
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .note-read-view h1{ margin: 0 0 14px; font-size: 23px; }
+.notesup-workspace .note-read-view h2{ margin: 22px 0 8px; font-size: 17px; }
+.notesup-workspace .note-read-view h3{ margin: 18px 0 6px; font-size: 15px; }
+.notesup-workspace .note-read-view p{ margin-bottom: 10px; }
+.notesup-workspace .note-read-view ul,
+.notesup-workspace .note-read-view ol{ margin: 8px 0 14px; padding-left: 23px; }
+.notesup-workspace .note-read-view li{ margin: 3px 0; }
+.notesup-workspace .note-read-view pre{ padding: 12px; overflow-x: auto; border-radius: 8px; color: #e7ecfa; background: #252c3a; font-size: 12px; line-height: 1.6; }
+.notesup-workspace .note-read-view code{ padding: 2px 4px; border-radius: 4px; color: #4b62c9; background: #edf3ff; font-size: 13px; }
+.notesup-workspace .note-read-view pre code{ padding: 0; background: transparent; color: inherit; }
+.notesup-workspace .note-read-view blockquote{ margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid #bdc9fa; color: #727e91; background: #f7f8ff; }
+.notesup-workspace .note-read-view table{ display: block; max-width: 100%; margin: 14px 0; overflow-x: auto; border-collapse: collapse; }
+.notesup-workspace .note-read-view th,
+.notesup-workspace .note-read-view td{ padding: 8px 10px; border: 1px solid #e3e8f0; text-align: left; }
+.notesup-workspace .note-read-view th{ background: #f5f7fa; }
+.notesup-workspace .note-read-view img{ max-width: 100%; border-radius: 8px; }
+.notesup-workspace .note-read-view > :first-child{ margin-top:0 !important; }
+.notesup-workspace .writing-panel > .secondary{
+  order: 1;
+  justify-self: end;
+  min-height: 38px;
+  margin: 0 0 4px;
+  padding: 0 16px;
+  border: 1px solid #dce5f2;
+  border-radius: 9px;
+  background: #fff;
+  color: #4f68ce;
+}
+.notesup-workspace .writing-panel > .secondary:hover{
+  background: #eef3ff;
+}
+@media (max-width: 650px){
+  .notesup-workspace .note-read-view { min-height: 320px; padding: 20px 16px; }
+  .notesup-workspace .note-read-view h1 { font-size: 21px; }
+}
+
+/* PRD UI refinement: predictable dashboard order, compact AI actions and
+   quiet editor metadata. Keep these rules last so they win over legacy
+   NotesUp overrides above. */
+@media (min-width: 1001px){
+  .notesup-workspace .dashboard-main-grid {
+    grid-template-areas:
+      "weekly today course"
+      "recent quiz flash";
+  }
+  .notesup-workspace .dashboard-main-grid .weekly-card { grid-area: weekly; }
+  .notesup-workspace .dashboard-main-grid .today-dashboard-card { grid-area: today; }
+  .notesup-workspace .dashboard-main-grid .course-dashboard-card { grid-area: course; }
+  .notesup-workspace .dashboard-main-grid .recent-notes-card { grid-area: recent; }
+  .notesup-workspace .dashboard-main-grid .quiz-dashboard-card { grid-area: quiz; }
+  .notesup-workspace .dashboard-main-grid .flash-dashboard-card { grid-area: flash; }
+}
+
+.notesup-workspace .generation-panel .ai-group .generation-actions{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 22px;
+}
+.notesup-workspace .generation-panel .ai-action{
+  width: 100%;
+  min-height: 76px;
+  margin: 0;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+}
+.notesup-workspace .generation-panel .ai-action strong,
+.notesup-workspace .generation-panel .ai-action small{ display: block; }
+.notesup-workspace .generation-panel .ai-group .ai-action:only-child{ grid-column: 1 / -1; }
+.notesup-workspace .generation-note-context{
+  margin: 10px 0 8px;
+  padding: 11px 14px;
+  border: 1px solid #e2eaf4;
+  border-radius: 10px;
+  background: #f7f9fc;
+  color: #40546c;
+  font-weight: 700;
+}
+.notesup-workspace .generation-switch{ margin: 0 0 20px; }
+.notesup-workspace .generation-view[hidden]{ display: none !important; }
+.notesup-workspace .generation-view .ai-group > .fine-print{ max-width: 760px; margin: 0; color: #67778b; }
+.notesup-workspace .generation-view .ai-group h4{ color: #334b66; font-size: 16px; }
+.notesup-workspace .generation-view .generation-actions{ margin-top: 14px; }
+.notesup-workspace #generations{ margin-top: 18px; }
+
+.notesup-workspace .note-meta{
+  display: block;
+  margin-top: 5px;
+  color: #8b96a5;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.notesup-workspace .writing-panel.view-mode .note-meta{ color: #788597; }
+
+.notesup-workspace .dashboard-data-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.notesup-workspace .dashboard-data-table th,
+.notesup-workspace .dashboard-data-table td{
+  padding: 11px 8px;
+  border-bottom: 1px solid #edf0f4;
+  text-align: left;
+  vertical-align: middle;
+}
+.notesup-workspace .dashboard-data-table thead th{
+  padding-top: 0;
+  color: #98a2ae;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.notesup-workspace .dashboard-data-table thead th:first-child{ width: 96px; }
+.notesup-workspace .dashboard-data-table thead th:last-child{ width: 74px; text-align: right; }
+.notesup-workspace .dashboard-data-table tbody tr:last-child th,
+.notesup-workspace .dashboard-data-table tbody tr:last-child td{ border-bottom: 0; }
+.notesup-workspace .dashboard-data-table tbody th{ color: #4f5e72; font-weight: 700; white-space: nowrap; }
+.notesup-workspace .dashboard-data-table tbody td{ color: #7b8796; }
+.notesup-workspace .dashboard-data-table tbody td:last-child{ text-align: right; }
+.notesup-workspace .dashboard-data-table .today-class-link,
+.notesup-workspace .dashboard-data-table .course-progress-name{
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  color: #4b5d7a;
+  background: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.notesup-workspace .dashboard-data-table .today-class-link:hover,
+.notesup-workspace .dashboard-data-table .course-progress-name:hover{ color: #4f68ce; background: #f4f6fb; }
+.notesup-workspace .course-progress-table progress{ width: calc(100% - 38px); height: 6px; vertical-align: middle; accent-color: #5878e8; }
+.notesup-workspace .progress-percent{ display: inline-block; width: 34px; color: #6f7d91; font-size: 11px; text-align: right; vertical-align: middle; }
+.notesup-workspace .dashboard-data-table + .empty-state{ margin-top: 8px; }
+
+@media (max-width: 650px){
+  .notesup-workspace .generation-panel .ai-group .generation-actions { grid-template-columns: 1fr; }
+  .notesup-workspace .generation-panel .ai-group .ai-action:only-child { grid-column: auto; }
+  .notesup-workspace .dashboard-data-table { table-layout: auto; }
+  .notesup-workspace .dashboard-data-table th,
+  .notesup-workspace .dashboard-data-table td { padding: 10px 5px; }
+  .notesup-workspace .dashboard-data-table th:first-child { width: 28%; }
+  .notesup-workspace .dashboard-data-table .today-class-link,
+  .notesup-workspace .dashboard-data-table .course-progress-name { padding-left: 4px; padding-right: 4px; }
+}
+
+/* AI 정리 액션을 2열 카드 그리드로 정리 (단일 버튼은 전체 폭). */
+.notesup-workspace .generation-panel .generation-actions{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 22px;
+}
+.notesup-workspace .generation-panel .ai-group:has(> .generation-actions > button:only-child) .generation-actions{
+  grid-template-columns: minmax(0, 1fr);
+}
+.notesup-workspace .generation-panel .generation-actions button.ai-action{
+  width: 100%;
+  margin: 0;
+}
+
+/* 대시보드 카드 순서를 NotesUp 흐름으로: 주간·시간대를 먼저, 이어서 과목·퀴즈, 연속학습·카드. */
+.notesup-workspace .study-dashboard .dashboard-main-grid{
+  grid-template-areas:
+    "weekly hourly"
+    "course insight"
+    "recent flash";
+}
+@media (max-width: 760px){
+  .notesup-workspace .study-dashboard .dashboard-main-grid {
+    grid-template-areas: "weekly" "hourly" "course" "insight" "recent" "flash";
+  }
+}
+
+
+/* Final mapping for the current StudySpace cards. The legacy NotesUp names
+   (hourly/insight) are not present in this DOM, so map those slots to the
+   existing today/quiz cards instead of creating implicit grid items. */
+@media (min-width: 1001px){
+  .notesup-workspace .study-dashboard .dashboard-main-grid {
+    /* The area map has three columns; keep the column track definition in
+       sync so the third card cannot fall into an implicit overlapping track. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "weekly today course"
+      "recent quiz flash";
+  }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .weekly-card { grid-area: weekly; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .today-dashboard-card { grid-area: today; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .course-dashboard-card { grid-area: course; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .recent-notes-card { grid-area: recent; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .quiz-dashboard-card { grid-area: quiz; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .flash-dashboard-card { grid-area: flash; }
+}
+@media (max-width: 1000px){
+  .notesup-workspace .study-dashboard .dashboard-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: none;
+  }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .dashboard-card { grid-area: auto; }
+}
+@media (max-width: 760px){
+  .notesup-workspace .study-dashboard .dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .dashboard-card { order: 0; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .weekly-card { order: 1; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .today-dashboard-card { order: 2; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .course-dashboard-card { order: 3; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .quiz-dashboard-card { order: 4; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .recent-notes-card { order: 5; }
+  .notesup-workspace .study-dashboard .dashboard-main-grid > .flash-dashboard-card { order: 6; }
+}
+
+/* Keep the workspace's main tool tabs and each tool's view tabs above content. */
+.notesup-workspace .workspace-tabs{
+  grid-template-columns: repeat(4, minmax(96px, 1fr));
+  gap: 5px;
+  margin: 0 0 20px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f3f7;
+}
+.notesup-workspace .workspace-tabs button{
+  min-height: 42px;
+  border-radius: 9px;
+}
+.notesup-workspace .tool-subtabs{
+  display: flex;
+  width: 100%;
+  gap: 4px;
+  margin: 0 0 20px;
+  padding: 0;
+  border-bottom: 1px solid #e4e8ef;
+  border-radius: 0;
+  background: transparent;
+}
+.notesup-workspace .tool-subtabs button{
+  min-height: 44px;
+  padding: 9px 18px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #697689;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.notesup-workspace .tool-subtabs button[aria-pressed="true"]{
+  border-bottom-color: #5871d8;
+  color: #3857c8;
+  background: transparent;
+  box-shadow: none;
+}
+.notesup-workspace .practice-panel-container{ margin-top: 22px; }
+.notesup-workspace .practice-panel-container[hidden],
+.notesup-workspace .practice-view[hidden]{ display: none !important; }
+.notesup-workspace .practice-create-grid,
+.notesup-workspace .practice-study-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.notesup-workspace .practice-create-panel{
+  min-width: 0;
+  margin: 0;
+  padding: 20px;
+}
+.notesup-workspace .practice-create-panel .attachment-heading{ align-items: center; }
+.notesup-workspace .practice-create-panel .attachment-heading h3,
+.notesup-workspace .practice-study-panel h3{ margin: 0; }
+.notesup-workspace .practice-create-panel .quiz-source-select{
+  display: grid;
+  width: 100%;
+  max-width: none;
+  gap: 6px;
+  margin: 14px 0;
+}
+.notesup-workspace .practice-create-panel .quiz-source-select select{
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+.notesup-workspace .practice-create-actions{
+  grid-template-columns: minmax(112px, .42fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+.notesup-workspace .practice-create-actions .generation-count{
+  display: grid;
+  grid-template-rows: auto 42px;
+  align-content: end;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+.notesup-workspace .practice-create-actions .generation-count select,
+.notesup-workspace .practice-create-actions > button{
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  box-sizing: border-box;
+  margin: 0;
+}
+.notesup-workspace .practice-create-actions > button{
+  justify-content: center;
+  align-self: end;
+  padding: 0 10px;
+  line-height: 1.2;
+}
+.notesup-workspace .practice-study-panel{
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e1e6ef;
+  border-radius: 13px;
+  background: #fff;
+}
+.notesup-workspace .practice-study-panel > h3{
+  margin: 0 0 14px;
+  color: #354052;
+  font-size: 16px;
+}
+.notesup-workspace #practice-message:empty{ display: none; }
+.notesup-workspace #quiz-player:not(.hidden) ~ #quiz-sets,
+.notesup-workspace #flashcard-player:not(.hidden) ~ #flashcard-decks{ display: none !important; }
+@media (max-width: 760px){
+  .notesup-workspace .practice-create-grid,
+  .notesup-workspace .practice-study-grid{ grid-template-columns: 1fr; }
+  .notesup-workspace .workspace-tabs{ grid-template-columns: repeat(4, minmax(76px, 1fr)); }
+  .notesup-workspace .tool-subtabs{ overflow-x: auto; }
+}
+
+/* Unified AI learning space: one note-scoped panel with three direct views. */
+.notesup-workspace .learning-panel{
+  margin-top: 20px;
+  padding: 22px 24px 26px;
+  border: 1px solid #e1e6ef;
+  border-radius: 16px;
+  background: #fff;
+}
+.notesup-workspace .learning-panel[hidden],
+.notesup-workspace .learning-view[hidden]{ display:none !important; }
+.notesup-workspace .learning-heading,
+.notesup-workspace .learning-view-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.notesup-workspace .learning-heading h3,
+.notesup-workspace .learning-view-heading h4{ margin:0; color:#303c4d; }
+.notesup-workspace .learning-heading h3{ font-size:20px; }
+.notesup-workspace .learning-heading .generation-note-context{ margin:5px 0 0; padding:0; border:0; background:transparent; color:#768396; font-size:13px; font-weight:500; }
+.notesup-workspace .learning-mode-badge{ flex:0 0 auto; }
+.notesup-workspace .learning-source-summary{ margin:13px 0 0; color:#7c8797; }
+.notesup-workspace .learning-tabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;
+  margin:18px 0 22px;
+  border-bottom:1px solid #e5e9f0;
+}
+.notesup-workspace .learning-tabs button{ min-width:0; min-height:48px; white-space:nowrap; }
+.notesup-workspace .learning-view-heading{ margin:0 0 14px; }
+.notesup-workspace .learning-view-heading h4{ font-size:17px; }
+.notesup-workspace .learning-view-heading p{ margin:5px 0 0; color:#8792a1; font-size:13px; }
+.notesup-workspace .learning-view-heading .quiet-button{ flex:0 0 auto; }
+.notesup-workspace .quiz-create-controls{ display:flex; align-items:center; gap:9px; flex:0 0 auto; }
+.notesup-workspace .quiz-create-controls label{ margin:0; color:#687487; font-size:13px; white-space:nowrap; }
+.notesup-workspace .quiz-create-controls select,
+.notesup-workspace .quiz-create-controls button{ box-sizing:border-box; height:44px; min-height:44px; margin:0; }
+.notesup-workspace .quiz-create-controls select{ min-width:102px; padding:0 12px; border:1px solid #e1e5ec; border-radius:12px; background:#fff; color:#424c5d; font-size:14px; }
+.notesup-workspace .learning-history{ margin-top:22px; padding-top:14px; border-top:1px solid #edf0f4; }
+.notesup-workspace .learning-history > summary{ color:#647185; cursor:pointer; font-size:13px; font-weight:700; }
+.notesup-workspace #generation-message:empty,
+.notesup-workspace #quiz-message:empty,
+.notesup-workspace #flashcard-message:empty,
+.notesup-workspace #learning-message:empty{ display:none; }
+.notesup-workspace #generation-message,
+.notesup-workspace #quiz-message,
+.notesup-workspace #flashcard-message{ margin:10px 0; }
+
+.notesup-workspace .infographic-viewer{ width:100%; max-width:1120px; margin:0 auto; }
+.notesup-workspace .infographic-page-controls{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto 42px;
+  align-items:center;
+  gap:14px;
+  margin:4px 0 16px;
+}
+.notesup-workspace .infographic-arrow,
+.notesup-workspace .quiz-page-arrow{
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  min-height:42px;
+  padding:0;
+  border:1px solid #e3e6ec;
+  border-radius:50%;
+  color:#536174;
+  background:#fff;
+  font-size:27px;
+  line-height:1;
+}
+.notesup-workspace .infographic-arrow:disabled,
+.notesup-workspace .quiz-page-arrow:disabled{ color:#c3c9d2; cursor:default; opacity:.65; }
+.notesup-workspace .infographic-progress-track,
+.notesup-workspace .quiz-progress-track{ height:8px; overflow:hidden; border-radius:99px; background:#eef0f4; }
+.notesup-workspace .infographic-progress-track span,
+.notesup-workspace .quiz-progress-track span{ display:block; height:100%; border-radius:inherit; background:#8794f1; transition:width .18s ease; }
+.notesup-workspace .infographic-page-number{ min-width:52px; color:#798495; font-size:13px; text-align:center; }
+.notesup-workspace .infographic-page{
+  width:100%;
+  min-height:640px;
+  max-height:min(74vh,900px);
+  box-sizing:border-box;
+  overflow:auto;
+  padding:clamp(24px,4vw,54px);
+  border:1px solid #d8eeeb;
+  border-radius:22px;
+  background:linear-gradient(145deg,#eaf9f8 0%,#f6fbf4 100%);
+  color:#26384a;
+  box-shadow:0 12px 30px rgba(45,83,93,.08);
+  font-size:15px;
+  line-height:1.75;
+}
+.notesup-workspace .infographic-page > :first-child{ margin-top:0; }
+.notesup-workspace .infographic-page h1{ margin:0 0 28px; color:#1f3446; font-size:clamp(23px,3vw,36px); line-height:1.3; text-align:center; }
+.notesup-workspace .infographic-page h2{ margin:25px 0 12px; padding-bottom:8px; border-bottom:1px solid rgba(62,124,128,.2); color:#245b65; font-size:clamp(17px,2vw,23px); }
+.notesup-workspace .infographic-page h3{ margin:18px 0 8px; color:#34596b; font-size:16px; }
+.notesup-workspace .infographic-page ul,
+.notesup-workspace .infographic-page ol{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:10px; margin:12px 0 18px; padding:0; list-style:none; }
+.notesup-workspace .infographic-page li{ margin:0; padding:14px 16px; border:1px solid rgba(92,157,157,.2); border-radius:12px; background:rgba(255,255,255,.76); }
+.notesup-workspace .infographic-page blockquote{ margin:14px 0; padding:12px 16px; border-left:4px solid #65b9b5; border-radius:0 10px 10px 0; background:rgba(255,255,255,.68); }
+.notesup-workspace .infographic-source-note{ margin:10px 0 0; color:#8994a2; text-align:right; }
+.notesup-workspace .infographic-loading{ min-height:280px; display:grid; place-content:center; text-align:center; }
+
+.notesup-workspace .quiz-player:not(.hidden){
+  gap:22px;
+  margin:16px 0 20px;
+  padding:20px clamp(12px,2vw,28px) 22px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+}
+.notesup-workspace .quiz-progress-head{ display:grid; grid-template-columns:42px minmax(0,1fr) auto 42px; align-items:center; gap:14px; }
+.notesup-workspace .quiz-progress-track span{ background:#978cf2; }
+.notesup-workspace .quiz-progress-percent{ min-width:44px; color:#727d8c; font-size:13px; text-align:center; }
+.notesup-workspace .quiz-question{ padding:0; border:0; background:transparent; }
+.notesup-workspace .quiz-question-head{ align-items:center; margin-bottom:8px; }
+.notesup-workspace .quiz-question-order{ color:#545f70; font-size:15px; letter-spacing:0; }
+.notesup-workspace .quiz-question-type{ padding:4px 10px; border:1px solid #e4e2ed; border-radius:99px; color:#667084; background:#f8f7fb; font-size:12px; }
+.notesup-workspace .quiz-prompt{ max-width:900px; margin:4px 0 24px; color:#263344; font-size:clamp(18px,2vw,23px); line-height:1.6; }
+.notesup-workspace .quiz-option{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) 20px;
+  align-items:center;
+  gap:12px;
+  min-height:64px;
+  margin:10px 0;
+  padding:12px 16px;
+  border:1px solid #e4e2de;
+  border-radius:16px;
+  background:#fff;
+  color:#353944;
+  font-size:16px;
+  line-height:1.55;
+}
+.notesup-workspace .quiz-option:has(input:checked){ border-color:#aca5fa; background:#f7f6ff; }
+.notesup-workspace .quiz-option.is-correct{ border-color:#9dd4bf; background:#f1faf5; }
+.notesup-workspace .quiz-option.is-wrong{ border-color:#edb5b5; background:#fff5f4; }
+.notesup-workspace .quiz-option-marker{ display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:#f3f3f5; color:#657081; font-size:12px; font-weight:800; }
+.notesup-workspace .quiz-option input{ width:18px; height:18px; margin:0; accent-color:#8e86ed; }
+.notesup-workspace .quiz-hint{ width:fit-content; margin:18px 0 0; color:#716b99; }
+.notesup-workspace .quiz-hint summary{ cursor:pointer; font-size:14px; font-weight:700; }
+.notesup-workspace .quiz-hint p{ max-width:720px; margin:8px 0; padding:11px 14px; border-radius:10px; background:#f7f6ff; color:#5e5b70; }
+.notesup-workspace .quiz-page-actions{ display:flex; justify-content:flex-end; gap:10px; align-items:center; }
+.notesup-workspace .quiz-page-actions button{ min-width:104px; min-height:48px; border-radius:14px; font-size:15px; }
+.notesup-workspace .quiz-page-actions button:first-child:not(:last-child){ margin-right:auto; }
+.notesup-workspace .quiz-completion-score{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-radius:12px; background:#f4f4fb; color:#56547d; }
+.notesup-workspace .quiz-explanation{ margin:16px 0 0; padding:14px 16px; border-radius:12px; font-size:14px; }
+.notesup-workspace .learning-history .quiz-set-list{ margin-top:12px; }
+
+.notesup-workspace .flashcard-player:not(.hidden){ max-width:1160px; margin:14px auto 20px; }
+.notesup-workspace .flashcard-study-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 8px 16px; color:#7d8794; font-size:14px; }
+.notesup-workspace .flashcard-study-card{ min-height:min(58vh,620px); padding:clamp(24px,5vw,64px); border:0; border-radius:24px; background:#ffe8ce; color:#312a26; box-shadow:0 10px 26px rgba(100,77,49,.08); font-size:clamp(20px,3vw,34px); }
+.notesup-workspace .flashcard-study-card.answer{ background:#e6f5ed; color:#264738; }
+.notesup-workspace .flashcard-meta{ min-height:26px; margin:12px 8px; color:#788291; font-size:13px; }
+.notesup-workspace .flashcard-page-actions{ display:flex; justify-content:space-between; gap:12px; margin:12px 0; }
+.notesup-workspace .flashcard-page-actions button{ min-height:46px; border:1px solid #e4e2de; border-radius:14px; background:#fff; }
+.notesup-workspace .flashcard-review-actions{ margin-top:16px; }
+.notesup-workspace .flashcard-complete{ display:grid; justify-items:center; gap:18px; min-height:360px; align-content:center; color:#536174; }
+.notesup-workspace .flashcard-complete h4{ margin:0; font-size:22px; }
+@media(max-width:700px){
+  .notesup-workspace .learning-panel{ padding:16px 12px 20px; }
+  .notesup-workspace .learning-heading{ align-items:flex-start; }
+  .notesup-workspace .learning-heading h3{ font-size:18px; }
+  .notesup-workspace .learning-mode-badge{ font-size:10px; }
+  .notesup-workspace .learning-tabs button{ padding:8px 4px; font-size:13px; }
+  .notesup-workspace .learning-view-heading{ align-items:flex-start; }
+  .notesup-workspace .learning-view-heading p{ max-width:35vw; font-size:11px; }
+  .notesup-workspace .quiz-create-controls{ flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+  .notesup-workspace .quiz-create-controls label{ width:100%; text-align:right; }
+  .notesup-workspace .quiz-create-controls select,
+  .notesup-workspace .quiz-create-controls button{ height:40px; min-height:40px; }
+  .notesup-workspace .infographic-page-controls{ grid-template-columns:36px minmax(0,1fr) auto 36px; gap:7px; }
+  .notesup-workspace .infographic-arrow,.notesup-workspace .quiz-page-arrow{ width:36px; height:36px; min-height:36px; }
+  .notesup-workspace .infographic-page{ min-height:520px; max-height:72vh; padding:22px 16px; border-radius:16px; font-size:14px; }
+  .notesup-workspace .quiz-player:not(.hidden){ padding:12px 0; }
+  .notesup-workspace .quiz-progress-head{ grid-template-columns:36px minmax(0,1fr) auto 36px; gap:7px; }
+  .notesup-workspace .quiz-option{ min-height:56px; padding:10px; font-size:14px; }
+  .notesup-workspace .flashcard-study-card{ min-height:48vh; border-radius:18px; }
+}
