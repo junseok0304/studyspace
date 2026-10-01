@@ -35,7 +35,7 @@ export function mountPomodoro(userId) {
   const focusLeft = Number.isFinite(state.focusLeft) ? state.focusLeft : (state.phase==='focus' ? remainingAt(state) : FOCUS);
   const breakLeft = Number.isFinite(state.breakLeft) ? state.breakLeft : (state.phase==='break' ? remainingAt(state) : BREAK);
   state = {...state, focusMs, breakMs, focusLeft, breakLeft};
-  const startMinimized = state.minimized !== false;
+  const startMinimized = state.minimized === true;
 
   const root=document.createElement('aside');root.id='pomodoro';root.className='pomodoro'+(startMinimized?' minimized':'');root.setAttribute('aria-label','집중 타이머');
 
@@ -123,29 +123,12 @@ export function mountPomodoro(userId) {
   };
   minus.onclick=()=>adjust(-STEP);
   plus.onclick=()=>adjust(STEP);
-  const updateRingAction=()=>ringWrap.setAttribute('aria-label',state.minimized||root.classList.contains('minimized')||root.classList.contains('dashboard-context-compact')?'타이머 펼치기':'타이머 접기');
+  const updateRingAction=()=>ringWrap.setAttribute('aria-label',root.classList.contains('minimized')?'타이머 펼치기':'타이머 접기');
   const togglePanel=()=>{
-    if(root.classList.contains('dashboard-context-compact')){
-      root.classList.remove('dashboard-context-compact','minimized');
-      state.minimized=false;
-    }else{
-      const minimized=root.classList.toggle('minimized');
-      state.minimized=minimized;
-      if(minimized&&dashboardContext.some(panel=>!panel.classList.contains('hidden')))root.classList.add('dashboard-context-compact');
-    }
+    const minimized=root.classList.toggle('minimized');
+    state.minimized=minimized;
     updateRingAction();save();
   };
-  const dashboardContext=[document.getElementById('dashboard'),document.getElementById('tips-panel')].filter(Boolean);
-  const refreshDashboardContext=()=>{
-    const compact=dashboardContext.some(panel=>!panel.classList.contains('hidden'));
-    root.classList.toggle('dashboard-context-compact',compact);
-    updateRingAction();
-  };
-  if(window.MutationObserver&&dashboardContext.length){
-    const contextObserver=new window.MutationObserver(refreshDashboardContext);
-    dashboardContext.forEach(panel=>contextObserver.observe(panel,{attributes:true,attributeFilter:['class']}));
-  }
-  refreshDashboardContext();
   ringWrap.onclick=()=>{if(suppressClick){suppressClick=false;return;}togglePanel();};
   minimize.onclick=togglePanel;  ringWrap.addEventListener('wheel',event=>{event.preventDefault();adjust(event.deltaY<0?STEP:-STEP);},{passive:false});  let dragState=null,suppressClick=false;
   ringWrap.addEventListener('pointerdown',event=>{
