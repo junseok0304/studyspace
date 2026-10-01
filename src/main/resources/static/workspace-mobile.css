@@ -142,6 +142,39 @@
   .study.notesup-workspace .learning-heading{ flex-wrap:wrap; gap:10px; }
   .study.notesup-workspace .learning-view-heading > *,
   .study.notesup-workspace .quiz-create-controls{ min-width:0; max-width:100%; }
+  .pomodoro{ display:none!important; }
+  body:has(.pomodoro) .study.notesup-workspace,
+  body:has(.pomodoro:not(.minimized):not(.dashboard-context-compact)) .study.notesup-workspace{ padding-bottom:24px; }
+  .study.notesup-workspace .learning-view-heading{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    align-items:stretch;
+    width:100%;
+    gap:10px;
+  }
+  .study.notesup-workspace .learning-view-heading > div:first-child{ width:100%; max-width:none; min-width:0; }
+  .study.notesup-workspace .learning-view-heading p{ max-width:none; font-size:12px; }
+  .study.notesup-workspace .quiz-create-controls{
+    display:grid;
+    grid-template-columns:max-content minmax(0,.72fr) minmax(96px,1.28fr);
+    align-items:end;
+    gap:8px;
+    width:100%;
+    max-width:none;
+    flex:initial;
+  }
+  .study.notesup-workspace .quiz-create-controls label{ width:auto; text-align:left; white-space:nowrap; }
+  .study.notesup-workspace .quiz-create-controls select,
+  .study.notesup-workspace .quiz-create-controls button{
+    width:100%;
+    min-width:0;
+    padding-right:8px;
+    padding-left:8px;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  .study.notesup-workspace .quiz-create-controls #quiz-count,
+  .study.notesup-workspace .quiz-create-controls #flashcard-count{ min-width:0; }
   .study.notesup-workspace .attachment-dropzone{ padding:16px 10px; }
   .study.notesup-workspace #note-body{ min-height:52vh; }
   .study.notesup-workspace input,
