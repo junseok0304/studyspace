@@ -253,7 +253,9 @@ export async function start(request, userId) {
     }
   }
 
-  generationFeature = mountGeneration({request, byId, getEditor: () => editor, getAttachmentIds, render: renderGenerations, matchesAiMode});
+  generationFeature = mountGeneration({request, byId, getEditor: () => editor, getAttachmentIds,
+    getAttachmentSourceLength: () => attachmentsFeature?.selectedAttachmentLength() || 0,
+    render: renderGenerations, matchesAiMode});
   attachmentsFeature = mountAttachments({request, byId, getEditor: () => editor, getGenerationFeature: () => generationFeature, emptyState, mockEnabled: aiConfig.mockEnabled});
   learningFeature = mountLearningWorkspace({document, byId, getEditor: () => editor, generation: generationFeature, quiz: quizFeature, flashcards: flashcardsFeature, beforeOpen: noteId => attachmentsFeature.loadAttachments(noteId)});
   document.addEventListener('studyspace:tool-selected', event => {

@@ -1,5 +1,5 @@
 /** Owns persisted AI artifacts, polling, and note-version checks. */
-export function mountGeneration({request, byId, getEditor, getAttachmentIds, render, matchesAiMode = () => true}) {
+export function mountGeneration({request, byId, getEditor, getAttachmentIds, getAttachmentSourceLength = () => 0, render, matchesAiMode = () => true}) {
   const el = byId;
   let version = 0;
   let timer = null;
@@ -16,9 +16,10 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     return Number(row?.attachmentCount || 0) === current.length;
   };
   const summaryNeedsCoverageRefresh = (content, editor) => {
-    const sourceLength = String(editor?.body || '').replace(/<!--[\s\S]*?-->/g, '').replace(/^---[\s\S]*?---\s*/m, '').trim().length;
+    const noteLength = String(editor?.body || '').replace(/<!--[\s\S]*?-->/g, '').replace(/^---[\s\S]*?---\s*/m, '').trim().length;
+    const sourceLength = noteLength + Math.max(0, Number(getAttachmentSourceLength()) || 0);
     const summaryLength = String(content || '').replace(/[#>*_`-]/g, '').trim().length;
-    return sourceLength >= 1800 && summaryLength < Math.max(700, sourceLength * 0.24);
+    return sourceLength >= 1800 && summaryLength < Math.max(700, Math.min(5000, sourceLength * 0.18));
   };
   const needsSummaryRefresh = content => {
     const text = String(content || '');

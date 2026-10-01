@@ -102,6 +102,7 @@ public class GenerationWorker {
     }
 
     private String mockContent(Input input,List<Source> sources) {
+        if("SUMMARY".equals(input.kind())) return mockSummary(input,sources);
         var material=new StringBuilder(input.body());
         for(Source attachment:sources) material.append("\n").append(attachment.text());
         List<String> passages=MockStudyContent.passagesExcluding(input.title(),material.toString());
@@ -133,12 +134,6 @@ public class GenerationWorker {
 
                 %s
                 """.formatted(input.title(),excerpt,sourcePreview);
-        if ("SUMMARY".equals(input.kind())) {
-            List<String> summaryPassages=passages.stream().filter(value -> !value.equals(input.title())).limit(6).toList();
-            if(summaryPassages.isEmpty()) return "## 요약\n\n현재 노트에는 요약할 내용이 충분하지 않습니다. 노트에 수업 내용을 적은 뒤 다시 생성해 주세요.";
-            String summary=String.join("\n\n",summaryPassages);
-            return "## 요약\n\n"+summary;
-        }
         return """
                 > 개발용 미리보기입니다. Gemini API를 호출하지 않았습니다.
 
@@ -149,6 +144,30 @@ public class GenerationWorker {
                 생성 근거: `%s` 버전 %d
                 %s
                 """.formatted(input.title(),input.version(),sourcePreview);
+    }
+
+    private String mockSummary(Input input,List<Source> sources) {
+        List<String> note=representative(MockStudyContent.passagesExcluding(input.title(),input.body()),10);
+        var attachments=new java.util.LinkedHashSet<String>();
+        for(Source source:sources) attachments.addAll(representative(MockStudyContent.passages(source.text()),4));
+        if(note.isEmpty()&&attachments.isEmpty()) return "## 요약\n\n현재 노트에는 요약할 내용이 충분하지 않습니다. 노트에 수업 내용을 적은 뒤 다시 생성해 주세요.";
+        var summary=new StringBuilder("## 요약\n");
+        if(!note.isEmpty()) {
+            summary.append("\n### 수업노트\n\n");
+            summary.append(String.join("\n\n",note));
+        }
+        if(!attachments.isEmpty()) {
+            summary.append("\n\n### 첨부자료\n\n");
+            summary.append(String.join("\n\n",attachments.stream().limit(12).toList()));
+        }
+        return summary.toString();
+    }
+
+    private List<String> representative(List<String> passages,int limit) {
+        if(passages.size()<=limit) return passages;
+        var result=new java.util.ArrayList<String>(limit);
+        for(int index=0;index<limit;index++) result.add(passages.get(index*(passages.size()-1)/(limit-1)));
+        return result;
     }
 
     private String mockInfographic(String title,List<String> passages) {
@@ -165,7 +184,7 @@ public class GenerationWorker {
             }
             while(nodes.size()<2) nodes.add(Map.of("label","핵심 개념","detail",MockStudyContent.clip(passages.isEmpty()?title:passages.getFirst(),180),"icon","idea"));
             pages.add(Map.of("title",page==0?title:passages.get(from).substring(0,Math.min(38,passages.get(from).length())),
-                    "subtitle","노트의 핵심 주제를 간결하게 정리했습니다.","relation","서로 다른 핵심 주제를 따로 살펴봅니다.","layout","group","nodes",nodes));
+                    "subtitle","","relation","","layout","group","nodes",nodes));
         }
         try { return json.writeValueAsString(Map.of("pages",pages)); }
         catch(Exception failure) { throw new IllegalStateException("인포그래픽 미리보기를 만들지 못했습니다.",failure); }

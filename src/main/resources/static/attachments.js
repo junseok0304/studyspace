@@ -22,6 +22,10 @@ export function mountAttachments({request, byId, getEditor, getGenerationFeature
     return availableSources.map(row => row.id);
   }
 
+  function selectedAttachmentLength() {
+    return availableSources.reduce((total, row) => total + Number(row.extractedLength || 0), 0);
+  }
+
   function updateSourceSummary() {
     const selected = availableSources;
     const names = selected.map(row => row.originalName);
@@ -218,5 +222,5 @@ export function mountAttachments({request, byId, getEditor, getGenerationFeature
     }
   };
 
-  return {loadAttachments, selectedAttachmentIds, updateSourceSummary};
+  return {loadAttachments, selectedAttachmentIds, selectedAttachmentLength, updateSourceSummary};
 }

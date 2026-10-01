@@ -153,6 +153,7 @@ test('feature controllers keep their request, state, and rendering paths connect
     await attachments.loadAttachments(editor.id);
     assert.equal(byId('upload-attachments').disabled, true);
     assert.deepEqual(attachments.selectedAttachmentIds(), ['attachment-1']);
+    assert.equal(attachments.selectedAttachmentLength(), 500);
     const legacyAnalyze=[...byId('attachments').querySelectorAll('button')].find(button=>button.textContent==='분석 시작');
     assert.ok(legacyAnalyze);
     await legacyAnalyze.onclick();
@@ -180,9 +181,11 @@ test('feature controllers keep their request, state, and rendering paths connect
     assert.equal(calls.filter(call => call.path === '/api/notes/note-1/generations' && call.options.method === 'POST').length, summaryRequestsBeforeUpload);
     assert.match(byId('attachments').textContent, /HTTP 요청은 클라이언트가 서버에 정보를 전달/);
     assert.deepEqual(attachments.selectedAttachmentIds(), ['attachment-1', 'ux-upload-1']);
+    assert.equal(attachments.selectedAttachmentLength(), 592);
     editor.id = '';
     await attachments.loadAttachments(editor.id);
     assert.deepEqual(attachments.selectedAttachmentIds(), []);
+    assert.equal(attachments.selectedAttachmentLength(), 0);
   } finally {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
@@ -253,6 +256,25 @@ test('a saved summary stays readable when automatic coverage refresh hits the da
   assert.equal(calls.filter(call=>call.options.method==='POST').length,1);
   assert.equal(await generation.openSummary(),true);
   assert.equal(calls.filter(call=>call.options.method==='POST').length,1);
+  dom.window.close();
+});
+
+test('short saved summaries are refreshed when analyzed attachments contain substantial content', async () => {
+  const dom=new JSDOM(markup,{url:'http://localhost:8091/'});
+  const byId=id=>dom.window.document.getElementById(id);
+  const calls=[];
+  const editor={id:'note-1',version:1,title:'강의노트',body:'짧은 수업 메모입니다.'};
+  const request=async(path,options={})=>{
+    calls.push({path,options});
+    if(options.method==='POST') return {id:'coverage-refresh'};
+    return [{id:'summary-existing',kind:'SUMMARY',status:'COMPLETED',sourceNoteVersion:1,sourceAttachmentIds:['file-1'],content:'핵심 내용만 간단히 정리했습니다.'}];
+  };
+  const generation=mountGeneration({request,byId,getEditor:()=>editor,getAttachmentIds:()=>['file-1'],getAttachmentSourceLength:()=>8000,render:()=>{}});
+  await generation.openSummary();
+  const refresh=calls.find(call=>call.options.method==='POST');
+  assert.ok(refresh);
+  assert.equal(JSON.parse(refresh.options.body).regenerateFromJobId,'summary-existing');
+  assert.deepEqual(JSON.parse(refresh.options.body).attachmentIds,['file-1']);
   dom.window.close();
 });
 

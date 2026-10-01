@@ -24,6 +24,24 @@ class GenerationTests {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate db;
 
+    @Test void mockSummarySamplesTheWholeNoteAndEveryAttachedSource() throws Exception {
+        db.update("insert into users(email,password_hash,nickname) values('summary-coverage@example.com','test','요약 미리보기')");
+        long ownerId=db.queryForObject("select id from users where email='summary-coverage@example.com'",Long.class);
+        db.update("insert into courses(id,user_id,semester,name) values('summary-coverage-course',?,'2026-2','수업')",ownerId);
+        String body=java.util.stream.IntStream.rangeClosed(1,16).mapToObj(index->"학습 주제 "+index+"의 중요한 내용입니다.").collect(java.util.stream.Collectors.joining("\n"));
+        db.update("insert into notes(id,course_id,user_id,title,body,version) values('summary-coverage-note','summary-coverage-course',?,'전체 범위',?,1)",ownerId,body);
+        db.update("insert into attachments(id,note_id,user_id,original_name,storage_key,media_type,extension,size_bytes,sha256,analysis_status,extracted_text,analyzed_at) values('summary-coverage-file','summary-coverage-note',?,'보충자료.pdf','test/coverage.pdf','application/pdf','pdf',100,'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','TEXT_READY','첨부자료의 마지막 핵심 내용입니다.',current_timestamp)",ownerId);
+        var owner=user(Long.toString(ownerId));
+        mvc.perform(post("/api/notes/summary-coverage-note/generations").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kind\":\"SUMMARY\",\"requestId\":\"ed777dd9-aa0b-4b04-951a-b3c386e2cf08\",\"attachmentIds\":[\"summary-coverage-file\"]}"))
+                .andExpect(status().isAccepted());
+        for(int i=0;i<100 && !"COMPLETED".equals(db.queryForObject("select status from generation_jobs where user_id=?",String.class,ownerId));i++) Thread.sleep(10);
+        mvc.perform(get("/api/notes/summary-coverage-note/generations").with(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("학습 주제 16")))
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("첨부자료의 마지막 핵심")));
+    }
+
     @Test void mockVisualizationContainsSourceNoteConcepts() throws Exception {
         db.update("insert into users(email,password_hash,nickname) values('map-preview@example.com','test','지도 미리보기')");
         long ownerId=db.queryForObject("select id from users where email='map-preview@example.com'",Long.class);
