@@ -226,6 +226,21 @@ test('infographic keeps unrelated concepts parallel and selects relevant icons',
   dom.window.close();
 });
 
+test('infographic omits generic captions from older grouped results', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const container = dom.window.document.getElementById('stage');
+  const content = JSON.stringify({pages:[{title:'실습 환경',subtitle:'노트의 핵심 주제를 간결하게 정리했습니다.',relation:'서로 다른 핵심 주제를 따로 살펴봅니다.',layout:'group',nodes:[
+    {label:'Python',detail:'코드를 실행하려면 Python을 설치합니다.',icon:'gear'},
+    {label:'JavaScript',detail:'Node.js를 설치해 코드를 실행합니다.',icon:'gear'}
+  ]}]});
+  renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=dom.window.document.createElement('div'); node.textContent=value; return node;
+  }});
+  assert.equal(container.querySelector('.infographic-visual .relation'),null);
+  assert.doesNotMatch(container.querySelector('.infographic-semantic-content').textContent,/서로 다른 핵심 주제|간결하게 정리/);
+  dom.window.close();
+});
+
 test('infographic titles keep parenthetical English terms together when wrapping', () => {
   const dom=new JSDOM('<!doctype html><div id="stage"></div>');
   const document=dom.window.document;

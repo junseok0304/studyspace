@@ -193,7 +193,7 @@ function markdownPage(markdown, fallbackTitle, index) {
   const distinctNodes = nodes.filter(node => cleanText(node.detail) !== cleanText(node.label));
   return {
     title: pageTitle, subtitle: cleanCaption(prose[0] ? cleanText(prose[0]).slice(0, 120) : ''),
-    relation: layout === 'compare' ? '두 관점을 나란히 살펴봅니다' : layout === 'cycle' ? '각 요소가 서로 이어집니다' : layout === 'hub' ? '중심 개념과 주요 요소' : layout==='group'?'서로 다른 핵심 주제를 따로 살펴봅니다':'', layout,
+    relation: layout === 'compare' ? '두 관점을 나란히 살펴봅니다' : layout === 'cycle' ? '각 요소가 서로 이어집니다' : layout === 'hub' ? '중심 개념과 주요 요소' : '', layout,
     nodes: distinctNodes.length >= 2 ? distinctNodes : nodes
   };
 }
@@ -344,7 +344,7 @@ function cleanInfographicTitle(value) {
 function cleanCaption(value) {
   const text = cleanText(value);
   const key = text.normalize('NFKC').replace(/[\s.!。]/g, '');
-  if (['핵심개념사이의연결','핵심개념과관계','핵심개념과관계를그림으로정리했습니다','핵심내용을그림으로정리했습니다','핵심개념을연결합니다'].includes(key)) return '';
+  if (['핵심개념사이의연결','핵심개념과관계','핵심개념과관계를그림으로정리했습니다','핵심내용을그림으로정리했습니다','핵심개념을연결합니다','서로다른핵심주제를따로살펴봅니다','노트의핵심주제를간결하게정리했습니다'].includes(key)) return '';
   return text;
 }
 function escapeRegex(value) { return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
