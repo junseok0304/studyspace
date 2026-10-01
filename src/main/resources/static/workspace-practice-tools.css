@@ -572,7 +572,7 @@
 
 .notesup-workspace .flashcard-player:not(.hidden){ max-width:1160px; margin:14px auto 20px; }
 .notesup-workspace .flashcard-study-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 8px 16px; color:#7d8794; font-size:14px; }
-.notesup-workspace .flashcard-study-card{ min-height:min(58vh,620px); padding:clamp(22px,4vw,52px); border:0; border-radius:24px; background:#ffe8ce; color:#312a26; box-shadow:0 10px 26px rgba(100,77,49,.08); font-size:clamp(18px,2.2vw,27px); line-height:1.6; word-break:keep-all; overflow-wrap:anywhere; text-wrap:pretty; }
+.notesup-workspace .flashcard-study-card{ min-height:min(58vh,620px); padding:clamp(22px,4vw,52px); border:0; border-radius:24px; background:#ffe8ce; color:#312a26; box-shadow:0 10px 26px rgba(100,77,49,.08); font-size:clamp(17px,1.9vw,24px); line-height:1.6; word-break:keep-all; overflow-wrap:anywhere; text-wrap:balance; }
 .notesup-workspace .flashcard-study-card.answer{ background:#e6f5ed; color:#264738; }
 .notesup-workspace .flashcard-meta{ min-height:26px; margin:12px 8px; color:#788291; font-size:13px; }
 .notesup-workspace .flashcard-page-actions{ display:flex; justify-content:space-between; gap:12px; margin:12px 0; }
