@@ -12,6 +12,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
   };
   const generatingNotes = new Set();
   const activeQuestionByAttempt = new Map();
+  const answeringQuestions = new Set();
 
   function renderAttempt(attempt, requestedIndex = null) {
     const noteId = getEditor().id;
@@ -65,13 +66,19 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
       const radio = document.createElement('input'); radio.type = 'radio'; radio.name = `question-${question.id}`; radio.value = optionIndex;
       radio.checked = question.selectedIndex === optionIndex; radio.disabled = complete || answered;
       radio.onchange = async () => {
+        const answerKey = `${attempt.id}:${question.id}`;
+        if (answeringQuestions.has(answerKey)) return;
+        answeringQuestions.add(answerKey);
+        player.querySelectorAll('button, input').forEach(control => { control.disabled = true; });
         try {
           const updated = await request(`/api/quiz-attempts/${attempt.id}/answers/${question.id}`, {method: 'PUT', body: JSON.stringify({selectedIndex: optionIndex})});
           if (getEditor().id !== noteId) return;
           // The rendered answer/explanation is the feedback; avoid leaving a stale
           // transient status message around as the learner moves between questions.
           el('quiz-message').textContent = ''; renderAttempt(updated, index);
-        } catch (error) { el('quiz-message').textContent = error.message; }
+        } catch (error) {
+          if (getEditor().id === noteId) { el('quiz-message').textContent = error.message; renderAttempt(attempt, index); }
+        } finally { answeringQuestions.delete(answerKey); }
       };
       label.append(marker, text, radio); block.append(label);
     });
@@ -96,6 +103,12 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
       } else {
         const submit = document.createElement('button'); submit.type = 'button'; submit.className = 'primary'; submit.textContent = '퀴즈 마치기';
         submit.onclick = async () => {
+          const firstUnanswered = questions.findIndex(item => item.selectedIndex === null || item.selectedIndex === undefined);
+          if (firstUnanswered >= 0) {
+            renderAttempt(attempt, firstUnanswered);
+            el('quiz-message').textContent = `풀지 않은 문제가 ${questions.length - answered}개 있습니다. 답을 고른 뒤 마쳐 주세요.`;
+            return;
+          }
           submit.disabled = true;
           try { const result = await request(`/api/quiz-attempts/${attempt.id}/submit`, {method: 'POST'}); if (getEditor().id !== noteId) return; el('quiz-message').textContent = ''; renderAttempt(result, index); await Promise.all([loadQuizSets(getCourse()?.id), loadDashboard()]); }
           catch (error) { el('quiz-message').textContent = error.message; submit.disabled = false; }
