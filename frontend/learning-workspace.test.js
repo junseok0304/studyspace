@@ -109,7 +109,7 @@ test('infographic JSON is rendered as a visual diagram with connected concept ca
     {label:'기밀성',detail:'허가된 사람만 정보에 접근할 수 있습니다.',icon:'lock'},
     {label:'무결성',detail:'정보가 정확하고 온전하게 유지됩니다.',icon:'check'}
   ]}]});
-  renderInfographicPages(document,container,{title:'정보보호개론',content,renderMarkdown:value=>{const node=document.createElement('div');node.textContent=value;return node;}});
+  renderInfographicPages(document,container,{title:'정보보호개론',content,renderMarkdown:value=>renderMarkdown(value,document.defaultView)});
   const svg=container.querySelector('.infographic-visual');
   assert.ok(svg);
   const decoration=svg.querySelector('.infographic-background-decoration');
@@ -118,7 +118,7 @@ test('infographic JSON is rendered as a visual diagram with connected concept ca
   assert.equal(svg.querySelectorAll('.infographic-node').length,3);
   assert.equal(svg.querySelectorAll('path[marker-end]').length,2);
   assert.match(svg.textContent,/사실에서 정보까지/);
-  assert.match(container.querySelector('.infographic-semantic-content').textContent,/객관적 사실 → 기호로 표현/);
+  assert.equal(container.querySelector('.infographic-semantic-content blockquote')?.textContent.trim(),'객관적 사실 → 기호로 표현 → 해석된 정보');
   assert.match(container.querySelector('.infographic-semantic-content').textContent,/데이터를 가공하고 해석/);
   assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 2');
   container.querySelector('.infographic-page-controls button:last-child').click();
