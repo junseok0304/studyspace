@@ -123,7 +123,7 @@ export function mountDashboard({request, byId, getCourse, selectCourse, button, 
       }));
       if (!data.recent.length) el('recent-notes').textContent = '첫 노트를 작성하면 여기에 표시됩니다.';
       const todayTarget = el('today-classes');
-      if (!data.todayClasses.length) todayTarget.replaceChildren(emptyState('오늘은 등록된 수업이 없어요.', '마이페이지에서 시간표를 연동해 보세요.'));
+      if (!data.todayClasses.length) todayTarget.replaceChildren(emptyState('오늘은 등록된 수업이 없어요.'));
       else {
         const table = document.createElement('table'); table.className = 'dashboard-data-table';
         const caption = document.createElement('caption'); caption.className = 'sr-only'; caption.textContent = '오늘 수업 일정';
