@@ -250,14 +250,16 @@ function drawCycle(document, svg, page, arrowId, verticalOffset = 0) {
 }
 
 function drawHub(document, svg, page, arrowId, verticalOffset = 0) {
-  const nodes = page.nodes, centerX = 560, centerY = 405 + verticalOffset;
-  const cardW = nodes.length === 2 ? 350 : nodes.length === 3 ? 310 : 330;
+  const nodes = page.nodes, centerX = 560;
+  const threeNodeHub = nodes.length === 3;
+  const centerY = (threeNodeHub ? 365 : 405) + verticalOffset;
+  const cardW = nodes.length === 2 ? 350 : threeNodeHub ? 280 : 330;
   const cardH = nodes.length === 2 ? 210 : 176;
-  const basePositions = nodes.length === 2 ? [[285, 405], [835, 405]] : nodes.length === 3 ? [[270, 295], [850, 295], [560, 510]] : [[270, 295], [850, 295], [270, 510], [850, 510]];
+  const basePositions = nodes.length === 2 ? [[285, 405], [835, 405]] : threeNodeHub ? [[270, 385], [850, 385], [560, 525]] : [[270, 295], [850, 295], [270, 510], [850, 510]];
   const positions = basePositions.map(([x,y]) => [x,y+verticalOffset]);
   positions.forEach(([x, y]) => svg.append(svgNode(document, 'path', {d: `M${centerX} ${centerY} L${x} ${y}`, stroke: '#9aacc2', 'stroke-width': 3, 'marker-end': `url(#${arrowId})`})));
   svg.append(svgNode(document, 'circle', {cx: centerX, cy: centerY, r: nodes.length === 2 ? 58 : 62, fill: '#405f95', stroke: '#fff', 'stroke-width': 8}));
-  svg.append(svgText(document, null, wrap(page.title, 15).slice(0, 2), centerX, centerY - 3, 'hub-label', 'middle'));
+  svg.append(svgText(document, null, wrap(page.title, 7).slice(0, 2), centerX, centerY - 3, 'hub-label', 'middle'));
   positions.forEach(([x, y], index) => drawCard(document, svg, nodes[index], x - cardW / 2, y - cardH / 2, cardW, cardH, PALETTE[index % PALETTE.length], index + 1, true));
 }
 

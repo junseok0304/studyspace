@@ -170,6 +170,8 @@ test('all infographic layouts keep cards and their full detail text inside the c
     }});
     const svg=container.querySelector('.infographic-visual');
     const cards=[...svg.querySelectorAll('.infographic-node')];
+    const hubCircle=layout==='hub'?svg.querySelector('circle[fill="#405f95"]'):null;
+    if (hubCircle) assert.ok([...svg.querySelectorAll('.hub-label text')].every(line=>line.textContent.length<=7),'hub title does not fit inside its circle');
     for (const card of cards) {
       const rect=card.querySelector(':scope > rect');
       const x=Number(rect.getAttribute('x')),y=Number(rect.getAttribute('y'));
@@ -182,6 +184,11 @@ test('all infographic layouts keep cards and their full detail text inside the c
       assert.ok(Number(detailLines.at(-1).getAttribute('y'))+3<=y+height,`${layout} card detail extends beyond its card`);
       if (layout==='cycle' && count===4) assert.ok(Number(detailLines[0].getAttribute('y'))-Number(labelLines.at(-1).getAttribute('y'))>=14,'four-node cycle label and detail overlap');
       assert.equal(detailLines.map(line=>line.textContent).join('').replace(/\s/g,''),detail.replace(/\s/g,''),`${layout}/${count} card detail was truncated: ${JSON.stringify(detailLines.map(line=>line.textContent))}`);
+      if (hubCircle) {
+        const cx=Number(hubCircle.getAttribute('cx')),cy=Number(hubCircle.getAttribute('cy'));
+        const nearestX=Math.max(x,Math.min(cx,x+width)),nearestY=Math.max(y,Math.min(cy,y+height));
+        assert.ok(Math.hypot(cx-nearestX,cy-nearestY)>=Number(hubCircle.getAttribute('r'))+4,`${layout}/${count} card overlaps its hub`);
+      }
     }
     assert.equal(cards.length,count);
     dom.window.close();
