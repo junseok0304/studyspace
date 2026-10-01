@@ -121,8 +121,30 @@ test('infographic keeps its current page when unchanged content is rendered agai
   renderInfographicPages(document,container,options);
   assert.equal(container.querySelector('.infographic-page-number').textContent,'2 / 2');
 
+  renderInfographicPages(document,container,{...options,content:'# 새 첫 장\n\n첫 페이지\n\n---PAGE---\n\n# 새 둘째 장\n\n두 번째 페이지'});
+  assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 2');
+
   renderInfographicPages(document,container,{...options,content:'# 새 결과\n\n## 새 내용\n\n새 결과의 첫 페이지입니다.'});
   assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 1');
+  dom.window.close();
+});
+
+test('infographic keeps all six generated pages navigable', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const document = dom.window.document;
+  const stage = document.getElementById('stage');
+  const content = JSON.stringify({pages: Array.from({length: 6}, (_, index) => ({
+    title: `주제 ${index + 1}`, subtitle: '', relation: '', layout: 'group',
+    nodes: [{label: '개념 A', detail: '첫 번째 핵심 내용입니다.', icon: 'idea'}, {label: '개념 B', detail: '두 번째 핵심 내용입니다.', icon: 'book'}]
+  }))});
+  assert.equal(renderInfographicPages(document, stage, {title: '긴 강의노트', content, renderMarkdown: value => {
+    const node = document.createElement('div'); node.textContent = value; return node;
+  }}), 6);
+  const next = stage.querySelector('[aria-label="다음 인포그래픽 페이지"]');
+  for (let index = 0; index < 5; index++) next.click();
+  assert.equal(stage.querySelector('.infographic-page-number').textContent, '6 / 6');
+  assert.match(stage.querySelector('.infographic-visual').textContent, /주제 6/);
+  assert.equal(next.disabled, true);
   dom.window.close();
 });
 

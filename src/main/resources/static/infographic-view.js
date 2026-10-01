@@ -67,7 +67,7 @@ export function stripInfographicSources(markdown) {
 
 export function renderInfographicPages(document, container, {title, content, renderMarkdown}) {
   const pages = normalizeInfographicPages(removeRepeatedCoverTitle(content, title), title);
-  const pageKey = `${title || ''}\u0000${pages.join('\u0000')}`;
+  const pageKey = `${title || ''}\u0000${content || ''}`;
   const previousState = infographicViewerStates.get(container);
   let page = previousState?.pageKey === pageKey ? Math.max(0, Math.min(previousState.page, pages.length - 1)) : 0;
   infographicViewerStates.set(container, {pageKey, page});
@@ -156,7 +156,7 @@ const ICON_PATHS = {
 function normalizeInfographicPages(content, fallbackTitle) {
   try {
     const parsed = JSON.parse(content);
-    if (Array.isArray(parsed.pages) && parsed.pages.length) return parsed.pages.slice(0, 3).map(page => {
+    if (Array.isArray(parsed.pages) && parsed.pages.length) return parsed.pages.slice(0, 6).map(page => {
       const rawRelation = cleanText(page.relation);
       const subtitle = cleanCaption(cleanText(page.subtitle).replace(new RegExp(`\\s*${escapeRegex(rawRelation)}$`), '').trim());
       const nodes = (page.nodes || []).slice(0, 4).map(node => {
@@ -176,7 +176,7 @@ function normalizeInfographicPages(content, fallbackTitle) {
     }).filter(page => page.nodes.length >= 1);
   } catch { /* Legacy saved Markdown is converted below. */ }
 
-  return paginateInfographic(content, 1800).slice(0, 3).map((markdown, index) => markdownPage(markdown, fallbackTitle, index)).filter(page => page.nodes.length >= 1);
+  return paginateInfographic(content, 1800).slice(0, 6).map((markdown, index) => markdownPage(markdown, fallbackTitle, index)).filter(page => page.nodes.length >= 1);
 }
 
 function markdownPage(markdown, fallbackTitle, index) {

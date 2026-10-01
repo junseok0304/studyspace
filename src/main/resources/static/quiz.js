@@ -13,6 +13,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
   const generatingNotes = new Set();
   const activeQuestionByAttempt = new Map();
   const answeringQuestions = new Set();
+  const startingAttempts = new Map();
 
   function renderAttempt(attempt, requestedIndex = null) {
     const noteId = getEditor().id;
@@ -77,7 +78,19 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
           // transient status message around as the learner moves between questions.
           el('quiz-message').textContent = ''; renderAttempt(updated, index);
         } catch (error) {
-          if (getEditor().id === noteId) { el('quiz-message').textContent = error.message; renderAttempt(attempt, index); }
+          if (getEditor().id === noteId) {
+            // A lost response can follow a successful save. Read the server state
+            // before offering another choice because the first answer is final.
+            let latest = null;
+            try { latest = await request(`/api/quiz-attempts/${encodeURIComponent(attempt.id)}`); }
+            catch { /* Keep the original answer error when status cannot be read. */ }
+            if (getEditor().id !== noteId) return;
+            const saved = latest?.questions?.find(item => item.id === question.id);
+            renderAttempt(latest || attempt, index);
+            el('quiz-message').textContent = saved?.selectedIndex != null
+              ? '서버에 저장된 답안을 확인했습니다.'
+              : error.message;
+          }
         } finally { answeringQuestions.delete(answerKey); }
       };
       label.append(marker, text, radio); block.append(label);
@@ -126,17 +139,26 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     actions.append(history); player.append(actions);
   }
 
-  async function startAttempt(setId, wrongFromAttemptId = null) {
+  function startAttempt(setId, wrongFromAttemptId = null) {
     const noteId = getEditor().id;
-    try {
-      const attempt = await request(`/api/quiz-sets/${encodeURIComponent(setId)}/attempts`, {
-        method: 'POST', body: JSON.stringify({requestId: crypto.randomUUID(), wrongFromAttemptId})
-      });
-      if (getEditor().id !== noteId) return attempt;
-      renderAttempt(attempt);
-      el('quiz-message').textContent = '';
-      return attempt;
-    } catch (error) { el('quiz-message').textContent = error.message; return null; }
+    const key = `${noteId}:${setId}:${wrongFromAttemptId || ''}`;
+    if (startingAttempts.has(key)) return startingAttempts.get(key);
+    const task = (async () => {
+      try {
+        const attempt = await request(`/api/quiz-sets/${encodeURIComponent(setId)}/attempts`, {
+          method: 'POST', body: JSON.stringify({requestId: crypto.randomUUID(), wrongFromAttemptId})
+        });
+        if (getEditor().id !== noteId) return attempt;
+        renderAttempt(attempt);
+        el('quiz-message').textContent = '';
+        return attempt;
+      } catch (error) {
+        if (getEditor().id === noteId) el('quiz-message').textContent = error.message;
+        return null;
+      } finally { startingAttempts.delete(key); }
+    })();
+    startingAttempts.set(key, task);
+    return task;
   }
 
   async function manageQuestions(set) {

@@ -162,7 +162,7 @@
           <details id="quiz-history" class="learning-history"><summary>이 노트의 퀴즈 기록</summary><div id="quiz-sets" class="quiz-set-list"></div></details>
         </section>
         <section id="learning-flashcards-view" class="learning-view" aria-label="플래시카드" hidden>
-          <div class="learning-view-heading"><div><h4>현재 노트 플래시카드</h4><p>카드를 눌러 답을 확인하고 복습 여부를 기록하세요.</p></div><button id="create-flashcards" class="quiet-button" type="button" disabled>새 카드 만들기</button></div>
+          <div class="learning-view-heading"><div><h4>현재 노트 플래시카드</h4><p>카드를 눌러 답을 확인하고 복습 여부를 기록하세요.</p></div><div class="quiz-create-controls"><label for="flashcard-count">카드 수</label><select id="flashcard-count" aria-label="플래시카드 수"><option value="8">8장</option><option value="14" selected>14장</option><option value="20">20장</option></select><button id="create-flashcards" class="quiet-button" type="button" disabled>새 카드 만들기</button></div></div>
           <p id="flashcard-message" class="fine-print" role="status" aria-live="polite"></p>
           <div id="flashcard-player" class="flashcard-player hidden"></div>
           <details id="flashcard-history" class="learning-history"><summary>이 노트의 카드 덱</summary><div id="flashcard-decks" class="quiz-set-list"></div></details>

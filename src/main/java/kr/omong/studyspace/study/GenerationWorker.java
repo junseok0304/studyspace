@@ -172,7 +172,8 @@ public class GenerationWorker {
 
     private String mockInfographic(String title,List<String> passages) {
         var pages=new java.util.ArrayList<Map<String,Object>>();
-        int pageCount=Math.min(3,Math.max(1,(passages.size()+3)/4));
+        passages=representative(passages,24);
+        int pageCount=Math.min(6,Math.max(1,(passages.size()+3)/4));
         for(int page=0;page<pageCount;page++) {
             int from=page*4,to=Math.min(passages.size(),from+4);
             var nodes=new java.util.ArrayList<Map<String,String>>();

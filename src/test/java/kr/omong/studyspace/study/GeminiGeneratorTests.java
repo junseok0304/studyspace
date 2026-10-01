@@ -27,7 +27,7 @@ class GeminiGeneratorTests {
         assertEquals(valid,generator.parse(response(valid),"MIND_MAP").text());
         assertThrows(GeminiGenerator.Failure.class,()->generator.parse(response("{\"label\":\"개념\"}"),"MIND_MAP"));
     }
-    @Test void validatesVisualInfographicPagesAndTheirDiagramNodes() {
+    @Test void validatesVisualInfographicPagesAndTheirDiagramNodes() throws Exception {
         String infographic="""
                 {"pages":[{"title":"사실에서 정보까지","subtitle":"표현과 해석의 흐름","relation":"사실 → 데이터 → 정보","layout":"flow","nodes":[
                   {"label":"사실","detail":"객관적으로 존재하는 내용","icon":"idea"},
@@ -36,10 +36,13 @@ class GeminiGeneratorTests {
                 """;
         assertEquals(infographic.strip(),generator.parse(response(infographic),"INFOGRAPHIC").text());
         var pageSchema=new ObjectMapper().valueToTree(GeminiGenerator.structuredSchema("INFOGRAPHIC")).path("properties").path("pages");
-        assertTrue(pageSchema.path("maxItems").asInt()==3);
+        assertEquals(6,pageSchema.path("maxItems").asInt());
         assertTrue(pageSchema.path("items").path("properties").path("layout").path("enum").toString().contains("group"));
         String parallel=infographic.replace("\"flow\"","\"group\"");
         assertEquals(parallel.strip(),generator.parse(response(parallel),"INFOGRAPHIC").text());
+        var page=new ObjectMapper().readTree(infographic).path("pages").path(0).toString();
+        assertEquals(6,new ObjectMapper().readTree(generator.parse(response("{\"pages\":["+String.join(",",java.util.Collections.nCopies(6,page))+"]}"),"INFOGRAPHIC").text()).path("pages").size());
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parse(response("{\"pages\":["+String.join(",",java.util.Collections.nCopies(7,page))+"]}"),"INFOGRAPHIC"));
         assertThrows(GeminiGenerator.Failure.class,()->generator.parse(response("{\"pages\":[{\"title\":\"비어 있음\",\"subtitle\":\"\",\"relation\":\"\",\"layout\":\"flow\",\"nodes\":[]}] }"),"INFOGRAPHIC"));
     }
     @Test void validatesStructuredQuizAndFlashcardResults() {

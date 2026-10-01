@@ -33,7 +33,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     const player = el('flashcard-player');
     player.classList.remove('hidden');
     const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-    let cards = [...deck.cards].filter(card => !dueOnly || !card.nextReview || new Date(card.nextReview).getTime() <= todayEnd.getTime());
+    let cards = [...deck.cards].filter(card => !dueOnly || !card.nextReviewAt || new Date(card.nextReviewAt).getTime() <= todayEnd.getTime());
     if (shuffle) {
       for (let index = cards.length - 1; index > 0; index--) {
         const swap = Math.floor(Math.random() * (index + 1));
@@ -176,7 +176,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
           const full = await fetchDeck();
           if (!noteId || getEditor()?.id !== noteId || full.noteId !== noteId) return;
           const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-          if (dueOnly && !full.cards.some(card => !card.nextReview || new Date(card.nextReview).getTime() <= todayEnd.getTime())) {
+          if (dueOnly && !full.cards.some(card => !card.nextReviewAt || new Date(card.nextReviewAt).getTime() <= todayEnd.getTime())) {
             el('flashcard-message').textContent = '오늘 복습할 카드가 없습니다.'; return;
           }
           study(full, shuffle, dueOnly);

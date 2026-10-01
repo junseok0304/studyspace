@@ -6,7 +6,9 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
   let rows = [];
   let loadedNoteId = '';
   const startingKeys = new Set();
+  const activeStarts = new Map();
   const coverageRefreshKeys = new Set();
+  const infographicRefreshKeys = new Set();
   const sameSources = row => {
     const current = [...getAttachmentIds()].sort();
     if (Array.isArray(row?.sourceAttachmentIds)) {
@@ -15,11 +17,25 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
     }
     return Number(row?.attachmentCount || 0) === current.length;
   };
-  const summaryNeedsCoverageRefresh = (content, editor) => {
+  const hasActiveJob = kind => rows.some(row => row.kind === kind
+    && row.sourceNoteVersion === getEditor()?.version && sameSources(row) && matchesAiMode(row)
+    && (row.status === 'PENDING' || row.status === 'RUNNING'));
+  const sourceLength = editor => {
     const noteLength = String(editor?.body || '').replace(/<!--[\s\S]*?-->/g, '').replace(/^---[\s\S]*?---\s*/m, '').trim().length;
-    const sourceLength = noteLength + Math.max(0, Number(getAttachmentSourceLength()) || 0);
+    return noteLength + Math.max(0, Number(getAttachmentSourceLength()) || 0);
+  };
+  const summaryNeedsCoverageRefresh = (content, editor) => {
+    const inputLength = sourceLength(editor);
     const summaryLength = String(content || '').replace(/[#>*_`-]/g, '').trim().length;
-    return sourceLength >= 1800 && summaryLength < Math.max(700, Math.min(5000, sourceLength * 0.18));
+    return inputLength >= 1800 && summaryLength < Math.max(700, Math.min(5000, inputLength * 0.18));
+  };
+  const infographicNeedsCoverageRefresh = (content, editor) => {
+    const inputLength = sourceLength(editor);
+    if (inputLength < 1800) return false;
+    let pageCount = 1;
+    try { pageCount = JSON.parse(content)?.pages?.length || 1; }
+    catch { pageCount = String(content || '').split(/^\s*(?:---PAGE---|<!--\s*PAGE\s*-->)\s*$/m).filter(Boolean).length; }
+    return pageCount < (inputLength >= 5000 ? 4 : 3);
   };
   const needsSummaryRefresh = content => {
     const text = String(content || '');
@@ -30,9 +46,9 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
     clearTimeout(timer);
     const requestVersion = ++version;
     const generateButton = el('generate-infographic');
-    if (generateButton) generateButton.disabled = !noteId;
+    if (generateButton) generateButton.disabled = !noteId || hasActiveJob('INFOGRAPHIC');
     const summaryButton = el('generate-summary');
-    if (summaryButton) summaryButton.disabled = !noteId;
+    if (summaryButton) summaryButton.disabled = !noteId || hasActiveJob('SUMMARY');
     if (!noteId) {
       rows = [];
       loadedNoteId = '';
@@ -42,10 +58,12 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
       return rows;
     }
     const result = await request(`/api/notes/${encodeURIComponent(noteId)}/generations`);
-    if (requestVersion !== version) return rows;
+    if (requestVersion !== version || getEditor()?.id !== noteId) return rows;
     loadedNoteId = noteId;
     rows = result;
     render(rows);
+    if (generateButton) generateButton.disabled = hasActiveJob('INFOGRAPHIC');
+    if (summaryButton) summaryButton.disabled = hasActiveJob('SUMMARY');
     const latestSummary = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === getEditor().version && sameSources(row) && matchesAiMode(row));
     const summaryMessage = el('summary-message');
     if (summaryMessage) {
@@ -53,7 +71,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
       else if (latestSummary?.status === 'FAILED') summaryMessage.textContent = '요약을 만들지 못했습니다. 다시 생성해 주세요.';
       else summaryMessage.textContent = '';
     }
-    const latestInfographic = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === getEditor().version && sameSources(row));
+    const latestInfographic = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === getEditor().version && sameSources(row) && matchesAiMode(row));
     if (latestInfographic?.status === 'PENDING' || latestInfographic?.status === 'RUNNING') {
       el('generation-message').textContent = '현재 노트의 인포그래픽을 만들고 있습니다.';
     } else if (latestInfographic?.status === 'FAILED') {
@@ -62,31 +80,41 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
       el('generation-message').textContent = '';
     }
     if (result.some(row => row.status === 'PENDING' || row.status === 'RUNNING')) {
-      timer = setTimeout(() => load(noteId).catch(error => { el('generation-message').textContent = error.message; }), 1500);
+      timer = setTimeout(() => {
+        if (getEditor()?.id === noteId) load(noteId).catch(error => { if (getEditor()?.id === noteId) el('generation-message').textContent = error.message; });
+      }, 1500);
     }
     return rows;
   }
 
-  async function start(kind, regenerateFromJobId = null, attachmentIds = getAttachmentIds()) {
+  function start(kind, regenerateFromJobId = null, attachmentIds = getAttachmentIds()) {
     const editor = getEditor();
-    if (!editor.id) return false;
+    if (!editor?.id) return Promise.resolve(false);
     const noteId = editor.id;
+    const sourceIds = [...attachmentIds].sort();
+    const key = JSON.stringify([kind, noteId, editor.version, sourceIds]);
+    if (activeStarts.has(key)) return activeStarts.get(key);
     const button = kind === 'INFOGRAPHIC' ? el('generate-infographic') : kind === 'SUMMARY' ? el('generate-summary') : null;
     const message = kind === 'SUMMARY' ? el('summary-message') : el('generation-message');
     if (button) button.disabled = true;
-    try {
-      await request(`/api/notes/${encodeURIComponent(editor.id)}/generations`, {
-        method: 'POST',
-        body: JSON.stringify({kind, requestId: crypto.randomUUID(), attachmentIds, regenerateFromJobId})
-      });
-      if (getEditor().id === noteId) await load(noteId);
-      return true;
-    } catch (error) {
-      if (getEditor().id === noteId) message.textContent = error.message;
-      return false;
-    } finally {
-      if (button && getEditor().id) button.disabled = false;
-    }
+    const task = (async () => {
+      try {
+        await request(`/api/notes/${encodeURIComponent(noteId)}/generations`, {
+          method: 'POST',
+          body: JSON.stringify({kind, requestId: crypto.randomUUID(), attachmentIds: sourceIds, regenerateFromJobId})
+        });
+        if (getEditor()?.id === noteId) await load(noteId);
+        return true;
+      } catch (error) {
+        if (getEditor()?.id === noteId) message.textContent = error.message;
+        return false;
+      } finally {
+        activeStarts.delete(key);
+        if (button && getEditor()?.id === noteId) button.disabled = hasActiveJob(kind);
+      }
+    })();
+    activeStarts.set(key, task);
+    return task;
   }
 
   async function openInfographic() {
@@ -100,6 +128,14 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
     if (getEditor().id !== noteId) return false;
     const existing = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === editor.version && sameSources(row) && matchesAiMode(row));
     if (existing?.status === 'COMPLETED' && existing.content) {
+      const refreshKey = `INFOGRAPHIC:${editor.id}:${editor.version}:${[...getAttachmentIds()].sort().join(',')}`;
+      if (infographicNeedsCoverageRefresh(existing.content, editor) && !infographicRefreshKeys.has(refreshKey)) {
+        infographicRefreshKeys.add(refreshKey);
+        el('generation-message').textContent = '긴 노트의 주요 내용을 더 넓게 담도록 인포그래픽을 보완하고 있습니다.';
+        const started = await start('INFOGRAPHIC', existing.id);
+        if (!started) el('generation-message').textContent = '저장된 인포그래픽을 표시합니다. 추가 보완을 시작하지 못했습니다.';
+        return true;
+      }
       el('generation-message').textContent = '';
       return true;
     }
@@ -111,7 +147,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
       el('generation-message').textContent = '인포그래픽을 만들지 못했습니다. 다시 생성해 주세요.';
       return false;
     }
-    const key = `INFOGRAPHIC:${editor.id}:${editor.version}`;
+    const key = `INFOGRAPHIC:${editor.id}:${editor.version}:${[...getAttachmentIds()].sort().join(',')}`;
     if (startingKeys.has(key)) return true;
     startingKeys.add(key);
     el('generation-message').textContent = '현재 노트와 분석 완료 자료를 바탕으로 인포그래픽을 만들고 있습니다.';
@@ -131,7 +167,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
     if (getEditor().id !== noteId) return false;
     const existing = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === editor.version && sameSources(row) && matchesAiMode(row));
     if (existing?.status === 'COMPLETED' && existing.content && !needsSummaryRefresh(existing.content)) {
-      const refreshKey = `SUMMARY:${editor.id}:${editor.version}`;
+      const refreshKey = `SUMMARY:${editor.id}:${editor.version}:${[...getAttachmentIds()].sort().join(',')}`;
       if (summaryNeedsCoverageRefresh(existing.content, editor) && !coverageRefreshKeys.has(refreshKey)) {
         coverageRefreshKeys.add(refreshKey);
         message.textContent = '긴 노트의 주요 내용을 더 충실히 담도록 요약을 보완하고 있습니다.';
@@ -149,7 +185,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
     }
     if (existing?.status === 'PENDING' || existing?.status === 'RUNNING') { message.textContent = '현재 노트 내용을 글로 요약하고 있습니다.'; return true; }
     if (existing?.status === 'FAILED') { message.textContent = '요약을 만들지 못했습니다. 다시 생성해 주세요.'; return false; }
-    const key = `SUMMARY:${editor.id}:${editor.version}`;
+    const key = `SUMMARY:${editor.id}:${editor.version}:${[...getAttachmentIds()].sort().join(',')}`;
     if (startingKeys.has(key)) return true;
     startingKeys.add(key);
     message.textContent = '현재 노트와 분석 완료 자료를 바탕으로 요약을 만들고 있습니다.';
@@ -159,13 +195,11 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
 
   const generateButton = el('generate-infographic');
   if (generateButton) generateButton.onclick = () => {
-    generateButton.disabled = true;
-    start('INFOGRAPHIC').finally(() => { if (getEditor().id) generateButton.disabled = false; });
+    start('INFOGRAPHIC');
   };
   const summaryButton = el('generate-summary');
   if (summaryButton) summaryButton.onclick = () => {
-    summaryButton.disabled = true;
-    start('SUMMARY').finally(() => { if (getEditor().id) summaryButton.disabled = false; });
+    start('SUMMARY');
   };
 
   return {
@@ -176,6 +210,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, get
     get rows() { return rows; },
     resetForNote() {
       clearTimeout(timer);
+      version++;
       rows = [];
       loadedNoteId = '';
       el('generation-message').textContent = '';

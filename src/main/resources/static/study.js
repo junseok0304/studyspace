@@ -218,8 +218,16 @@ export async function start(request, userId) {
   }
 
   function renderGenerations(rows) {
+    const currentSourceIds=[...getAttachmentIds()].sort();
+    const matchesSources=row=>{
+      if(Array.isArray(row.sourceAttachmentIds)) {
+        const saved=[...row.sourceAttachmentIds].sort();
+        return saved.length===currentSourceIds.length&&saved.every((id,index)=>id===currentSourceIds[index]);
+      }
+      return Number(row.attachmentCount||0)===currentSourceIds.length;
+    };
     const summaryStage=byId('summary-stage');
-    const summaryResult=rows.find(row=>row.kind==='SUMMARY'&&row.sourceNoteVersion===editor.version&&matchesAiMode(row));
+    const summaryResult=rows.find(row=>row.kind==='SUMMARY'&&row.sourceNoteVersion===editor.version&&matchesSources(row)&&matchesAiMode(row));
     summaryStage.replaceChildren();
     if (!editor.id) byId('summary-message').textContent='노트를 저장하면 요약을 준비할 수 있습니다.';
     else if (summaryResult?.status==='PENDING'||summaryResult?.status==='RUNNING') summaryStage.append(emptyState('노트 내용을 요약하고 있습니다.','완료되면 핵심 내용을 글로 보여드립니다.'));
@@ -229,7 +237,7 @@ export async function start(request, userId) {
     }
     const stage=byId('infographic-stage');
     const badge=byId('learning-mode-badge');
-    const result=rows.find(row=>row.kind==='INFOGRAPHIC'&&row.sourceNoteVersion===editor.version&&matchesAiMode(row));
+    const result=rows.find(row=>row.kind==='INFOGRAPHIC'&&row.sourceNoteVersion===editor.version&&matchesSources(row)&&matchesAiMode(row));
     stage.replaceChildren();
     if (!result) {
       badge.textContent=aiConfig.mockEnabled?'모의 모드':'Gemini 연결됨';
