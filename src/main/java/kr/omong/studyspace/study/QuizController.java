@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -52,9 +54,11 @@ public class QuizController {
         var notes=db.query("select n.course_id,n.title,n.body,n.version from notes n where n.id=? and n.user_id=? and not exists(select 1 from note_trash t where t.note_id=n.id and t.user_id=n.user_id)",
                 (row,index)->new Note(row.getString("course_id"),row.getString("title"),row.getString("body"),row.getLong("version")),noteId,user);
         if(notes.isEmpty()) throw new AuthException("노트를 찾을 수 없습니다.",404); Note note=notes.getFirst(); List<AttachmentSource> attachments=requireAttachments(input.attachmentIds(),noteId,user); ReviewSource review=input.artifactId()==null?null:requireReviewSource(input.artifactId(),note.courseId(),user); String id=UUID.randomUUID().toString();
+        List<String> previousPrompts=previousPrompts(noteId,user);
+        List<String> previousAnswers=previousAnswers(noteId,user);
         boolean mock=mockEnabled; List<GeminiGenerator.GeneratedQuiz> generatedResult=List.of();
         if(!mock) {
-            try { GeminiGenerator.QuizResult result=gemini.generateQuiz(model,source(note,attachments,review),input.questionCount()); generatedResult=result.questions(); usage.record(user,"QUIZ",model,result.promptTokens(),result.outputTokens()); }
+            try { GeminiGenerator.QuizResult result=gemini.generateQuiz(model,source(note,attachments,review),input.questionCount(),previousPrompts); generatedResult=result.questions(); usage.record(user,"QUIZ",model,result.promptTokens(),result.outputTokens()); }
             catch(GeminiGenerator.Failure failure) { throw new AuthException(failure.userMessage(),503); }
         }
         final List<GeminiGenerator.GeneratedQuiz> generated=generatedResult;
@@ -62,6 +66,14 @@ public class QuizController {
                 java.util.stream.Stream.concat(java.util.stream.Stream.of(note.body()),attachments.stream().map(AttachmentSource::text)).toList());
         List<String> mockPassages=MockStudyContent.passagesExcluding(note.title(),mockMaterial);
         if(mockPassages.isEmpty()) mockPassages=List.of(note.title()+" 노트에 작성된 내용을 확인해 주세요.");
+        Set<String> previouslyUsedAnswers=previousAnswers.stream().map(QuizController::normalizedPrompt).collect(java.util.stream.Collectors.toSet());
+        Set<String> previouslyUsedPrompts=previousPrompts.stream().map(QuizController::normalizedPrompt).collect(java.util.stream.Collectors.toSet());
+        Set<String> uniqueMockPrompts=new HashSet<>(previouslyUsedPrompts);
+        mockPassages=mockPassages.stream()
+                .filter(passage->!previouslyUsedAnswers.contains(normalizedPrompt(MockStudyContent.clip(passage,280))))
+                .filter(passage->uniqueMockPrompts.add(normalizedPrompt(mockQuestionPrompt(passage))))
+                .toList();
+        if(mock && mockPassages.size()<input.questionCount()) throw new AuthException("이 노트에서 새 퀴즈로 만들 다른 내용이 부족합니다. 노트나 강의자료에 내용을 더 추가해 주세요.",409);
         final List<String> sourcePassages=mockPassages;
         String sourceAttachmentIds=String.join(",",attachments.stream().map(AttachmentSource::id).sorted().toList());
         try { tx.executeWithoutResult(status->{
@@ -158,7 +170,7 @@ public class QuizController {
     private void insertMockQuestion(String setId,int order,Note note,List<String> passages) {
         int passageIndex=order%passages.size();
         String claim=passages.get(passageIndex);
-        String prompt=(order+1)+". 원문에서 "+(passageIndex+1)+"번째로 정리된 핵심 문장은 무엇인가요?";
+        String prompt=mockQuestionPrompt(claim);
         var distractors=passages.stream().filter(value->!value.equals(claim)).limit(3).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
         List<String> fallback=List.of("강의자료에서 근거를 찾을 수 없는 설명입니다.","원문에 포함되지 않은 내용입니다.","제공된 자료에서 확인되지 않는 주장입니다.");
         for(String value:fallback) { if(distractors.size()==3) break; if(!value.equals(claim)) distractors.add(value); }
@@ -166,6 +178,13 @@ public class QuizController {
         for(int index=0,next=0;index<4;index++) if(index!=answer) options[index]=MockStudyContent.clip(distractors.get(next++),280);
         db.update("insert into quiz_questions(id,quiz_set_id,question_order,prompt,option_a,option_b,option_c,option_d,correct_index,hint_text,explanation,source_label) values(?,?,?,?,?,?,?,?,?,?,?,?)",
                 UUID.randomUUID().toString(),setId,order,prompt,options[0],options[1],options[2],options[3],answer,"정의만 외우기보다 이 개념의 특징과 원문에서 함께 설명한 조건을 비교해 보세요.","원문 근거: "+claim,"노트 `"+note.title()+"` 버전 "+note.version());
+    }
+
+    private String mockQuestionPrompt(String claim) {
+        String topic=claim.split("[:：,，.。!?！？\\n]",2)[0].strip();
+        if(topic.length()>42) topic=topic.substring(0,42).stripTrailing();
+        if(topic.isBlank()) topic=MockStudyContent.clip(claim,42);
+        return "‘"+topic+"’에 관한 설명으로 노트의 내용과 일치하는 것은 무엇인가요?";
     }
 
     private void insertGeneratedQuestion(String setId,int order,GeminiGenerator.GeneratedQuiz question) {
@@ -179,6 +198,15 @@ public class QuizController {
         for(AttachmentSource attachment:attachments) source.append("\n\n자료: ").append(attachment.name()).append("\n").append(attachment.text());
         if(review!=null) source.append("\n\n선택한 요점 정리(퀴즈의 우선 원본): ").append(review.title()).append("\n").append(review.content());
         return source.toString();
+    }
+    private List<String> previousPrompts(String noteId,long user) {
+        return db.queryForList("select q.prompt from quiz_questions q join quiz_sets s on s.id=q.quiz_set_id where s.note_id=? and s.user_id=? order by s.created_at desc,q.question_order",String.class,noteId,user);
+    }
+    private List<String> previousAnswers(String noteId,long user) {
+        return db.queryForList("select case q.correct_index when 0 then q.option_a when 1 then q.option_b when 2 then q.option_c else q.option_d end from quiz_questions q join quiz_sets s on s.id=q.quiz_set_id where s.note_id=? and s.user_id=?",String.class,noteId,user);
+    }
+    private static String normalizedPrompt(String value) {
+        return value==null?"":value.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+","");
     }
     private ReviewSource requireReviewSource(String id,String courseId,long user) {
         var rows=db.query("select a.id,a.title,a.content from learning_artifacts a join notes n on n.id=a.note_id and n.user_id=a.user_id where a.id=? and a.user_id=? and n.course_id=? and a.kind in ('SUMMARY','AI_NOTE')",

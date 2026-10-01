@@ -229,9 +229,16 @@ export async function start(request, userId) {
     const summaryStage=byId('summary-stage');
     const summaryResult=rows.find(row=>row.kind==='SUMMARY'&&row.sourceNoteVersion===editor.version&&matchesSources(row)&&matchesAiMode(row));
     summaryStage.replaceChildren();
+    summaryStage.classList.remove('summary-stage-expanded');
     if (!editor.id) byId('summary-message').textContent='노트를 저장하면 요약을 준비할 수 있습니다.';
-    else if (summaryResult?.status==='PENDING'||summaryResult?.status==='RUNNING') summaryStage.append(emptyState('노트 내용을 요약하고 있습니다.','완료되면 핵심 내용을 글로 보여드립니다.'));
-    else if (summaryResult?.status==='FAILED') summaryStage.append(emptyState('요약을 만들지 못했습니다.','다시 생성을 눌러 새 요약을 요청해 주세요.'));
+    else if (summaryResult?.status==='PENDING'||summaryResult?.status==='RUNNING') {
+      summaryStage.classList.add('summary-stage-expanded');
+      summaryStage.append(emptyState('노트 내용을 요약하고 있습니다.','완료되면 핵심 내용을 글로 보여드립니다.'));
+    }
+    else if (summaryResult?.status==='FAILED') {
+      summaryStage.classList.add('summary-stage-expanded');
+      summaryStage.append(emptyState('요약을 만들지 못했습니다.','다시 생성을 눌러 새 요약을 요청해 주세요.'));
+    }
     else if (summaryResult?.status==='COMPLETED'&&summaryResult.content) {
       summaryStage.append(renderMarkdown(stripSummarySourceLabels(summaryResult.content)));
     }

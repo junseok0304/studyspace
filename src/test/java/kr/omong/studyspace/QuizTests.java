@@ -24,7 +24,7 @@ class QuizTests {
         long userId=db.queryForObject("select id from users where email='quiz@example.com'",Long.class);
         db.update("insert into courses(id,user_id,semester,name) values('quiz-course',?,'2026-2','자료구조')",userId);
         db.update("insert into notes(id,course_id,user_id,title,body,version) values('quiz-note','quiz-course',?,'트리','# 트리\n\n트리는 계층 구조입니다.',2)",userId);
-        db.update("insert into attachments(id,note_id,user_id,original_name,storage_key,media_type,extension,size_bytes,sha256,analysis_status,extracted_text,analyzed_at) values('quiz-file','quiz-note',?,'트리.pdf','test/quiz-file.pdf','application/pdf','pdf',100,'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','TEXT_READY','이진 탐색 트리는 정렬된 구조입니다.',current_timestamp)",userId);
+        db.update("insert into attachments(id,note_id,user_id,original_name,storage_key,media_type,extension,size_bytes,sha256,analysis_status,extracted_text,analyzed_at) values('quiz-file','quiz-note',?,'트리.pdf','test/quiz-file.pdf','application/pdf','pdf',100,'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','TEXT_READY','이진 탐색 트리는 정렬된 구조입니다. 노드는 왼쪽과 오른쪽 자식을 가질 수 있습니다.',current_timestamp)",userId);
         var owner=user(Long.toString(userId));
         String create="{\"requestId\":\"11111111-1111-4111-8111-111111111111\",\"questionCount\":3,\"attachmentIds\":[\"quiz-file\"]}";
         for(int i=0;i<2;i++) mvc.perform(post("/api/notes/quiz-note/quiz-sets").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(create))
@@ -34,7 +34,7 @@ class QuizTests {
         org.junit.jupiter.api.Assertions.assertEquals("quiz-file",db.queryForObject("select source_attachment_ids from quiz_sets where id=?",String.class,setId));
         mvc.perform(get("/api/quiz-sets/"+setId+"/questions").with(owner))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].prompt").value(org.hamcrest.Matchers.containsString("1번째로 정리된 핵심 문장")))
+                .andExpect(jsonPath("$[0].prompt").value(org.hamcrest.Matchers.containsString("트리는 계층 구조입니다")))
                 .andExpect(jsonPath("$[0].options").value(org.hamcrest.Matchers.hasItem("트리는 계층 구조입니다.")))
                 .andExpect(jsonPath("$[0].options").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("트리"))))
                 .andExpect(jsonPath("$[1].options").value(org.hamcrest.Matchers.hasItem("이진 탐색 트리는 정렬된 구조입니다.")))
@@ -70,7 +70,7 @@ class QuizTests {
         db.update("insert into users(email,password_hash,nickname) values('quiz-editor@example.com','test','편집자')");
         long userId=db.queryForObject("select id from users where email='quiz-editor@example.com'",Long.class);
         db.update("insert into courses(id,user_id,semester,name) values('quiz-edit-course',?,'2026-2','운영체제')",userId);
-        db.update("insert into notes(id,course_id,user_id,title,body,version) values('quiz-edit-note','quiz-edit-course',?,'프로세스','# 프로세스',1)",userId);
+        db.update("insert into notes(id,course_id,user_id,title,body,version) values('quiz-edit-note','quiz-edit-course',?,'프로세스','# 프로세스\n프로세스는 실행 중인 프로그램입니다.\n프로세스는 독립된 메모리 공간을 가집니다.\n운영체제는 프로세스에 필요한 자원을 할당합니다.',1)",userId);
         var owner=user(Long.toString(userId));
         mvc.perform(post("/api/notes/quiz-edit-note/quiz-sets").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"requestId\":\"44444444-4444-4444-8444-444444444444\",\"questionCount\":3}"))

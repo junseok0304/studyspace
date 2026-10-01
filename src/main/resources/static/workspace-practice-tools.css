@@ -431,6 +431,7 @@
 }
 .notesup-workspace .learning-tabs button{ min-width:0; min-height:48px; white-space:nowrap; }
 .notesup-workspace .note-summary-stage{ width:min(100%, 900px); margin:18px 0 32px; color:#394557; font-size:16px; line-height:1.85; }
+.notesup-workspace .note-summary-stage.summary-stage-expanded{ width:100%; }
 .notesup-workspace .note-summary-stage h1{ margin:0 0 20px; font-size:25px; line-height:1.4; }
 .notesup-workspace .note-summary-stage h2{ margin:18px 0 10px; font-size:19px; line-height:1.5; }
 .notesup-workspace .note-summary-stage p{ margin:0 0 14px; }

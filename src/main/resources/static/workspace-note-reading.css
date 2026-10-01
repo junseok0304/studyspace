@@ -190,7 +190,7 @@
 }
 .notesup-workspace .writing-panel.view-mode > .note-read-view h1{
   color: #263448;
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1.4;
 }
 .notesup-workspace .writing-panel.view-mode > .note-read-view h2{
@@ -257,6 +257,7 @@
   .notesup-workspace .writing-panel.view-mode > .note-view-actions{ position:static; grid-row: 2; justify-content:flex-start; }
     .notesup-workspace .writing-panel.view-mode > .note-read-view{ grid-row: 4; max-width: 100%; margin-top: 8px; }
   .notesup-workspace .writing-panel.view-mode #note-title{ font-size: 24px; }
+  .notesup-workspace .writing-panel.view-mode > .note-read-view h1{ font-size: 20px; }
 }
 .notesup-workspace .practice-create-actions .generation-count{
   display: grid;
