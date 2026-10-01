@@ -15,6 +15,7 @@ public class GeminiGenerator {
     private static final String EMPTY_TEMPLATE_RULE = "노트에 작성 안내나 비어 있는 템플릿 항목이 있으면 학습 사실로 취급하지 말고, 사용자가 실제로 작성한 내용만 결과에 반영하세요.";
     private static final String NOTE_METADATA_RULE = "노트 본문 앞의 YAML frontmatter는 AI 문맥 메타데이터입니다. course_name과 semester만 문맥 확인에 사용하고, ID·날짜·상태 필드는 학습 사실로 출력하지 마세요.";
     private static final java.util.regex.Pattern ITEM_POSITION=java.util.regex.Pattern.compile("(?:보기|선택지|원문|문장|문항).{0,40}(?:[0-9]+\\s*번(?:째)?|[0-9]+\\s*번째|몇\\s*번(?:째)?)");
+    private static final Set<String> FLASHCARD_TYPES=Set.of("DEFINITION","MECHANISM","COMPARISON","CAUSE_EFFECT","APPLICATION","PROCESS");
     private final String key;
     private final ObjectMapper json;
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -131,12 +132,15 @@ public class GeminiGenerator {
     }
 
     CardResult generateFlashcards(String model,String source,int count) {
-        String instruction="제공된 학습자료만 근거로 암기용 플래시카드를 JSON 배열로 작성하세요. 선택한 요점 정리가 포함되어 있으면 그 정리를 우선 카드 범위로 삼고 노트와 첨부자료는 사실 확인에만 사용하세요. "
+        String instruction="제공된 학습자료만 근거로 고품질 암기용 플래시카드를 JSON 배열로 작성하세요. 선택한 요점 정리가 포함되어 있으면 그 정리를 우선 카드 범위로 삼고 노트와 첨부자료는 사실 확인에만 사용하세요. "
                 +"노트 템플릿의 비어 있는 항목과 작성 안내 문구는 카드 내용에서 제외하세요. "
-                +"각 카드는 한 가지 핵심 개념이나 원리만 확인하도록 만들고, 앞면은 구체적이고 자립적으로 이해되는 질문, 뒷면은 짧고 정확한 답으로 작성하세요. "
-                +"'보기 중 몇 번', 선택지 번호, 자료의 문장 위치나 단순 문구 찾기를 묻지 말고, 서로 중복되는 카드도 피하세요. "
-                +"정의 암기만 반복하지 말고 가능한 범위에서 개념의 차이·관계·적용 사례를 섞되 자료에 없는 사례나 사실은 만들지 마세요. "
-                +"각 원소는 front, back, explanation, source 필드만 가져야 하며 앞면은 질문, 뒷면은 정확한 답이어야 합니다. "
+                +"먼저 자료에서 독립적으로 회상할 수 있는 개념·관계·절차 후보를 추출하고, 각 후보를 한 가지 학습 목표에만 배정한 뒤 카드를 작성하세요. 카드 수를 맞추기 위해 같은 문장을 쪼개거나 표현만 바꿔 반복하지 마세요. "
+                +"카드마다 type을 DEFINITION, MECHANISM, COMPARISON, CAUSE_EFFECT, APPLICATION, PROCESS 중 하나로 지정하고, 자료가 허용하는 범위에서 유형을 고르게 섞으세요. 정의만 반복하지 말고 개념의 의미, 작동 원리, 차이와 관계, 원인과 결과, 절차, 실제 적용 판단을 서로 다른 카드로 만드세요. "
+                +"앞면(front)은 답을 포함하지 않는 자립적인 질문이어야 합니다. 원문 문장을 따옴표로 복사하거나 답의 핵심 구절을 질문에 미리 넣지 마세요. '보기 중 몇 번', 선택지 번호, 자료의 문장 위치나 단순 문구 찾기를 묻지 마세요. "
+                +"뒷면(back)은 질문에 직접 답하는 1~3문장 또는 짧은 목록이어야 하며, 앞면을 그대로 반복하거나 질문을 평서문으로 바꾼 문장을 쓰지 마세요. 설명(explanation)은 답을 다시 복사하지 말고 왜 그런지, 어떤 조건에서 적용되는지, 무엇과 혼동하는지를 자료에 근거해 덧붙이세요. "
+                +"서로 같은 근거를 표현만 바꿔 반복하는 카드, 동일하거나 거의 같은 답, 정보가 한 단어뿐인 카드는 만들지 마세요. 자료에 근거가 부족한 유형은 억지로 채우지 말고 다른 근거가 있는 유형을 선택하세요. "
+                +"출력 직전에 각 카드를 내부 검수하세요: 앞면만 보았을 때 답을 그대로 맞힐 수 없는가, 뒷면이 질문에 실제로 답하는가, 설명이 답 이상의 이유·조건·혼동 포인트를 제공하는가, 다른 카드와 질문·답·근거가 겹치지 않는가를 모두 확인하고 하나라도 실패한 카드는 폐기한 뒤 다른 근거로 교체하세요. "
+                +"각 원소는 type, front, back, explanation, source 필드만 가져야 하며 앞면은 질문, 뒷면은 정확한 답이어야 합니다. "
                 +"source에는 입력에 나타난 요점 정리 제목, 노트 제목·버전 또는 파일명과 PDF 페이지·슬라이드·HWP 구역 표기를 그대로 적으세요. "
                 +"카드 수는 정확히 "+count+"개이고 JSON 외의 설명은 출력하지 마세요.";
         Result result=requestStructured(model,instruction,source,"FLASHCARD");
@@ -153,15 +157,20 @@ public class GeminiGenerator {
             JsonNode array=json.readTree(result);
             if(!array.isArray() || array.size()!=count) throw new Failure("PROVIDER_INVALID_RESULT");
             var items=new ArrayList<GeneratedCard>();
-            var seenFronts=new HashSet<String>();
+            var seenFronts=new ArrayList<String>();
+            var seenBacks=new ArrayList<String>();
+            var seenTypes=new HashSet<String>();
             for(JsonNode item:array) {
-                if(!item.path("front").isTextual() || !item.path("back").isTextual() || !item.path("explanation").isTextual() || !item.path("source").isTextual()) throw new Failure("PROVIDER_INVALID_RESULT");
-                String front=item.path("front").asText().strip(),back=item.path("back").asText().strip(),explanation=item.path("explanation").asText().strip(),sourceLabel=item.path("source").asText().strip();
-                if(front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300
-                        || refersToItemPosition(front) || !seenFronts.add(normalizedQuestion(front))
-                        || (normalizedQuestion(back).length()>=12 && normalizedQuestion(front).contains(normalizedQuestion(back)))) throw new Failure("PROVIDER_INVALID_RESULT");
-                items.add(new GeneratedCard(front,back,explanation,sourceLabel));
+                if(!item.path("type").isTextual() || !item.path("front").isTextual() || !item.path("back").isTextual() || !item.path("explanation").isTextual() || !item.path("source").isTextual()) throw new Failure("PROVIDER_INVALID_RESULT");
+                String type=item.path("type").asText().strip(),front=item.path("front").asText().strip(),back=item.path("back").asText().strip(),explanation=item.path("explanation").asText().strip(),sourceLabel=item.path("source").asText().strip();
+                if(!FLASHCARD_TYPES.contains(type) || front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300
+                        || refersToItemPosition(front) || !looksLikeQuestion(front) || sameQuestion(front,seenFronts)
+                        || tooSimilar(front,back) || sameAnswer(back,seenBacks) || redundantExplanation(back,explanation)) throw new Failure("PROVIDER_INVALID_RESULT");
+                seenFronts.add(front); seenBacks.add(back); seenTypes.add(type);
+                items.add(new GeneratedCard(type,front,back,explanation,sourceLabel));
             }
+            int requiredTypes=count>=9?3:count>=5?2:1;
+            if(seenTypes.size()<requiredTypes) throw new Failure("PROVIDER_INVALID_RESULT");
             return items;
         } catch(Failure failure) { throw failure; }
         catch(Exception failure) { throw new Failure("PROVIDER_INVALID_RESULT"); }
@@ -169,6 +178,49 @@ public class GeminiGenerator {
 
     private static String normalizedQuestion(String value) {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
+    }
+
+    private static Set<String> contentTokens(String value) {
+        var tokens=new HashSet<String>();
+        var matcher=java.util.regex.Pattern.compile("[\\p{L}\\p{N}]{2,}").matcher(value.toLowerCase(Locale.ROOT));
+        while(matcher.find()) tokens.add(matcher.group());
+        return tokens;
+    }
+
+    private static boolean tooSimilar(String first,String second) {
+        String a=normalizedQuestion(first),b=normalizedQuestion(second);
+        if(a.isBlank()||b.isBlank()) return true;
+        if(a.equals(b)) return true;
+        if(a.length()>=12 && (a.contains(b)||b.contains(a))) return true;
+        Set<String> left=contentTokens(first),right=contentTokens(second);
+        if(left.isEmpty()||right.isEmpty()) return false;
+        long overlap=left.stream().filter(right::contains).count();
+        return overlap>=3 && overlap/(double)Math.min(left.size(),right.size())>=0.65;
+    }
+
+    private static boolean sameAnswer(String answer,List<String> previous) {
+        return previous.stream().anyMatch(old->tooSimilar(answer,old));
+    }
+
+    private static boolean sameQuestion(String question,List<String> previous) {
+        String normalized=normalizedQuestion(question);
+        return previous.stream().anyMatch(old->normalized.equals(normalized)||tooSimilar(question,old));
+    }
+
+    private static boolean redundantExplanation(String answer,String explanation) {
+        String left=normalizedQuestion(answer),right=normalizedQuestion(explanation);
+        if(left.equals(right)) return true;
+        Set<String> answerTokens=contentTokens(answer),explanationTokens=contentTokens(explanation);
+        if(answerTokens.isEmpty()||explanationTokens.isEmpty()) return false;
+        long overlap=answerTokens.stream().filter(explanationTokens::contains).count();
+        return overlap>=3 && overlap/(double)explanationTokens.size()>=0.82
+                && explanationTokens.size()<=answerTokens.size()*1.6;
+    }
+
+    private static boolean looksLikeQuestion(String front) {
+        if(front.contains("?")) return true;
+        String clean=front.replaceAll("[\\s.,。]+$", "");
+        return clean.matches(".*(무엇|어떤|어떻게|왜|설명|정의|비교|차이|관계|원리|과정|순서|적용|기준|역할|의미|구분|선택).*");
     }
 
     private static boolean refersToItemPosition(String prompt) {
@@ -242,6 +294,7 @@ public class GeminiGenerator {
             fields.put("hint",Map.of("type","string","maxLength",300));
             fields.put("explanation",Map.of("type","string","maxLength",1000));
         } else {
+            fields.put("type",Map.of("type","string","enum",List.copyOf(FLASHCARD_TYPES)));
             fields.put("front",Map.of("type","string","maxLength",1000));
             fields.put("back",Map.of("type","string","maxLength",4000));
             fields.put("explanation",Map.of("type","string","maxLength",2000));
@@ -284,7 +337,7 @@ public class GeminiGenerator {
         }
     }
     record GeneratedQuiz(String prompt,List<String> options,int correctIndex,String hint,String explanation,String source) {}
-    record GeneratedCard(String front,String back,String explanation,String source) {}
+    record GeneratedCard(String type,String front,String back,String explanation,String source) {}
     record Result(String text,long promptTokens,long outputTokens) {}
     record QuizResult(List<GeneratedQuiz> questions,long promptTokens,long outputTokens) {}
     record CardResult(List<GeneratedCard> cards,long promptTokens,long outputTokens) {}

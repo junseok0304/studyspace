@@ -48,7 +48,7 @@ class FlashcardTests {
         var owner=user(Long.toString(userId));
         mvc.perform(post("/api/notes/spaced-note/flashcard-decks").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"requestId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"cardCount\":3}")).andExpect(status().isCreated());
         String card=db.queryForObject("select id from flashcards where deck_id=(select id from flashcard_decks where user_id=?) order by card_order limit 1",String.class,userId);
-        assertEquals("‘프로세스 스레드 동기화’의 핵심 내용을 설명해 보세요.",db.queryForObject("select front_text from flashcards where id=?",String.class,card));
+        assertEquals("프로세스의 의미와 핵심 특징을 한 문장으로 설명하면 무엇인가요?",db.queryForObject("select front_text from flashcards where id=?",String.class,card));
         reviewCard(owner,card,"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","KNOWN"); assertState(card,1,1);
         reviewCard(owner,card,"cccccccc-cccc-4ccc-8ccc-cccccccccccc","KNOWN"); assertState(card,2,3);
         reviewCard(owner,card,"dddddddd-dddd-4ddd-8ddd-dddddddddddd","KNOWN"); assertState(card,3,7);

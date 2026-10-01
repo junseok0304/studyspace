@@ -3,6 +3,9 @@ import {createPracticeListItem, renderPracticeList} from './practice-list.js';
 /** Flashcard creation, study/review session, and deck/card management. */
 export function mountFlashcards({request, byId, getCourse, getEditor, setLocked, emptyState, getAttachmentIds, matchesAiMode = () => true}) {
   const el = byId;
+  const typeLabels = {DEFINITION: '정의', MECHANISM: '작동 원리', COMPARISON: '비교', CAUSE_EFFECT: '원인·결과', APPLICATION: '적용', PROCESS: '절차', CUSTOM: '직접 작성'};
+  const typeOptions = Object.entries(typeLabels);
+  const typeLabel = value => typeLabels[value] || typeLabels.CUSTOM;
   let version = 0;
   let loadedDecks = [];
   const generatingNotes = new Set();
@@ -56,9 +59,11 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       const card = cards[index];
       const header = document.createElement('div'); header.className = 'flashcard-study-head';
       const count = document.createElement('span'); count.textContent = `${cards.length}장 중 ${index + 1}번째 카드`;
+      const type = document.createElement('span'); type.className = 'flashcard-type'; type.textContent = typeLabel(card.type);
       const flip = document.createElement('button'); flip.type = 'button'; flip.className = 'quiet-button'; flip.textContent = flipped ? '앞면 보기' : '뒤집기';
       flip.onclick = () => { if (reviewPending) return; flipped = !flipped; render(); };
-      header.append(count, flip); player.append(header);
+      const heading = document.createElement('span'); heading.className = 'flashcard-study-kind'; heading.append(count, type);
+      header.append(heading, flip); player.append(header);
       const face = document.createElement('button'); face.type = 'button';
       face.className = `flashcard-study-card${flipped ? ' answer' : ''}`;
       face.textContent = flipped ? card.back : card.front;
@@ -67,7 +72,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       const meta = document.createElement('p'); meta.className = 'flashcard-meta';
       const provenance = [card.explanation, card.source].map(value => String(value || '').trim()).filter(Boolean);
       const uniqueProvenance = provenance.filter((value, position) => !provenance.some((other, otherPosition) => otherPosition !== position && other.length >= value.length + 6 && other.includes(value)));
-      meta.textContent = flipped ? uniqueProvenance.join(' · ') : `${index + 1}/${cards.length} · 눌러서 답 보기`;
+      meta.textContent = flipped ? uniqueProvenance.join(' · ') : `${typeLabel(card.type)} · 눌러서 답 보기`;
       player.append(face, meta);
       const pageActions = document.createElement('div'); pageActions.className = 'flashcard-page-actions';
       const previous = document.createElement('button'); previous.type = 'button'; previous.className = 'secondary'; previous.textContent = '‹ 이전'; previous.disabled = index === 0;
@@ -136,12 +141,15 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       const front = document.createElement('textarea'); front.rows = 2; front.maxLength = 1000; front.value = card.front; front.setAttribute('aria-label', '카드 앞면');
       const back = document.createElement('textarea'); back.rows = 3; back.maxLength = 4000; back.value = card.back; back.setAttribute('aria-label', '카드 뒷면');
       const explanation = document.createElement('textarea'); explanation.rows = 2; explanation.maxLength = 2000; explanation.value = card.explanation; explanation.setAttribute('aria-label', '카드 해설');
+      const type = document.createElement('select'); type.setAttribute('aria-label', '카드 유형');
+      for (const [value, label] of typeOptions) { const option = document.createElement('option'); option.value = value; option.textContent = label; type.append(option); }
+      type.value = typeLabels[card.type] ? card.type : 'CUSTOM';
       const actions = document.createElement('div'); actions.className = 'generation-actions';
       const save = document.createElement('button'); save.type = 'button'; save.className = 'secondary'; save.textContent = '수정 저장';
       save.onclick = async () => {
         save.disabled = true;
         try {
-          await request(`/api/flashcards/${encodeURIComponent(card.id)}`, {method: 'PATCH', body: JSON.stringify({front: front.value, back: back.value, explanation: explanation.value})});
+          await request(`/api/flashcards/${encodeURIComponent(card.id)}`, {method: 'PATCH', body: JSON.stringify({front: front.value, back: back.value, explanation: explanation.value, type: type.value})});
           await reload(); el('flashcard-message').textContent = '카드를 수정했습니다.';
         } catch (error) { el('flashcard-message').textContent = error.message; save.disabled = false; }
       };
@@ -151,7 +159,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
         try { await request(`/api/flashcards/${encodeURIComponent(card.id)}`, {method: 'DELETE'}); await reload(); await loadFlashcardDecks(getCourse()?.id); }
         catch (error) { el('flashcard-message').textContent = error.message; }
       };
-      actions.append(save, remove); row.append(front, back, explanation, actions); player.append(row);
+      actions.append(save, remove); row.append(type, front, back, explanation, actions); player.append(row);
     }
     const add = document.createElement('button'); add.type = 'button'; add.className = 'primary'; add.textContent = '새 카드 추가';
     add.onclick = async () => {

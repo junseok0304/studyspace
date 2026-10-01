@@ -52,7 +52,7 @@ class GeminiGeneratorTests {
         assertEquals("프로그램과 실행 상태의 차이를 생각해 보세요.",questions.getFirst().hint());
         assertEquals("프로세스란?",questions.getFirst().prompt());
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz(quiz,2));
-        String cards="[{\"front\":\"TCP란?\",\"back\":\"연결 지향 프로토콜\",\"explanation\":\"신뢰성 있는 전송을 제공합니다.\",\"source\":\"노트 1\"}]";
+        String cards="[{\"type\":\"DEFINITION\",\"front\":\"TCP란?\",\"back\":\"연결 지향 프로토콜\",\"explanation\":\"신뢰성 있는 전송을 제공합니다.\",\"source\":\"노트 1\"}]";
         assertEquals("TCP란?",generator.parseFlashcards(cards,1).getFirst().front());
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(cards.replace("노트 1",""),1));
     }
@@ -62,6 +62,7 @@ class GeminiGeneratorTests {
         assertTrue(encoded.contains("\"hint\""));
         assertTrue(encoded.contains("\"integer\""));
         assertTrue(encoded.contains("\"additionalProperties\":false"));
+        assertTrue(new ObjectMapper().writeValueAsString(GeminiGenerator.structuredSchema("FLASHCARD")).contains("\"type\""));
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz("""
             [{"prompt":"질문","options":["가","나","다","라"],"correctIndex":0.5,"hint":"힌트","explanation":"설명","source":"노트"}]
             """,1));
@@ -78,11 +79,15 @@ class GeminiGeneratorTests {
     }
 
     @Test void rejectsFlashcardsThatRevealTheirAnswerOrRepeatTheQuestion() {
-        String template="[{\"front\":\"%s\",\"back\":\"프로세스는 실행 중인 프로그램입니다.\",\"explanation\":\"실행 상태가 핵심입니다.\",\"source\":\"강의노트\"}]";
+        String template="[{\"type\":\"DEFINITION\",\"front\":\"%s\",\"back\":\"프로세스는 실행 중인 프로그램입니다.\",\"explanation\":\"실행 상태가 핵심입니다.\",\"source\":\"강의노트\"}]";
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(template.formatted("‘프로세스는 실행 중인 프로그램입니다.’의 핵심은?"),1));
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(template.formatted("원문의 3번째 문장은 무엇인가요?"),1));
         String duplicate=template.formatted("프로세스란?").replaceFirst("\\]$", ","+template.formatted("프로세스란 !").substring(1));
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(duplicate,2));
+        String repeatedAnswer="[{\"type\":\"DEFINITION\",\"front\":\"프로세스란?\",\"back\":\"실행 중인 프로그램\",\"explanation\":\"실행 상태를 뜻합니다.\",\"source\":\"강의노트\"},{\"type\":\"MECHANISM\",\"front\":\"프로세스의 역할은?\",\"back\":\"실행 중인 프로그램\",\"explanation\":\"프로그램 실행 상태와 관련됩니다.\",\"source\":\"강의노트\"}]";
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(repeatedAnswer,2));
+        String answerInFront="[{\"type\":\"DEFINITION\",\"front\":\"프로세스는 실행 중인 프로그램입니다.의 의미는?\",\"back\":\"프로세스는 실행 중인 프로그램입니다.\",\"explanation\":\"실행 상태를 뜻합니다.\",\"source\":\"강의노트\"}]";
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(answerInFront,1));
     }
 
     @Test void providerErrorsHaveActionableMessagesWithoutSecrets() {

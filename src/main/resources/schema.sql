@@ -299,10 +299,12 @@ create table if not exists flashcards (
     back_text text not null,
     explanation text not null,
     source_label varchar(300) not null,
+    card_type varchar(30) not null default 'CUSTOM',
     unique (deck_id, card_order),
     foreign key (deck_id) references flashcard_decks(id) on delete cascade
 );
 
+alter table flashcards add column if not exists card_type varchar(30) not null default 'CUSTOM';
 alter table flashcards add column if not exists repetition integer not null default 0;
 alter table flashcards add column if not exists interval_days integer not null default 1;
 

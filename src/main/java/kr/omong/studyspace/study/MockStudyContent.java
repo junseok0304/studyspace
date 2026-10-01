@@ -3,9 +3,12 @@ package kr.omong.studyspace.study;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Extracts readable source passages for development-mode study previews. */
 final class MockStudyContent {
+    private static final Pattern SUBJECT = Pattern.compile("^(.{1,40}?)(?:은|는|이|가|란|을|를|의)\\s*");
     private MockStudyContent() {}
 
     static List<String> passages(String... sources) {
@@ -37,6 +40,35 @@ final class MockStudyContent {
     static List<String> passagesExcluding(String excludedText, String... sources) {
         String excluded = excludedText == null ? "" : excludedText.strip();
         return passages(sources).stream().filter(value -> !value.equals(excluded)).toList();
+    }
+
+    /**
+     * Splits long source lines at natural connectors so a short mock source does not
+     * produce the same answer for every requested card.
+     */
+    static List<String> cardPassages(String... sources) {
+        var result = new LinkedHashSet<String>();
+        for (String passage : passages(sources)) {
+            if (passage == null || passage.isBlank()) continue;
+            String[] fragments = passage.split("(?<=[,;:：])\\s+|\\s+(?=(?:그리고|또한|반면|따라서|즉|하지만)\\s+)");
+            for (String fragment : fragments) {
+                String clean = fragment.strip();
+                if (clean.length() >= 12) result.add(clean);
+            }
+            result.add(passage);
+        }
+        return new ArrayList<>(result);
+    }
+
+    /** Returns a compact concept label for mock questions without copying the answer. */
+    static String subject(String passage) {
+        String clean = passage == null ? "" : passage.replaceAll("^[‘’'\" ]+|[.。!?！？]+$", "").strip();
+        Matcher matcher = SUBJECT.matcher(clean);
+        if (matcher.find()) return clip(matcher.group(1), 36).strip();
+        int boundary = clean.indexOf(',');
+        if (boundary < 0) boundary = clean.indexOf(' ');
+        if (boundary > 0) return clip(clean.substring(0, boundary), 36).strip();
+        return clip(clean, 24);
     }
 
     static String clip(String text, int maxLength) {
