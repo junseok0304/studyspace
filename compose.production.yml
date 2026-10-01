@@ -37,3 +37,4 @@ services:
 volumes:
   studyspace-runtime:
     name: studyspace-runtime
+    external: true
