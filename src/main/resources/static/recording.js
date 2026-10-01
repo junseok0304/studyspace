@@ -278,6 +278,8 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
   async function loadRecordings(courseId = getCourse()?.id, fallbackNoteId = getEditor().id) {
     const editor = getEditor();
     const currentCourse = getCourse();
+    const recordingMessage = el('recording-message').textContent;
+    if (!activeRecording || recordingMessage.startsWith('연결된 강의노트를')) el('recording-message').textContent = '';
     const requestVersion = ++version;
     setLocked(el('start-recording'), !editor.id || !!activeRecording, !editor.id ? '노트를 먼저 저장하면 녹음할 수 있어요.' : (activeRecording ? '이미 녹음이 진행 중입니다.' : ''));
     if (!courseId) { el('recordings').textContent = '과목을 선택하면 해당 과목의 녹음이 표시됩니다.'; return; }
