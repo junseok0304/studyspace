@@ -259,7 +259,7 @@
 .notesup-workspace .study-dashboard .course-progress-row{
   grid-template-columns: minmax(0, 1fr) 120px;
   gap: 4px 12px;
-  padding: 9px 0;
+  padding: 4px 0;
   border-top: 1px solid #f0f2f5;
   display: grid;
   align-items: center;

@@ -376,9 +376,9 @@
   background: #edf3ff;
 }
 .notesup-workspace .course-menu > #dashboard-button{
-  color: #5368c5;
-  border: 1px solid #e1e7ff;
-  background: #f2f4ff;
+  color: #65718b;
+  border: 1px solid transparent;
+  background: transparent;
 }
 .notesup-workspace .course-menu > #dashboard-button:hover,
 .notesup-workspace .course-menu > #dashboard-button[aria-pressed="true"]{
