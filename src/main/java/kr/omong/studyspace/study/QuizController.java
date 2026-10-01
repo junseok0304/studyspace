@@ -138,8 +138,12 @@ public class QuizController {
         }
         var correct=db.queryForList("select q.correct_index from quiz_attempt_questions aq join quiz_questions q on q.id=aq.question_id where aq.attempt_id=? and aq.question_id=?",Integer.class,attemptId,questionId);
         if(correct.isEmpty()) throw new AuthException("문항을 찾을 수 없습니다.",404); boolean value=correct.getFirst()==input.selectedIndex();
-        int updated=db.update("update quiz_answers set selected_index=?,correct=?,answered_at=current_timestamp where attempt_id=? and question_id=?",input.selectedIndex(),value,attemptId,questionId);
-        if(updated==0) try { db.update("insert into quiz_answers(attempt_id,question_id,selected_index,correct) values(?,?,?,?)",attemptId,questionId,input.selectedIndex(),value); } catch(DuplicateKeyException race) { db.update("update quiz_answers set selected_index=?,correct=?,answered_at=current_timestamp where attempt_id=? and question_id=?",input.selectedIndex(),value,attemptId,questionId); }
+        try {
+            db.update("insert into quiz_answers(attempt_id,question_id,selected_index,correct) values(?,?,?,?)",attemptId,questionId,input.selectedIndex(),value);
+        } catch(DuplicateKeyException race) {
+            var saved=db.queryForList("select selected_index from quiz_answers where attempt_id=? and question_id=?",Integer.class,attemptId,questionId);
+            if(saved.isEmpty() || saved.getFirst()!=input.selectedIndex()) throw new AuthException("이 문항은 이미 답을 제출해 채점이 끝났습니다.",409);
+        }
         return attempt(attemptId,user,false);
     }
 
