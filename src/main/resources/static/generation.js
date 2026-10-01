@@ -22,8 +22,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
   };
   const needsSummaryRefresh = content => {
     const text = String(content || '');
-    const listItems = text.match(/^\s*(?:[-*+]|\d+[.)])\s+/gm) || [];
-    return /(?:원문 미리보기|원문 내용의 흐름|실제 생성 전 확인|핵심 개념 · 내용|개발용 미리보기)/i.test(text) || listItems.length >= 3;
+    return /(?:원문 미리보기|원문 내용의 흐름|실제 생성 전 확인|핵심 개념 · 내용|개발용 미리보기)/i.test(text);
   };
 
   async function load(noteId) {
@@ -136,8 +135,13 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
         coverageRefreshKeys.add(refreshKey);
         message.textContent = '긴 노트의 주요 내용을 더 충실히 담도록 요약을 보완하고 있습니다.';
         const started = await start('SUMMARY', existing.id);
-        if (!started) coverageRefreshKeys.delete(refreshKey);
-        return started;
+        if (!started) {
+          const failure = message.textContent;
+          message.textContent = /오늘의 생성 한도/.test(failure)
+            ? '저장된 요약을 표시합니다. 오늘은 추가 보완을 할 수 없습니다.'
+            : '저장된 요약을 표시합니다. 보완 생성에 실패해 기존 내용을 유지합니다.';
+        }
+        return true;
       }
       message.textContent = '';
       return true;

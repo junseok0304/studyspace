@@ -70,7 +70,7 @@ test('feature controllers keep their request, state, and rendering paths connect
     if (path === '/api/notes/note-1/flashcard-decks' && options.method === 'POST') return {id: 'deck-new', noteId: 'note-1', title: '새 플래시카드', cardCount: 8, sourceNoteVersion: 3, mockResult: true, cards: [{id: 'card-new', front: 'HTTP 요청은?', back: '클라이언트가 서버에 정보를 전달합니다.', explanation: '요청 단계', source: '강의노트'}]};
     if (path === '/api/notes/note-1/generations' && options.method === 'POST') { summaryContent = '## 요약\n\nHTTP 요청은 클라이언트와 서버가 정보를 주고받는 과정입니다.'; return {id:'summary-2'}; }
     if (path === '/api/notes/note-1/generations' && (!options.method || options.method === 'GET')) return [
-      {id: 'summary-1', kind: 'SUMMARY', status: 'COMPLETED', title: '요점 정리', sourceNoteVersion: 3, mockResult:true, attachmentCount: uploadedFile ? 1 : 0, content: summaryContent},
+      {id: 'summary-1', kind: 'SUMMARY', status: 'COMPLETED', title: '요점 정리', sourceNoteVersion: 3, mockResult:true, attachmentCount: 1, sourceAttachmentIds:['attachment-1'], content: summaryContent},
       {id: 'mindmap-1', kind: 'MIND_MAP', status: 'COMPLETED', title: 'HTTP 흐름', sourceNoteVersion: 3, content: JSON.stringify({label: 'HTTP 요청 흐름', children: [{label: '클라이언트 요청', children: []}, {label: '서버 응답', children: []}]})},
       {id: 'infographic-1', kind: 'INFOGRAPHIC', status: 'COMPLETED', title: 'HTTP 요청 흐름', sourceNoteVersion: 3, mockResult: true, attachmentCount: 1, content: '# HTTP 요청 흐름\n\n## 요청\n\n- 클라이언트가 정보를 전달합니다.'}
     ];
@@ -137,14 +137,15 @@ test('feature controllers keep their request, state, and rendering paths connect
     await generation.load(editor.id);
     const summaryRequestsBeforeListRefresh = calls.filter(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST').length;
     await generation.openSummary();
-    assert.equal(calls.filter(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST').length, summaryRequestsBeforeListRefresh + 1);
+    assert.equal(calls.filter(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST').length, summaryRequestsBeforeListRefresh);
+    assert.equal(byId('summary-message').textContent, '');
     await generation.openInfographic();
     assert.equal(calls.some(call => call.options.method === 'POST' && JSON.parse(call.options.body).kind === 'INFOGRAPHIC'), false);
     assert.equal(rendered.rows.find(row => row.kind === 'INFOGRAPHIC').status, 'COMPLETED');
     const generationCreate = calls.find(call => call.path.endsWith('/notes/note-1/generations') && call.options.method === 'POST');
     assert.equal(JSON.parse(generationCreate.options.body).kind, 'SUMMARY');
     assert.deepEqual(JSON.parse(generationCreate.options.body).attachmentIds, ['attachment-1']);
-    assert.match(rendered.rows.find(row => row.kind === 'SUMMARY').content, /HTTP 요청은 클라이언트와 서버가 정보를 주고받는 과정/);
+    assert.match(rendered.rows.find(row => row.kind === 'SUMMARY').content, /서버가 요청을 처리합니다/);
     assert.equal(byId('summary-message').textContent, '');
     assert.match(rendered.rows.find(row => row.kind === 'MIND_MAP').content, /클라이언트 요청/);
 
@@ -230,6 +231,28 @@ test('summary coverage estimate excludes hidden AI metadata from the note length
   await generation.openSummary();
 
   assert.equal(calls.some(call=>call.options.method==='POST'),false);
+  dom.window.close();
+});
+
+test('a saved summary stays readable when automatic coverage refresh hits the daily limit', async () => {
+  const dom=new JSDOM(markup,{url:'http://localhost:8091/'});
+  const byId=id=>dom.window.document.getElementById(id);
+  const calls=[];
+  const summary='핵심 내용을 설명합니다. '.repeat(24);
+  const editor={id:'note-1',version:1,title:'강의노트',body:'수업 내용 '.repeat(340)};
+  const request=async(path,options={})=>{
+    calls.push({path,options});
+    if(options.method==='POST') throw new Error('오늘의 생성 한도(30회)에 도달했습니다.');
+    return [{id:'summary-existing',kind:'SUMMARY',status:'COMPLETED',sourceNoteVersion:1,sourceAttachmentIds:[],content:summary}];
+  };
+  const generation=mountGeneration({request,byId,getEditor:()=>editor,getAttachmentIds:()=>[],render:()=>{}});
+
+  assert.equal(await generation.openSummary(),true);
+  assert.match(byId('summary-message').textContent,/저장된 요약을 표시합니다/);
+  assert.match(byId('summary-message').textContent,/오늘은 추가 보완/);
+  assert.equal(calls.filter(call=>call.options.method==='POST').length,1);
+  assert.equal(await generation.openSummary(),true);
+  assert.equal(calls.filter(call=>call.options.method==='POST').length,1);
   dom.window.close();
 });
 
