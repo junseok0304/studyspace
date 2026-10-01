@@ -138,6 +138,21 @@ test('infographic avoids markdown, numbering, and repeated label text in legacy 
   dom.window.close();
 });
 
+test('infographic strips legacy book emoji and numbering from page titles', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const container = dom.window.document.getElementById('stage');
+  const content = JSON.stringify({pages:[{title:'📚 2. 수업 개요 및 학습 환경',subtitle:'학습 환경을 정리합니다.',relation:'환경과 도구',layout:'flow',nodes:[
+    {label:'수업 주제',detail:'AI 코딩 도구를 활용해 실습합니다.',icon:'idea'}
+  ]}]});
+  renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=dom.window.document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.match(svg.textContent,/수업 개요 및 학습 환경/);
+  assert.doesNotMatch(svg.textContent,/📚|2\./);
+  dom.window.close();
+});
+
 test('legacy text infographic removes title-only duplicates instead of rendering empty cards', () => {
   const dom=new JSDOM('<!doctype html><div id="stage"></div>');
   const container=dom.window.document.getElementById('stage');

@@ -293,7 +293,7 @@ function svgText(document, id, text, x, y, className, anchor = 'start', lineHeig
 
 function cleanText(value) {
   return String(value || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ')
-    .replace(/^[📌📍🧭✨⭐️]+\s*/u, '').replace(/^\d+[.)]\s*/, '')
+    .replace(/^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u, '').replace(/^\d+[.)]\s*/, '')
     .replace(/\*\*|__|\*|_|`|~~/g, '').trim();
 }
 function escapeRegex(value) { return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
