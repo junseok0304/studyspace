@@ -11,6 +11,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -108,6 +109,7 @@ public class GenerationWorker {
         String excerpt=String.join("\n\n",passages.stream().limit(8).map(value->"- "+value).toList());
         String lead=passages.getFirst();
         String sourcePreview=sourcePreview(sources);
+        if("INFOGRAPHIC".equals(input.kind())) return mockInfographic(input.title(),passages);
         if("MIND_MAP".equals(input.kind())) {
             var children=new java.util.ArrayList<MindNode>();
             for(String part:passages){String value=MockStudyContent.clip(part,72);children.add(new MindNode(value,List.of()));if(children.size()==8)break;}
@@ -158,6 +160,26 @@ public class GenerationWorker {
                 생성 근거: `%s` 버전 %d
                 %s
                 """.formatted(input.title(),input.version(),sourcePreview);
+    }
+
+    private String mockInfographic(String title,List<String> passages) {
+        var pages=new java.util.ArrayList<Map<String,Object>>();
+        int pageCount=Math.min(3,Math.max(1,(passages.size()+3)/4));
+        for(int page=0;page<pageCount;page++) {
+            int from=page*4,to=Math.min(passages.size(),from+4);
+            var nodes=new java.util.ArrayList<Map<String,String>>();
+            for(int index=from;index<to;index++) {
+                String detail=MockStudyContent.clip(passages.get(index),180);
+                String label=detail.length()>28?detail.substring(0,28).stripTrailing()+"…":detail;
+                String icon=detail.matches(".*(보안|기밀|권한|접근).*")?"shield":detail.matches(".*(데이터|정보).*")?"data":"idea";
+                nodes.add(Map.of("label",label,"detail",detail,"icon",icon));
+            }
+            while(nodes.size()<2) nodes.add(Map.of("label","핵심 개념","detail",MockStudyContent.clip(passages.isEmpty()?title:passages.getFirst(),180),"icon","idea"));
+            pages.add(Map.of("title",page==0?title:passages.get(from).substring(0,Math.min(38,passages.get(from).length())),
+                    "subtitle","노트의 핵심 개념을 연결해 시각적으로 정리했습니다.","relation","개념을 순서와 관계에 따라 살펴보세요.","layout","flow","nodes",nodes));
+        }
+        try { return json.writeValueAsString(Map.of("pages",pages)); }
+        catch(Exception failure) { throw new IllegalStateException("인포그래픽 미리보기를 만들지 못했습니다.",failure); }
     }
 
     private String sourcePreview(List<Source> sources) {

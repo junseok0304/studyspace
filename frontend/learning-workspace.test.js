@@ -95,6 +95,64 @@ test('infographic content is paginated with working accessible navigation', () =
   dom.window.close();
 });
 
+test('infographic JSON is rendered as a visual diagram with connected concept cards', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const document = dom.window.document;
+  const container = document.getElementById('stage');
+  const content = JSON.stringify({pages:[{title:'사실에서 정보까지',subtitle:'표현과 해석을 거쳐 의미가 만들어집니다.',relation:'객관적 사실 → 기호로 표현 → 해석된 정보',layout:'flow',nodes:[
+    {label:'사실',detail:'실제로 존재하거나 발생한 객관적인 내용입니다.',icon:'idea'},
+    {label:'데이터',detail:'사실을 문자·숫자·기호로 표현한 형태입니다.',icon:'data'},
+    {label:'정보',detail:'데이터를 가공하고 해석해 의미와 가치를 부여합니다.',icon:'network'}
+  ]},{title:'보안의 3대 요소',subtitle:'정보를 안전하게 다루기 위한 서로 다른 기준입니다.',relation:'기밀성 · 무결성 · 가용성이 함께 보안을 이룹니다.',layout:'hub',nodes:[
+    {label:'기밀성',detail:'허가된 사람만 정보에 접근할 수 있습니다.',icon:'lock'},
+    {label:'무결성',detail:'정보가 정확하고 온전하게 유지됩니다.',icon:'check'}
+  ]}]});
+  renderInfographicPages(document,container,{title:'정보보호개론',content,renderMarkdown:value=>{const node=document.createElement('div');node.textContent=value;return node;}});
+  const svg=container.querySelector('.infographic-visual');
+  assert.ok(svg);
+  assert.equal(svg.querySelectorAll('.infographic-node').length,3);
+  assert.equal(svg.querySelectorAll('path[marker-end]').length,2);
+  assert.match(svg.textContent,/사실에서 정보까지/);
+  assert.match(container.querySelector('.infographic-semantic-content').textContent,/데이터를 가공하고 해석/);
+  assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 2');
+  container.querySelector('.infographic-page-controls button:last-child').click();
+  assert.equal(container.querySelector('.infographic-visual').classList.contains('infographic-layout-hub'),true);
+  dom.window.close();
+});
+
+test('infographic avoids markdown, numbering, and repeated label text in legacy saved diagrams', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const container = dom.window.document.getElementById('stage');
+  const content = JSON.stringify({pages:[{title:'📌 1. **핵심 주제**',subtitle:'핵심 개념을 연결합니다. 핵심 개념 사이의 연결',relation:'핵심 개념 사이의 연결',layout:'flow',nodes:[
+    {label:'**핵심 개념**',detail:'핵심 개념',icon:'idea'},
+    {label:'데이터',detail:'사실을 문자와 기호로 표현합니다.',icon:'data'}
+  ]}]});
+  renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=dom.window.document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.match(svg.textContent,/핵심 주제/);
+  assert.doesNotMatch(svg.textContent,/📌|\*\*/);
+  assert.equal(svg.querySelectorAll('.node-detail').length,1);
+  assert.doesNotMatch(svg.querySelector('.subtitle').textContent,/핵심 개념 사이의 연결/);
+  dom.window.close();
+});
+
+test('legacy text infographic removes title-only duplicates instead of rendering empty cards', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const container=dom.window.document.getElementById('stage');
+  const content='# 📌 1. 핵심 요약 (Overview)\n\n## 핵심 내용\n\n- 수업 및 학습 환경\n- GitHub Copilot을 활용하여 Python 및 JavaScript 기반 실습 진행\n- VS Code, Node.js, Python 환경에서 15주간 단계별 수업 진행\n- 프롬프트 작성 영향력';
+  renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=dom.window.document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.equal(svg.querySelectorAll('.infographic-node').length,2);
+  assert.match(svg.textContent,/GitHub/);
+  assert.match(svg.textContent,/VS Code/);
+  assert.doesNotMatch(svg.textContent,/📌|프롬프트 작성 영향력/);
+  dom.window.close();
+});
+
 test('infographic cover does not repeat the current note title as body text', () => {
   const dom = new JSDOM('<!doctype html><div id="stage"></div>');
   const container = dom.window.document.getElementById('stage');

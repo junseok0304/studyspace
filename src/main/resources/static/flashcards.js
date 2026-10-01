@@ -7,6 +7,11 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
   let loadedDecks = [];
   const generatingNotes = new Set();
   let studySequence = 0;
+  const sameSources = row => {
+    const current = [...(getAttachmentIds?.() || [])].sort();
+    const saved = Array.isArray(row?.sourceAttachmentIds) ? [...row.sourceAttachmentIds].sort() : [];
+    return current.length === saved.length && current.every((id,index) => id === saved[index]);
+  };
 
   function resetForContext() {
     studySequence++;
@@ -208,7 +213,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     const noteId = editor.id;
     const decks = await loadFlashcardDecks(course.id);
     if (getEditor()?.id !== noteId) return null;
-    const existing = (decks || loadedDecks).find(deck => deck.noteId === noteId && deck.sourceNoteVersion === editor.version && matchesAiMode(deck));
+    const existing = (decks || loadedDecks).find(deck => deck.noteId === noteId && deck.sourceNoteVersion === editor.version && sameSources(deck) && matchesAiMode(deck));
     return existing || createDeck({studyAfter: false});
   }
 
@@ -219,7 +224,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     const decks = await loadFlashcardDecks(course.id);
     const noteDecks = (decks || loadedDecks).filter(deck => deck.noteId === editor.id);
     if (getEditor().id !== noteId) return null;
-    const deckRow = noteDecks.find(deck => deck.sourceNoteVersion === editor.version && matchesAiMode(deck));
+    const deckRow = noteDecks.find(deck => deck.sourceNoteVersion === editor.version && sameSources(deck) && matchesAiMode(deck));
     if (!deckRow) return createDeck();
     byId('learning-mode-badge').textContent = deckRow.mockResult ? '모의 결과 저장됨' : 'AI 생성 결과 저장됨';
     el('flashcard-message').textContent = '';

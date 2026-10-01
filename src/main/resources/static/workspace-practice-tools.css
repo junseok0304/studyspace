@@ -441,6 +441,7 @@
 .notesup-workspace .learning-view-heading h4{ font-size:17px; }
 .notesup-workspace .learning-view-heading p{ margin:5px 0 0; color:#8792a1; font-size:13px; }
 .notesup-workspace .learning-view-heading .quiet-button{ flex:0 0 auto; }
+.notesup-workspace #learning-summary-view > .learning-view-heading{ margin-bottom:22px; padding-bottom:10px; }
 .notesup-workspace .quiz-create-controls{ display:flex; align-items:center; gap:9px; flex:0 0 auto; }
 .notesup-workspace .quiz-create-controls label{ margin:0; color:#687487; font-size:13px; white-space:nowrap; }
 .notesup-workspace .quiz-create-controls select,
@@ -501,6 +502,17 @@
   font-size:15px;
   line-height:1.75;
 }
+.notesup-workspace .infographic-graphic-page{ min-height:0; max-height:none; overflow:visible; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.notesup-workspace .infographic-visual{ display:block; width:100%; height:auto; overflow:visible; border-radius:22px; box-shadow:0 12px 30px rgba(45,83,93,.08); }
+.notesup-workspace .infographic-visual .title{ fill:#20334c; font:700 34px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .subtitle{ fill:#66748a; font:500 16px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .relation{ fill:#435a78; font:650 16px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .compare-mark{ fill:#72849b; font:700 17px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .node-label{ fill:#273a53; font:700 19px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .node-detail{ fill:#637188; font:500 14px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .node-index{ fill:#77879a; font:700 11px system-ui,sans-serif; }
+.notesup-workspace .infographic-visual .hub-label{ fill:#fff; font:700 15px system-ui,sans-serif; }
+.notesup-workspace .infographic-semantic-content{ position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:normal!important; border:0!important; }
 .notesup-workspace .infographic-page > :first-child{ margin-top:0; }
 .notesup-workspace .infographic-page h1{ margin:0 0 28px; color:#1f3446; font-size:clamp(23px,3vw,36px); line-height:1.3; text-align:center; }
 .notesup-workspace .infographic-page h2{ margin:25px 0 12px; padding-bottom:8px; border-bottom:1px solid rgba(62,124,128,.2); color:#245b65; font-size:clamp(17px,2vw,23px); }
@@ -584,6 +596,7 @@
   .notesup-workspace .infographic-page-controls{ grid-template-columns:36px minmax(0,1fr) auto 36px; gap:7px; }
   .notesup-workspace .infographic-arrow,.notesup-workspace .quiz-page-arrow{ width:36px; height:36px; min-height:36px; }
   .notesup-workspace .infographic-page{ min-height:520px; max-height:72vh; padding:22px 16px; border-radius:16px; font-size:14px; }
+  .notesup-workspace .infographic-graphic-page{ min-height:0; max-height:none; overflow:visible; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
   .notesup-workspace .quiz-player:not(.hidden){ padding:12px 0; }
   .notesup-workspace .quiz-progress-head{ grid-template-columns:36px minmax(0,1fr) auto 36px; gap:7px; }
   .notesup-workspace .quiz-option{ min-height:56px; padding:10px; font-size:14px; }

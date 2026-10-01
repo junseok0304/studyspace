@@ -5,6 +5,11 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
   const el = byId;
   let listVersion = 0;
   let loadedSets = [];
+  const sameSources = row => {
+    const current = [...(getAttachmentIds?.() || [])].sort();
+    const saved = Array.isArray(row?.sourceAttachmentIds) ? [...row.sourceAttachmentIds].sort() : [];
+    return current.length === saved.length && current.every((id,index) => id === saved[index]);
+  };
   const generatingNotes = new Set();
   const activeQuestionByAttempt = new Map();
 
@@ -63,7 +68,9 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
         try {
           const updated = await request(`/api/quiz-attempts/${attempt.id}/answers/${question.id}`, {method: 'PUT', body: JSON.stringify({selectedIndex: optionIndex})});
           if (getEditor().id !== noteId) return;
-          el('quiz-message').textContent = '채점했습니다. 정답과 해설을 확인해 보세요.'; renderAttempt(updated, index);
+          // The rendered answer/explanation is the feedback; avoid leaving a stale
+          // transient status message around as the learner moves between questions.
+          el('quiz-message').textContent = ''; renderAttempt(updated, index);
         } catch (error) { el('quiz-message').textContent = error.message; }
       };
       label.append(marker, text, radio); block.append(label);
@@ -90,7 +97,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
         const submit = document.createElement('button'); submit.type = 'button'; submit.className = 'primary'; submit.textContent = '퀴즈 마치기';
         submit.onclick = async () => {
           submit.disabled = true;
-          try { const result = await request(`/api/quiz-attempts/${attempt.id}/submit`, {method: 'POST'}); if (getEditor().id !== noteId) return; renderAttempt(result, index); await Promise.all([loadQuizSets(getCourse()?.id), loadDashboard()]); }
+          try { const result = await request(`/api/quiz-attempts/${attempt.id}/submit`, {method: 'POST'}); if (getEditor().id !== noteId) return; el('quiz-message').textContent = ''; renderAttempt(result, index); await Promise.all([loadQuizSets(getCourse()?.id), loadDashboard()]); }
           catch (error) { el('quiz-message').textContent = error.message; submit.disabled = false; }
         };
         actions.append(submit);
@@ -207,7 +214,8 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
       history.disabled = !set.completedAttempts; history.onclick = () => showHistory(set);
       const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet-button'; remove.textContent = '삭제'; remove.onclick = () => deleteSet(set);
       return createPracticeListItem({
-        title: set.title,
+        // Keep legacy saved sets consistent with the current quiz-only wording.
+        title: set.title.replace(/^스피드 퀴즈(?= ·|$)/, '퀴즈'),
         metadata: `${set.questionCount}문제 · ${set.completedAttempts}회 완료${set.bestAccuracy === null ? '' : ` · 최고 ${set.bestAccuracy}%`}`,
         actions: [play, edit, history, remove]
       });
@@ -219,7 +227,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
   async function loadQuizSets(courseId) {
     const editor = getEditor();
     const requestVersion = ++listVersion;
-    setLocked(el('create-speed-quiz'), !editor.id, '노트를 저장한 뒤 스피드 퀴즈를 만들 수 있어요.');
+    setLocked(el('create-speed-quiz'), !editor.id, '노트를 저장한 뒤 퀴즈를 만들 수 있어요.');
     if (el('quiz-count')) el('quiz-count').disabled = !editor.id;
     if (!courseId) { el('quiz-sets').textContent = '과목을 선택하면 퀴즈를 확인할 수 있습니다.'; return; }
     const rows = await request(`/api/courses/${encodeURIComponent(courseId)}/quiz-sets`);
@@ -263,7 +271,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     const noteId = editor.id;
     const rows = await loadQuizSets(course.id);
     if (getEditor()?.id !== noteId) return null;
-    const existing = (rows || loadedSets).find(set => set.noteId === noteId && set.sourceNoteVersion === editor.version && matchesAiMode(set));
+    const existing = (rows || loadedSets).find(set => set.noteId === noteId && set.sourceNoteVersion === editor.version && sameSources(set) && matchesAiMode(set));
     return existing || createQuiz({start: false});
   }
 
@@ -274,7 +282,7 @@ export function mountQuiz({request, byId, getCourse, getEditor, setLocked, empty
     const rows = await loadQuizSets(course.id);
     const sets = (rows || loadedSets).filter(set => set.noteId === editor.id);
     if (getEditor().id !== noteId) return null;
-    const set = sets.find(item => item.sourceNoteVersion === editor.version && matchesAiMode(item));
+    const set = sets.find(item => item.sourceNoteVersion === editor.version && sameSources(item) && matchesAiMode(item));
     if (!set) return createQuiz();
     byId('learning-mode-badge').textContent = set.mockResult ? '모의 결과 저장됨' : 'AI 생성 결과 저장됨';
     el('quiz-message').textContent = '';

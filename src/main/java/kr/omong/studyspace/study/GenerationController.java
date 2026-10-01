@@ -57,7 +57,7 @@ public class GenerationController {
             @NotNull @Pattern(regexp="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}") String requestId) {}
     public record Generation(String id,String noteId,String kind,String status,long sourceNoteVersion,String model,
                              boolean mockResult,String errorCode,String createdAt,String completedAt,
-                             int attachmentCount,String artifactId,String title,String content,long artifactVersion,
+                             int attachmentCount,List<String> sourceAttachmentIds,String artifactId,String title,String content,long artifactVersion,
                              String regenerateFromJobId) {}
     public record GenerationSource(long noteVersion,String noteTitle,List<SourceEvidence> attachments) {}
     public record SourceEvidence(String id,String name,List<String> locations,boolean available) {}
@@ -267,7 +267,9 @@ public class GenerationController {
     }
     private Generation map(ResultSet row) throws SQLException {
         var completed=row.getTimestamp("completed_at");
-        return new Generation(row.getString("id"),row.getString("note_id"),row.getString("kind"),row.getString("status"),row.getLong("source_note_version"),row.getString("model"),row.getBoolean("mock_result"),row.getString("error_code"),row.getTimestamp("created_at").toInstant().toString(),completed==null?null:completed.toInstant().toString(),row.getInt("attachment_count"),row.getString("artifact_id"),row.getString("artifact_title"),row.getString("artifact_content"),row.getLong("artifact_version"),row.getString("regenerate_from_job_id"));
+        String id=row.getString("id");
+        List<String> attachmentIds=db.queryForList("select source_id from generation_job_sources where job_id=? and source_id is not null order by source_order",String.class,id);
+        return new Generation(id,row.getString("note_id"),row.getString("kind"),row.getString("status"),row.getLong("source_note_version"),row.getString("model"),row.getBoolean("mock_result"),row.getString("error_code"),row.getTimestamp("created_at").toInstant().toString(),completed==null?null:completed.toInstant().toString(),row.getInt("attachment_count"),attachmentIds,row.getString("artifact_id"),row.getString("artifact_title"),row.getString("artifact_content"),row.getLong("artifact_version"),row.getString("regenerate_from_job_id"));
     }
     private record NoteVersion(long version,String title,String body) {}
     private record RetrySource(String noteId,String kind,long version,String title,String body,String model) {}

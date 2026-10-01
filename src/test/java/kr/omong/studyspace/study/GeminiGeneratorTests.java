@@ -27,6 +27,17 @@ class GeminiGeneratorTests {
         assertEquals(valid,generator.parse(response(valid),"MIND_MAP").text());
         assertThrows(GeminiGenerator.Failure.class,()->generator.parse(response("{\"label\":\"개념\"}"),"MIND_MAP"));
     }
+    @Test void validatesVisualInfographicPagesAndTheirDiagramNodes() {
+        String infographic="""
+                {"pages":[{"title":"사실에서 정보까지","subtitle":"표현과 해석의 흐름","relation":"사실 → 데이터 → 정보","layout":"flow","nodes":[
+                  {"label":"사실","detail":"객관적으로 존재하는 내용","icon":"idea"},
+                  {"label":"데이터","detail":"기호로 표현한 사실","icon":"data"}
+                ]}]}
+                """;
+        assertEquals(infographic.strip(),generator.parse(response(infographic),"INFOGRAPHIC").text());
+        assertTrue(new ObjectMapper().valueToTree(GeminiGenerator.structuredSchema("INFOGRAPHIC")).path("properties").path("pages").path("maxItems").asInt()==3);
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parse(response("{\"pages\":[{\"title\":\"비어 있음\",\"subtitle\":\"\",\"relation\":\"\",\"layout\":\"flow\",\"nodes\":[]}] }"),"INFOGRAPHIC"));
+    }
     @Test void validatesStructuredQuizAndFlashcardResults() {
         String quiz="[{\"prompt\":\"프로세스란?\",\"options\":[\"실행 중인 프로그램\",\"파일\",\"장치\",\"문서\"],\"correctIndex\":0,\"hint\":\"프로그램과 실행 상태의 차이를 생각해 보세요.\",\"explanation\":\"실행 중인 프로그램입니다.\",\"source\":\"노트 1\"}]";
         var questions=generator.parseQuiz(quiz,1);

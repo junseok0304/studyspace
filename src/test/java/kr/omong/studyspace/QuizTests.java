@@ -28,8 +28,10 @@ class QuizTests {
         var owner=user(Long.toString(userId));
         String create="{\"requestId\":\"11111111-1111-4111-8111-111111111111\",\"questionCount\":3,\"attachmentIds\":[\"quiz-file\"]}";
         for(int i=0;i<2;i++) mvc.perform(post("/api/notes/quiz-note/quiz-sets").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(create))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.questionCount").value(3));
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.questionCount").value(3)).andExpect(jsonPath("$.title").value("퀴즈 · 트리"))
+                .andExpect(jsonPath("$.sourceAttachmentIds[0]").value("quiz-file"));
         String setId=db.queryForObject("select id from quiz_sets where user_id=?",String.class,userId);
+        org.junit.jupiter.api.Assertions.assertEquals("quiz-file",db.queryForObject("select source_attachment_ids from quiz_sets where id=?",String.class,setId));
         mvc.perform(get("/api/quiz-sets/"+setId+"/questions").with(owner))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].prompt").value(org.hamcrest.Matchers.containsString("1번째로 정리된 핵심 문장")))

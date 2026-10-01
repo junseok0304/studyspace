@@ -6,6 +6,20 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
   let rows = [];
   let loadedNoteId = '';
   const startingKeys = new Set();
+  const coverageRefreshKeys = new Set();
+  const sameSources = row => {
+    const current = [...getAttachmentIds()].sort();
+    if (Array.isArray(row?.sourceAttachmentIds)) {
+      const saved = [...row.sourceAttachmentIds].sort();
+      return current.length === saved.length && current.every((id,index) => id === saved[index]);
+    }
+    return Number(row?.attachmentCount || 0) === current.length;
+  };
+  const summaryNeedsCoverageRefresh = (content, editor) => {
+    const sourceLength = String(editor?.body || '').replace(/<!--[\\s\\S]*?-->/g, '').replace(/^---[\\s\\S]*?---\\s*/m, '').trim().length;
+    const summaryLength = String(content || '').replace(/[#>*_`\\-]/g, '').trim().length;
+    return sourceLength >= 1800 && summaryLength < Math.max(700, sourceLength * 0.24);
+  };
   const needsSummaryRefresh = content => {
     const text = String(content || '');
     const listItems = text.match(/^\s*(?:[-*+]|\d+[.)])\s+/gm) || [];
@@ -32,14 +46,14 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     loadedNoteId = noteId;
     rows = result;
     render(rows);
-    const latestSummary = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === getEditor().version && matchesAiMode(row));
+    const latestSummary = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === getEditor().version && sameSources(row) && matchesAiMode(row));
     const summaryMessage = el('summary-message');
     if (summaryMessage) {
       if (latestSummary?.status === 'PENDING' || latestSummary?.status === 'RUNNING') summaryMessage.textContent = '현재 노트 내용을 글로 요약하고 있습니다.';
       else if (latestSummary?.status === 'FAILED') summaryMessage.textContent = '요약을 만들지 못했습니다. 다시 생성해 주세요.';
       else summaryMessage.textContent = '';
     }
-    const latestInfographic = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === getEditor().version);
+    const latestInfographic = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === getEditor().version && sameSources(row));
     if (latestInfographic?.status === 'PENDING' || latestInfographic?.status === 'RUNNING') {
       el('generation-message').textContent = '현재 노트의 인포그래픽을 만들고 있습니다.';
     } else if (latestInfographic?.status === 'FAILED') {
@@ -84,7 +98,7 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     const noteId = editor.id;
     if (loadedNoteId !== noteId) await load(noteId);
     if (getEditor().id !== noteId) return false;
-    const existing = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === editor.version && matchesAiMode(row));
+    const existing = rows.find(row => row.kind === 'INFOGRAPHIC' && row.sourceNoteVersion === editor.version && sameSources(row) && matchesAiMode(row));
     if (existing?.status === 'COMPLETED' && existing.content) {
       el('generation-message').textContent = '';
       return true;
@@ -115,8 +129,19 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     const noteId = editor.id;
     if (loadedNoteId !== noteId) await load(noteId);
     if (getEditor().id !== noteId) return false;
-    const existing = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === editor.version && matchesAiMode(row));
-    if (existing?.status === 'COMPLETED' && existing.content && !needsSummaryRefresh(existing.content)) { message.textContent = ''; return true; }
+    const existing = rows.find(row => row.kind === 'SUMMARY' && row.sourceNoteVersion === editor.version && sameSources(row) && matchesAiMode(row));
+    if (existing?.status === 'COMPLETED' && existing.content && !needsSummaryRefresh(existing.content)) {
+      const refreshKey = `SUMMARY:${editor.id}:${editor.version}`;
+      if (summaryNeedsCoverageRefresh(existing.content, editor) && !coverageRefreshKeys.has(refreshKey)) {
+        coverageRefreshKeys.add(refreshKey);
+        message.textContent = '긴 노트의 주요 내용을 더 충실히 담도록 요약을 보완하고 있습니다.';
+        const started = await start('SUMMARY', existing.id);
+        if (!started) coverageRefreshKeys.delete(refreshKey);
+        return started;
+      }
+      message.textContent = '';
+      return true;
+    }
     if (existing?.status === 'PENDING' || existing?.status === 'RUNNING') { message.textContent = '현재 노트 내용을 글로 요약하고 있습니다.'; return true; }
     if (existing?.status === 'FAILED') { message.textContent = '요약을 만들지 못했습니다. 다시 생성해 주세요.'; return false; }
     const key = `SUMMARY:${editor.id}:${editor.version}`;

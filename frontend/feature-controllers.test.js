@@ -47,7 +47,7 @@ test('feature controllers keep their request, state, and rendering paths connect
     if (path.endsWith('/recordings') && options.method !== 'POST') return [{id: 'recording-1', title: '녹음', status: 'READY', durationSeconds: 18, noteId: null, courseId: 'course-1'}];
     if (path.endsWith('/recording-1/note')) return {id: 'recording-1', noteId: 'note-1', noteTitle: '강의노트'};
     if (path === '/api/courses/course-1/quiz-sets' && (!options.method || options.method === 'GET')) return [
-      {id: 'quiz-1', noteId: 'note-1', title: 'HTTP 요청 흐름 확인', questionCount: 1, completedAttempts: 0, sourceNoteVersion: 3, mockResult: true, activeAttemptId: null},
+      {id: 'quiz-1', noteId: 'note-1', title: '스피드 퀴즈 · HTTP 요청 흐름 확인', questionCount: 1, completedAttempts: 0, sourceNoteVersion: 3, sourceAttachmentIds:['attachment-1'], mockResult: true, activeAttemptId: null},
       {id: 'quiz-other', noteId: 'note-2', title: '다른 노트 퀴즈', questionCount: 3, completedAttempts: 0, sourceNoteVersion: 1, mockResult: true, activeAttemptId: null}
     ];
     if (path === '/api/quiz-sets/quiz-1/attempts' && options.method === 'POST') return {id: 'attempt-1', quizSetId: 'quiz-1', mode: 'NORMAL', status: 'IN_PROGRESS', totalQuestions: 1, questions: [{id: 'question-1', order: 0, prompt: 'HTTP 요청에서 서버가 응답을 돌려주는 단계는?', options: ['응답', '요청 생성', 'DNS 조회', '연결 종료'], hint: '요청 뒤 서버가 돌려주는 결과를 생각해 보세요.', selectedIndex: null}]};
@@ -63,7 +63,7 @@ test('feature controllers keep their request, state, and rendering paths connect
       ...(uploadedFile ? [{id: 'ux-upload-1', originalName: 'ux-preview.pdf', size: 24, analysisStatus: 'TEXT_READY', extractedLength: 92, summaryStatus: 'READY', summaryText: 'HTTP 요청은 클라이언트가 서버에 정보를 전달하고 응답을 받는 과정입니다.'}] : [])
     ];
     if (path === '/api/courses/course-1/flashcard-decks' && (!options.method || options.method === 'GET')) return [
-      {id: 'deck-1', noteId: 'note-1', title: '복습 카드', cardCount: 8, sourceNoteVersion: 3, mockResult: true},
+      {id: 'deck-1', noteId: 'note-1', title: '복습 카드', cardCount: 8, sourceNoteVersion: 3, sourceAttachmentIds:['attachment-1'], mockResult: true},
       {id: 'deck-other', noteId: 'note-2', title: '다른 노트 카드', cardCount: 4, sourceNoteVersion: 1, mockResult: true}
     ];
     if (path === '/api/flashcard-decks/deck-1') return {id: 'deck-1', title: 'HTTP 복습', sourceNoteVersion: 3, cards: [{id: 'card-1', front: 'HTTP 응답 단계의 역할은?', back: '서버가 요청을 처리한 결과를 클라이언트에 돌려줍니다.', explanation: '원문 근거 · 노트 `강의노트` 버전 3', source: '노트 `강의노트` 버전 3'}]};
@@ -79,7 +79,9 @@ test('feature controllers keep their request, state, and rendering paths connect
   const setLocked = (button, locked) => { button.disabled = locked; };
   try {
     const recording = mountRecording({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState});
+    byId('recording-message').textContent = '연결된 강의노트를 이전 과목의 노트로 변경했습니다.';
     await recording.loadRecordings();
+    assert.equal(byId('recording-message').textContent, '');
     assert.equal(byId('recordings').querySelector('audio') !== null, true);
     assert.equal([...byId('recordings').querySelectorAll('select[aria-label="재생 속도"] option')].find(option => option.selected)?.textContent, '1배속');
     const noteSelect = byId('recordings').querySelector('.recording-note-select');
@@ -89,7 +91,7 @@ test('feature controllers keep their request, state, and rendering paths connect
 
     const quiz = mountQuiz({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState, getAttachmentIds: () => ['attachment-1'], loadDashboard: async () => {}, updateSourceSummary: () => {}});
     await quiz.loadQuizSets(course.id);
-    assert.equal(byId('quiz-sets').querySelector('.quiz-set-row strong').textContent, 'HTTP 요청 흐름 확인');
+    assert.equal(byId('quiz-sets').querySelector('.quiz-set-row strong').textContent, '퀴즈 · HTTP 요청 흐름 확인');
     assert.equal(byId('quiz-sets').querySelectorAll('.quiz-set-row').length, 1);
     await quiz.openForNote();
     assert.equal(byId('quiz-player').querySelector('.quiz-hint summary').textContent, '힌트 보기');
@@ -98,6 +100,7 @@ test('feature controllers keep their request, state, and rendering paths connect
     wrongAnswer.checked=true;
     await wrongAnswer.onchange();
     assert.match(byId('quiz-player').querySelector('.quiz-explanation').textContent,/오답 · 정답 1번/);
+    assert.equal(byId('quiz-message').textContent, '');
     assert.equal(byId('quiz-player').querySelectorAll('input[type="radio"]:disabled').length,4);
     const playQuiz = [...byId('quiz-sets').querySelectorAll('button')].find(button => button.textContent === '풀기');
     await playQuiz.onclick();
@@ -147,6 +150,7 @@ test('feature controllers keep their request, state, and rendering paths connect
 
     const attachments = mountAttachments({request, byId, getEditor: () => editor, getGenerationFeature: () => generation, emptyState});
     await attachments.loadAttachments(editor.id);
+    assert.equal(byId('upload-attachments').disabled, true);
     assert.deepEqual(attachments.selectedAttachmentIds(), ['attachment-1']);
     const legacyAnalyze=[...byId('attachments').querySelectorAll('button')].find(button=>button.textContent==='분석 시작');
     assert.ok(legacyAnalyze);
@@ -155,10 +159,17 @@ test('feature controllers keep their request, state, and rendering paths connect
     assert.match(byId('generation-source-summary').textContent, /수업자료\.pdf/);
     assert.equal(byId('attachments').querySelector('.attachment-summary').textContent, '핵심 내용');
     const summaryRequestsBeforeUpload = calls.filter(call => call.path === '/api/notes/note-1/generations' && call.options.method === 'POST').length;
+    const droppedFile = new dom.window.File(['drop target'], 'drag-preview.pdf', {type: 'application/pdf'});
+    const dropEvent = new dom.window.Event('drop', {bubbles: true, cancelable: true});
+    Object.defineProperty(dropEvent, 'dataTransfer', {value: {files: [droppedFile]}});
+    byId('attachment-dropzone').dispatchEvent(dropEvent);
+    assert.match(byId('attachment-selection').textContent, /drag-preview\.pdf/);
+    assert.equal(byId('upload-attachments').disabled, false);
     const sampleFile = new dom.window.File(['%PDF-1.4 HTTP request response flow'], 'ux-preview.pdf', {type: 'application/pdf'});
     Object.defineProperty(byId('attachment-input'), 'files', {configurable: true, value: [sampleFile]});
     byId('attachment-input').dispatchEvent(new dom.window.Event('change'));
     assert.match(byId('attachment-selection').textContent, /ux-preview\.pdf/);
+    assert.equal(byId('upload-attachments').disabled, false);
     await byId('upload-attachments').onclick();
     const uploadCall = calls.find(call => call.path === '/api/notes/note-1/attachments' && call.options.method === 'POST');
     assert.equal(uploadCall.options.formData.get('file').name, 'ux-preview.pdf');
@@ -177,6 +188,55 @@ test('feature controllers keep their request, state, and rendering paths connect
     globalThis.Option = previousOption;
     globalThis.FormData = previousFormData;
     dom.window.close();
+  }
+});
+
+test('saved infographic is rebuilt when analyzed attachment sources have changed', async () => {
+  const dom = new JSDOM(markup, {url:'http://localhost:8091/'});
+  const byId = id => dom.window.document.getElementById(id);
+  const calls = [];
+  const request = async (path, options = {}) => {
+    calls.push({path, options});
+    if (options.method === 'POST') return {id:'new-infographic-job'};
+    return [{id:'old-infographic',kind:'INFOGRAPHIC',status:'COMPLETED',sourceNoteVersion:3,attachmentCount:2,sourceAttachmentIds:['file-old-a','file-old-b'],content:'old result'}];
+  };
+  const generation = mountGeneration({request,byId,getEditor:()=>({id:'note-1',version:3}),getAttachmentIds:()=>['attachment-a','attachment-b'],render:()=>{}});
+
+  await generation.openInfographic();
+
+  const created = calls.find(call=>call.options.method==='POST');
+  assert.ok(created);
+  assert.equal(JSON.parse(created.options.body).kind,'INFOGRAPHIC');
+  assert.deepEqual(JSON.parse(created.options.body).attachmentIds,['attachment-a','attachment-b']);
+  dom.window.close();
+});
+
+test('quiz and flashcard sets are refreshed when the attached file set changes', async () => {
+  const dom=new JSDOM(markup,{url:'http://localhost:8091/'});
+  const previousDocument=globalThis.document,previousWindow=globalThis.window;
+  globalThis.document=dom.window.document;globalThis.window=dom.window;
+  const byId=id=>dom.window.document.getElementById(id), editor={id:'note-1',title:'강의노트',version:3}, course={id:'course-1',name:'과목'};
+  const calls=[]; let quizRows=[{id:'quiz-old',noteId:'note-1',title:'이전 퀴즈',sourceNoteVersion:3,sourceAttachmentIds:['file-old'],mockResult:true}];
+  let deckRows=[{id:'deck-old',noteId:'note-1',title:'이전 카드',sourceNoteVersion:3,sourceAttachmentIds:['file-old'],mockResult:true}];
+  const request=async(path,options={})=>{
+    calls.push({path,options});
+    if(path==='/api/courses/course-1/quiz-sets') return quizRows;
+    if(path==='/api/courses/course-1/flashcard-decks') return deckRows;
+    if(path==='/api/notes/note-1/quiz-sets'&&options.method==='POST') {quizRows=[{id:'quiz-new',noteId:'note-1',title:'새 퀴즈',sourceNoteVersion:3,sourceAttachmentIds:['file-new'],mockResult:true}];return quizRows[0];}
+    if(path==='/api/notes/note-1/flashcard-decks'&&options.method==='POST') {deckRows=[{id:'deck-new',noteId:'note-1',title:'새 카드',sourceNoteVersion:3,sourceAttachmentIds:['file-new'],mockResult:true,cards:[]}];return deckRows[0];}
+    return {};
+  };
+  const setLocked=(button,locked)=>{button.disabled=locked;};
+  const quiz=mountQuiz({request,byId,getCourse:()=>course,getEditor:()=>editor,setLocked,emptyState:()=>dom.window.document.createElement('div'),getAttachmentIds:()=>['file-new'],loadDashboard:async()=>{},updateSourceSummary:()=>{}});
+  const flashcards=mountFlashcards({request,byId,getCourse:()=>course,getEditor:()=>editor,setLocked,emptyState:()=>dom.window.document.createElement('div'),getAttachmentIds:()=>['file-new']});
+
+  try {
+    await quiz.ensureForNote();
+    await flashcards.ensureForNote();
+    assert.deepEqual(JSON.parse(calls.find(call=>call.options.method==='POST'&&call.path.endsWith('/quiz-sets')).options.body).attachmentIds,['file-new']);
+    assert.deepEqual(JSON.parse(calls.find(call=>call.options.method==='POST'&&call.path.endsWith('/flashcard-decks')).options.body).attachmentIds,['file-new']);
+  } finally {
+    globalThis.document=previousDocument;globalThis.window=previousWindow;dom.window.close();
   }
 });
 

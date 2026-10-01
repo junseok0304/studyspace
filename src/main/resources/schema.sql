@@ -215,6 +215,7 @@ create table if not exists quiz_sets (
 );
 
 alter table quiz_sets add column if not exists source_artifact_id varchar(36);
+alter table quiz_sets add column if not exists source_attachment_ids text not null default '';
 
 create table if not exists quiz_questions (
     id varchar(36) primary key,
@@ -279,6 +280,7 @@ create table if not exists flashcard_decks (
     note_id varchar(36) not null,
     title varchar(200) not null,
     source_note_version bigint not null,
+    source_attachment_ids text not null default '',
     mock_result boolean not null default true,
     created_at timestamp not null default current_timestamp,
     unique (user_id, request_id),
@@ -286,6 +288,8 @@ create table if not exists flashcard_decks (
     foreign key (course_id) references courses(id) on delete cascade,
     foreign key (note_id) references notes(id) on delete cascade
 );
+
+alter table flashcard_decks add column if not exists source_attachment_ids text not null default '';
 
 create table if not exists flashcards (
     id varchar(36) primary key,

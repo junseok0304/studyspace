@@ -24,15 +24,19 @@ public class GeminiGenerator {
         if(!model.matches("gemini-[a-zA-Z0-9.-]+")) throw new Failure("PROVIDER_MODEL_INVALID");
         if(source.length()>120000) throw new Failure("INPUT_TOO_LARGE");
         String instruction=switch(kind) {
-            case "SUMMARY" -> "선택한 노트와 분석 완료 자료를 바탕으로 현재 노트의 요약문을 작성하세요. 문제, 정답, 플래시카드는 만들지 마세요. 핵심 개념과 정확한 정의, 개념 사이의 관계, 비교·순서·원인과 결과를 읽기 쉬운 문장형 한국어로 설명하세요. 항목을 지나치게 잘게 나열하거나 원문을 그대로 복사하지 말고, 핵심이 이어지는 짧은 문단 2~5개로 정리하세요. 필요할 때만 간결한 소제목을 사용하고, 노트의 AI 전용 메타데이터는 요약하지 마세요. 출처, 파일명, 노트 제목·버전 꼬리표나 각주 없이 요약 내용만 출력하세요. 자료에서 확인되지 않는 점은 추측하지 마세요.";
+            case "SUMMARY" -> "선택한 노트와 분석 완료 자료를 바탕으로 학습에 다시 활용할 수 있는 충실한 요약문을 작성하세요. 문제·정답·플래시카드를 만들지는 마세요. 너무 짧은 개요로 끝내지 말고, 노트의 길이와 정보량에 비례해 중요한 내용을 충분히 담으세요(긴 노트는 보통 7~12개 문단 또는 소제목이 있는 구조화된 요약). 핵심 개념의 정의뿐 아니라 개념 사이의 관계, 비교·순서·원인과 결과, 수업 사례와 교수님 강조점을 보존하세요. 시험 범위나 연습문제가 있으면 문제를 그대로 옮기지는 말되, 출제 범위와 각 문제군이 점검하는 주제들을 빠뜨리지 말고 주제별로 묶어 정리하세요. 노트의 주요 주제와 섹션을 모두 다루고, 세부 항목은 의미가 유지되도록 묶되 몇 가지만 임의로 골라 요약하지 마세요. 불완전하거나 비어 있는 메모는 완성된 사실처럼 보충하지 말고 미완성임을 밝혀 주세요. 읽기 쉬운 한국어 Markdown으로 작성하고, 노트의 AI 전용 메타데이터는 요약하지 마세요. 출처·파일명·노트 제목·버전 꼬리표나 각주 없이 요약 내용만 출력하세요. 자료에서 확인되지 않는 점은 추측하지 마세요.";
             case "AI_NOTE" -> "제목, 핵심 개념, 예시, 주의점으로 학습 노트를 재구성하세요.";
             case "SUBJECTIVE_QUIZ" -> "주관식 문제 5개와 각 모범 답안, 해설, 원문 근거를 작성하세요.";
-            case "INFOGRAPHIC" -> "현재 노트와 자료에 실제로 있는 정보만 사용해 읽기 쉬운 인포그래픽을 만드세요. 전체는 최대 6페이지이며 각 페이지는 하나의 주제만 다룹니다. 첫 페이지는 핵심 요약, 이후 페이지는 개념·관계·비교·근거를 짧은 섹션과 3~5개 이하의 간결한 항목으로 배치하세요. 페이지 사이에는 별도 줄에 정확히 ---PAGE---를 넣으세요. 각 페이지에 간결한 제목을 붙이고, 긴 문단 대신 시각적으로 훑기 쉬운 Markdown을 사용하세요. 숫자와 인과관계는 원문 근거가 있을 때만 사용하고, 자료에 없는 사실은 만들지 마세요.";
+            case "INFOGRAPHIC" -> "노트와 자료에 근거한 그래픽 인포그래픽 데이터를 JSON으로 만드세요. 설명문이나 Markdown 목록이 아니라, 프런트엔드가 카드·아이콘·선·화살표로 그릴 수 있는 시각 자료입니다. 1~3페이지로 제한하고 각 페이지는 하나의 주제를 설명하세요. 각 페이지에 title, subtitle, relation, layout(flow|compare|cycle|hub), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 label(짧은 개념명), detail(한두 문장 이내의 핵심 설명), icon(data|shield|lock|network|history|person|key|server|mobile|gear|globe|warning|check|book|money|idea 중 하나)을 포함하세요. 개념 사이에 실제 순서가 있을 때 flow, 두 개념을 대조할 때 compare, 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 노드에는 긴 문단을 넣지 말고 관계가 시각적으로 드러나도록 배치하세요. 노트에 여러 주제가 있으면 2~3페이지로 나누고, 주요 개념·정의·관계와 교수님 강조점은 빠뜨리지 마세요. 페이지마다 서로 다른 주제를 다루며 출처나 파일명은 표시하지 마세요. 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
             case "MIND_MAP" -> "label(1~200자 문자열), children(같은 구조의 배열)만 가진 JSON 트리로 마인드맵을 반환하세요. 최대 깊이 8, 노드 100개. Markdown 코드 펜스 금지.";
             default -> throw new Failure("UNSUPPORTED_KIND");
         };
+        if (kind.equals("INFOGRAPHIC")) instruction = infographicInstruction();
         var config=new HashMap<String,Object>();config.put("maxOutputTokens",8192);config.put("temperature",0.3);
-        if(kind.equals("MIND_MAP")) config.put("responseMimeType","application/json");
+        if(kind.equals("MIND_MAP") || kind.equals("INFOGRAPHIC")) {
+            config.put("responseMimeType","application/json");
+            config.put("responseJsonSchema",structuredSchema(kind));
+        }
         String citation="INFOGRAPHIC".equals(kind)
                 ? "인포그래픽에는 출처·근거·페이지·파일명·각주·인용 표기를 넣지 마세요. 핵심 개념과 관계만 간결하게 보여주세요."
                 : "근거를 적을 때는 입력에 있는 노트 제목·버전 또는 '자료:' 다음의 파일명과 페이지 표기를 그대로 사용하세요. 위치를 알 수 없으면 추측하지 마세요.";
@@ -70,7 +74,11 @@ public class GeminiGenerator {
     QuizResult generateQuiz(String model,String source,int count) {
         String instruction="제공된 학습자료만 근거로 4지선다 퀴즈를 JSON 배열로 작성하세요. 선택한 요점 정리가 포함되어 있으면 그 정리를 우선 출제 범위로 삼고 노트와 첨부자료는 사실 확인에만 사용하세요. "
                 +"노트 템플릿의 비어 있는 항목과 작성 안내 문구는 출제 근거에서 제외하세요. "
+                +"각 문항은 정의·개념 구분·원인과 결과·절차의 이유·상황 적용 가운데 하나를 평가하고, 질문만 읽어도 무엇을 설명하거나 판단해야 하는지 분명해야 합니다. "
+                +"선택지 번호나 순서만 묻는 문제(예: '보기 중 2번은 무엇인가'), 문장 일부를 그대로 찾는 문제, 정답이 표현 순서나 위치로 드러나는 문제는 만들지 마세요. "
+                +"오답은 해당 개념에서 흔히 혼동하는 그럴듯한 주장으로 만들고, 정답만 유난히 길거나 구체적이지 않게 길이와 문체를 맞추세요. 같은 사실을 반복해 묻지 말고, 가능한 한 서로 다른 핵심 주제를 고르게 다루세요. "
                 +"각 원소는 prompt, options(문자열 4개), correctIndex(0~3), hint, explanation, source 필드를 가져야 합니다. hint는 정답을 노출하지 않고 풀이 방향만 안내하는 한 문장으로 작성하세요. "
+                +"explanation에는 정답인 이유와 가장 헷갈리기 쉬운 오답이 왜 틀렸는지 자료에 근거해 설명하세요. "
                 +"source에는 입력에 나타난 요점 정리 제목, 노트 제목·버전 또는 파일명과 PDF 페이지·슬라이드·HWP 구역 표기를 그대로 적으세요. "
                 +"문제 수는 정확히 "+count+"개이며 선택지는 서로 달라야 합니다. JSON 외의 설명은 출력하지 마세요.";
         Result result=requestStructured(model,instruction,source,"QUIZ");
@@ -104,6 +112,9 @@ public class GeminiGenerator {
     CardResult generateFlashcards(String model,String source,int count) {
         String instruction="제공된 학습자료만 근거로 암기용 플래시카드를 JSON 배열로 작성하세요. 선택한 요점 정리가 포함되어 있으면 그 정리를 우선 카드 범위로 삼고 노트와 첨부자료는 사실 확인에만 사용하세요. "
                 +"노트 템플릿의 비어 있는 항목과 작성 안내 문구는 카드 내용에서 제외하세요. "
+                +"각 카드는 한 가지 핵심 개념이나 원리만 확인하도록 만들고, 앞면은 구체적이고 자립적으로 이해되는 질문, 뒷면은 짧고 정확한 답으로 작성하세요. "
+                +"'보기 중 몇 번', 선택지 번호, 자료의 문장 위치나 단순 문구 찾기를 묻지 말고, 서로 중복되는 카드도 피하세요. "
+                +"정의 암기만 반복하지 말고 가능한 범위에서 개념의 차이·관계·적용 사례를 섞되 자료에 없는 사례나 사실은 만들지 마세요. "
                 +"각 원소는 front, back, explanation, source 필드만 가져야 하며 앞면은 질문, 뒷면은 정확한 답이어야 합니다. "
                 +"source에는 입력에 나타난 요점 정리 제목, 노트 제목·버전 또는 파일명과 PDF 페이지·슬라이드·HWP 구역 표기를 그대로 적으세요. "
                 +"카드 수는 정확히 "+count+"개이고 JSON 외의 설명은 출력하지 마세요.";
@@ -164,7 +175,26 @@ public class GeminiGenerator {
         catch(Exception failure) { throw new Failure("PROVIDER_UNAVAILABLE"); }
     }
 
+    private String infographicInstruction() {
+        return "노트와 분석 완료된 강의자료를 모두 근거로 그래픽 인포그래픽 데이터를 JSON으로 만드세요. 설명문이나 Markdown 목록이 아니라 카드·아이콘·선·화살표로 그릴 시각 자료입니다. 내용이 충분하면 2~3페이지로 나누어 노트의 수업 내용과 첨부자료의 핵심을 모두 다루고, 어느 한쪽만 요약하지 마세요. 각 페이지에는 title, subtitle, relation, layout(flow|compare|cycle|hub), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 짧은 label(2~18자 개념명), detail(한 문장, 60자 이내), icon(data|shield|lock|network|history|person|key|server|mobile|gear|globe|warning|check|book|money|idea 중 하나)을 포함하세요. label과 detail은 같은 말을 반복하지 말고, label에는 Markdown 기호·번호·이모지를 넣지 마세요. 페이지 제목·부제·관계 문구도 짧게 쓰고 서로 중복하지 마세요. 개념 사이에 실제 순서가 있을 때 flow, 두 개념을 대조할 때 compare, 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 서로 다른 주제를 페이지별로 다루고 핵심 개념·정의·관계와 교수님 강조점을 빠뜨리지 마세요. 출처나 파일명은 표시하지 말고 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
+    }
+
     static Map<String,Object> structuredSchema(String kind) {
+        if(kind.equals("INFOGRAPHIC")) {
+            var nodeFields=new LinkedHashMap<String,Object>();
+            nodeFields.put("label",Map.of("type","string","maxLength",50));
+            nodeFields.put("detail",Map.of("type","string","maxLength",60));
+            nodeFields.put("icon",Map.of("type","string","enum",List.of("data","shield","lock","network","history","person","key","server","mobile","gear","globe","warning","check","book","money","idea")));
+            var nodeSchema=Map.of("type","object","properties",nodeFields,"required",List.copyOf(nodeFields.keySet()),"additionalProperties",false);
+            var pageFields=new LinkedHashMap<String,Object>();
+            pageFields.put("title",Map.of("type","string","maxLength",80));
+            pageFields.put("subtitle",Map.of("type","string","maxLength",90));
+            pageFields.put("relation",Map.of("type","string","maxLength",80));
+            pageFields.put("layout",Map.of("type","string","enum",List.of("flow","compare","cycle","hub")));
+            pageFields.put("nodes",Map.of("type","array","minItems",2,"maxItems",4,"items",nodeSchema));
+            var pageSchema=Map.of("type","object","properties",pageFields,"required",List.copyOf(pageFields.keySet()),"additionalProperties",false);
+            return Map.of("type","object","properties",Map.of("pages",Map.of("type","array","minItems",1,"maxItems",3,"items",pageSchema)),"required",List.of("pages"),"additionalProperties",false);
+        }
         var fields=new LinkedHashMap<String,Object>();
         if(kind.equals("QUIZ")) {
             fields.put("prompt",Map.of("type","string","maxLength",500));
@@ -190,6 +220,7 @@ public class GeminiGenerator {
             String result=text.toString().strip();
             if(result.isBlank()||result.length()>100000) throw new Failure("PROVIDER_INVALID_RESULT");
             if(kind.equals("MIND_MAP")) validateNode(json.readTree(result),0,new int[]{0});
+            if(kind.equals("INFOGRAPHIC")) validateInfographic(json.readTree(result));
             JsonNode usage=root.path("usageMetadata");
             return new Result(result,usage.path("promptTokenCount").asLong(0),usage.path("candidatesTokenCount").asLong(0));
         } catch(Failure failure) { throw failure; }
@@ -198,6 +229,22 @@ public class GeminiGenerator {
     private void validateNode(JsonNode node,int depth,int[] count) {
         if(depth>8||++count[0]>100||!node.path("label").isString()||node.path("label").asText().isBlank()||node.path("label").asText().length()>200||!node.path("children").isArray())throw new Failure("PROVIDER_INVALID_RESULT");
         for(JsonNode child:node.path("children"))validateNode(child,depth+1,count);
+    }
+    private void validateInfographic(JsonNode root) {
+        JsonNode pages=root.path("pages");
+        if(!pages.isArray()||pages.isEmpty()||pages.size()>3) throw new Failure("PROVIDER_INVALID_RESULT");
+        Set<String> layouts=Set.of("flow","compare","cycle","hub");
+        Set<String> icons=Set.of("data","shield","lock","network","history","person","key","server","mobile","gear","globe","warning","check","book","money","idea");
+        for(JsonNode page:pages) {
+            JsonNode nodes=page.path("nodes");
+            if(!page.path("title").isTextual()||page.path("title").asText().isBlank()||page.path("title").asText().length()>80
+                    ||!page.path("subtitle").isTextual()||page.path("subtitle").asText().length()>140
+                    ||!page.path("relation").isTextual()||page.path("relation").asText().length()>140
+                    ||!layouts.contains(page.path("layout").asText())||!nodes.isArray()||nodes.size()<2||nodes.size()>4) throw new Failure("PROVIDER_INVALID_RESULT");
+            for(JsonNode node:nodes) if(!node.path("label").isTextual()||node.path("label").asText().isBlank()||node.path("label").asText().length()>50
+                    ||!node.path("detail").isTextual()||node.path("detail").asText().isBlank()||node.path("detail").asText().length()>180
+                    ||!icons.contains(node.path("icon").asText())) throw new Failure("PROVIDER_INVALID_RESULT");
+        }
     }
     record GeneratedQuiz(String prompt,List<String> options,int correctIndex,String hint,String explanation,String source) {}
     record GeneratedCard(String front,String back,String explanation,String source) {}

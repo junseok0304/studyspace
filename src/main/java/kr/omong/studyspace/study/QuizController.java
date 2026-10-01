@@ -38,7 +38,7 @@ public class QuizController {
     public record StartAttempt(@NotNull @Pattern(regexp="[a-fA-F0-9-]{36}") String requestId,String wrongFromAttemptId) {}
     public record SaveAnswer(@Min(0) @Max(3) int selectedIndex) {}
     public record EditQuestion(@NotBlank @Size(max=500) String prompt,@NotNull @Size(min=4,max=4) List<@NotBlank @Size(max=300) String> options,@Min(0) @Max(3) int correctIndex,@NotBlank @Size(max=1000) String explanation) {}
-    public record QuizSet(String id,String courseId,String noteId,String title,long sourceNoteVersion,String sourceArtifactId,boolean mockResult,int questionCount,String activeAttemptId,int completedAttempts,Double bestAccuracy,String createdAt) {}
+    public record QuizSet(String id,String courseId,String noteId,String title,long sourceNoteVersion,String sourceArtifactId,List<String> sourceAttachmentIds,boolean mockResult,int questionCount,String activeAttemptId,int completedAttempts,Double bestAccuracy,String createdAt) {}
     public record Question(String id,int order,String prompt,List<String> options,Integer selectedIndex,Boolean correct,Integer correctIndex,String hint,String explanation,String source) {}
     public record Attempt(String id,String quizSetId,String mode,String status,int totalQuestions,Integer correctAnswers,String startedAt,String completedAt,List<Question> questions) {}
 
@@ -63,8 +63,9 @@ public class QuizController {
         List<String> mockPassages=MockStudyContent.passagesExcluding(note.title(),mockMaterial);
         if(mockPassages.isEmpty()) mockPassages=List.of(note.title()+" 노트에 작성된 내용을 확인해 주세요.");
         final List<String> sourcePassages=mockPassages;
+        String sourceAttachmentIds=String.join(",",attachments.stream().map(AttachmentSource::id).sorted().toList());
         try { tx.executeWithoutResult(status->{
-            db.update("insert into quiz_sets(id,request_id,user_id,course_id,note_id,title,source_note_version,source_artifact_id,mock_result) values(?,?,?,?,?,?,?,?,?)",id,input.requestId(),user,note.courseId(),noteId,"스피드 퀴즈 · "+note.title(),note.version(),input.artifactId(),mock);
+            db.update("insert into quiz_sets(id,request_id,user_id,course_id,note_id,title,source_note_version,source_artifact_id,source_attachment_ids,mock_result) values(?,?,?,?,?,?,?,?,?,?)",id,input.requestId(),user,note.courseId(),noteId,"퀴즈 · "+note.title(),note.version(),input.artifactId(),sourceAttachmentIds,mock);
             if(mock) for(int order=0;order<input.questionCount();order++) insertMockQuestion(id,order,note,sourcePassages);
             else for(int order=0;order<generated.size();order++) insertGeneratedQuestion(id,order,generated.get(order));
         }); } catch(DuplicateKeyException duplicate) { var existing=findSetByRequest(input.requestId(),user); if(existing.isEmpty()) throw new AuthException("퀴즈 생성 요청을 다시 시도해 주세요.",409); return existing.getFirst(); }
@@ -186,8 +187,8 @@ public class QuizController {
         if(new HashSet<>(ids).size()!=ids.size()) throw new AuthException("같은 자료를 중복 선택할 수 없습니다.",400);
         var result=new ArrayList<AttachmentSource>();
         for(String id:ids) {
-            var rows=db.query("select original_name,extracted_text from attachments where id=? and note_id=? and user_id=? and analysis_status='TEXT_READY' and extracted_text is not null",
-                    (row,index)->new AttachmentSource(row.getString("original_name"),row.getString("extracted_text")),id,noteId,user);
+            var rows=db.query("select id,original_name,extracted_text from attachments where id=? and note_id=? and user_id=? and analysis_status='TEXT_READY' and extracted_text is not null",
+                    (row,index)->new AttachmentSource(row.getString("id"),row.getString("original_name"),row.getString("extracted_text")),id,noteId,user);
             if(rows.isEmpty()) throw new AuthException("분석이 완료된 현재 노트의 자료만 포함할 수 있습니다.",400);
             result.add(rows.getFirst());
         }
@@ -209,10 +210,10 @@ public class QuizController {
     private String setSelect(){return "select s.*,(select count(*) from quiz_questions q where q.quiz_set_id=s.id) question_count,(select min(a.id) from quiz_attempts a where a.quiz_set_id=s.id and a.user_id=s.user_id and a.status='IN_PROGRESS') active_attempt_id,(select count(*) from quiz_attempts a where a.quiz_set_id=s.id and a.user_id=s.user_id and a.status='COMPLETED') completed_attempts,(select max(a.correct_answers*100.0/nullif(a.total_questions,0)) from quiz_attempts a where a.quiz_set_id=s.id and a.user_id=s.user_id and a.status='COMPLETED') best_accuracy from quiz_sets s";}
     private QuizSet findSet(String id,long user){return db.queryForObject(setSelect()+" where s.id=? and s.user_id=?",(row,index)->set(row),id,user);}
     private List<QuizSet> findSetByRequest(String request,long user){return db.query(setSelect()+" where s.request_id=? and s.user_id=?",(row,index)->set(row),request,user);}
-    private QuizSet set(java.sql.ResultSet row)throws java.sql.SQLException{Double best=row.getObject("best_accuracy")==null?null:Math.round(row.getDouble("best_accuracy")*10.0)/10.0;return new QuizSet(row.getString("id"),row.getString("course_id"),row.getString("note_id"),row.getString("title"),row.getLong("source_note_version"),row.getString("source_artifact_id"),row.getBoolean("mock_result"),row.getInt("question_count"),row.getString("active_attempt_id"),row.getInt("completed_attempts"),best,row.getTimestamp("created_at").toInstant().toString());}
+    private QuizSet set(java.sql.ResultSet row)throws java.sql.SQLException{Double best=row.getObject("best_accuracy")==null?null:Math.round(row.getDouble("best_accuracy")*10.0)/10.0;String stored=row.getString("source_attachment_ids");List<String> sources=stored==null||stored.isBlank()?List.of():java.util.Arrays.stream(stored.split(",")).filter(value->!value.isBlank()).sorted().toList();return new QuizSet(row.getString("id"),row.getString("course_id"),row.getString("note_id"),row.getString("title"),row.getLong("source_note_version"),row.getString("source_artifact_id"),sources,row.getBoolean("mock_result"),row.getInt("question_count"),row.getString("active_attempt_id"),row.getInt("completed_attempts"),best,row.getTimestamp("created_at").toInstant().toString());}
     private List<String> findAttemptByRequest(String request,long user){return db.queryForList("select id from quiz_attempts where request_id=? and user_id=?",String.class,request,user);}
     private record Note(String courseId,String title,String body,long version){}
-    private record AttachmentSource(String name,String text){}
+    private record AttachmentSource(String id,String name,String text){}
     private record ReviewSource(String id,String title,String content){}
     private record AttemptBase(String id,String setId,String mode,String status,int total,Integer correct,String started,String completed){}
 }
