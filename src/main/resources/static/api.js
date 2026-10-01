@@ -13,13 +13,13 @@ export async function apiFetch(path, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
   if (method !== 'GET') {
-    const csrfResponse = await fetch('/api/auth/csrf', { credentials: 'same-origin' });
+    const csrfResponse = await connectedFetch('/api/auth/csrf', { credentials: 'same-origin' });
     if (!csrfResponse.ok) throw new Error('다시 로그인해 주세요.');
     const csrf = await csrfResponse.json().catch(() => ({}));
     if (!csrf.token) throw new Error('보안 정보를 준비하지 못했습니다. 다시 시도해 주세요.');
     headers['X-XSRF-TOKEN'] = csrf.token;
   }
-  const response = await fetch(path, { method, headers, credentials: 'same-origin', body: payload });
+  const response = await connectedFetch(path, { method, headers, credentials: 'same-origin', body: payload });
   if (response.status === 401) {
     location.assign('/');
     throw new Error('다시 로그인해 주세요.');
@@ -29,4 +29,15 @@ export async function apiFetch(path, options = {}) {
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!response.ok) throw new Error(data?.error || data?.message || '요청을 처리하지 못했습니다.');
   return data;
+}
+
+async function connectedFetch(path, options) {
+  try { return await fetch(path, options); }
+  catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    const local = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname);
+    throw new Error(local
+      ? '로컬 서버에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도해 주세요.'
+      : '서버에 연결할 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.');
+  }
 }
