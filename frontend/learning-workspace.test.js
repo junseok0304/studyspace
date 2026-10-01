@@ -161,7 +161,7 @@ test('all infographic layouts keep cards and their full detail text inside the c
   for (const [layout,count] of cases) {
     const dom = new JSDOM('<!doctype html><div id="stage"></div>');
     const container = dom.window.document.getElementById('stage');
-    const detail='API 요청은 헤더와 인증을 확인한 뒤 권한이 있는 경우에만 처리하여 잘못된 데이터 변경을 막습니다.';
+    const detail='인증된 사용자의 요청만 검증한 후 처리하여 데이터의 무결성을 지키고 불필요한 변경과 서비스 중단을 방지합니다';
     const content = JSON.stringify({pages:[{title:'학습 개념의 연결',subtitle:'네 가지 요소의 관계',relation:'각 요소가 서로 이어집니다',layout,nodes:[
       ...Array.from({length:count},(_,index)=>({label:`개념 ${index+1}의 핵심 용어`,detail,icon:'idea'}))
     ]}]});
