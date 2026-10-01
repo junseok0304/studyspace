@@ -35,7 +35,11 @@ class GeminiGeneratorTests {
                 ]}]}
                 """;
         assertEquals(infographic.strip(),generator.parse(response(infographic),"INFOGRAPHIC").text());
-        assertTrue(new ObjectMapper().valueToTree(GeminiGenerator.structuredSchema("INFOGRAPHIC")).path("properties").path("pages").path("maxItems").asInt()==3);
+        var pageSchema=new ObjectMapper().valueToTree(GeminiGenerator.structuredSchema("INFOGRAPHIC")).path("properties").path("pages");
+        assertTrue(pageSchema.path("maxItems").asInt()==3);
+        assertTrue(pageSchema.path("items").path("properties").path("layout").path("enum").toString().contains("group"));
+        String parallel=infographic.replace("\"flow\"","\"group\"");
+        assertEquals(parallel.strip(),generator.parse(response(parallel),"INFOGRAPHIC").text());
         assertThrows(GeminiGenerator.Failure.class,()->generator.parse(response("{\"pages\":[{\"title\":\"비어 있음\",\"subtitle\":\"\",\"relation\":\"\",\"layout\":\"flow\",\"nodes\":[]}] }"),"INFOGRAPHIC"));
     }
     @Test void validatesStructuredQuizAndFlashcardResults() {

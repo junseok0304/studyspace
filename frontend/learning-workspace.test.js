@@ -197,8 +197,94 @@ test('infographic titles remove generic English labels after Korean headings', (
   dom.window.close();
 });
 
+test('infographic keeps unrelated concepts parallel and selects relevant icons', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const document=dom.window.document;
+  const container=document.getElementById('stage');
+  const content=JSON.stringify({pages:[{title:'수업 개요',subtitle:'수업에서 다룬 핵심 내용입니다.',relation:'주요 개념을 정리했습니다.',layout:'flow',nodes:[
+    {label:'출석 방법',detail:'호명으로 직접 출석을 확인합니다.',icon:'idea'},
+    {label:'개발 환경',detail:'Python과 JavaScript를 설치해 실습합니다.',icon:'idea'},
+    {label:'학습 단계',detail:'1~4주에는 Copilot 기초를 익힙니다.',icon:'idea'}
+  ]}]});
+  renderInfographicPages(document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.ok(svg.classList.contains('infographic-layout-group'));
+  assert.equal(svg.querySelectorAll('path[marker-end]').length,0);
+  assert.deepEqual([...svg.querySelectorAll('.infographic-icon')].map(icon=>icon.dataset.icon),['book','gear','history']);
+  assert.ok(svg.querySelector('.infographic-icon[aria-label="수업·학습"] title'));
+  dom.window.close();
+});
+
+test('infographic titles keep parenthetical English terms together when wrapping', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const document=dom.window.document;
+  const container=document.getElementById('stage');
+  const content=JSON.stringify({pages:[{title:'자료 복사',subtitle:'',relation:'',layout:'group',nodes:[
+    {label:'깊은 복사(Deep Copy)의 필요성',detail:'중첩된 객체까지 별도로 복사합니다.',icon:'data'},
+    {label:'얕은 복사(Shallow Copy)',detail:'바깥 객체만 복사하고 내부 참조를 공유합니다.',icon:'data'}
+  ]}]});
+  renderInfographicPages(document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=document.createElement('div');node.textContent=value;return node;
+  }});
+  const lines=[...container.querySelectorAll('.infographic-node .node-label')][0].querySelectorAll('text');
+  assert.deepEqual([...lines].map(line=>line.textContent),['깊은 복사','(Deep Copy)의 필요성']);
+  assert.equal(lines[1].getAttribute('font-size'),'15');
+  dom.window.close();
+});
+
+test('infographic draws arrows when a flow has an explicit sequence', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const document=dom.window.document;
+  const container=document.getElementById('stage');
+  const content=JSON.stringify({pages:[{title:'요청 처리 흐름',subtitle:'입력을 처리해 결과를 반환합니다.',relation:'먼저 입력을 받고 다음 단계에서 출력을 반환합니다.',layout:'flow',nodes:[
+    {label:'입력',detail:'자료를 입력합니다.',icon:'data'},
+    {label:'출력',detail:'결과를 출력합니다.',icon:'data'}
+  ]}]});
+  renderInfographicPages(document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.ok(svg.classList.contains('infographic-layout-flow'));
+  assert.equal(svg.querySelectorAll('path[marker-end]').length,1);
+  dom.window.close();
+});
+
+test('infographic recognizes an ordered set of time ranges as a real sequence', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const document=dom.window.document;
+  const container=document.getElementById('stage');
+  const content=JSON.stringify({pages:[{title:'학기 계획',subtitle:'',relation:'주차별 학습 내용',layout:'flow',nodes:[
+    {label:'1~4주',detail:'코파일럿 기초를 익힙니다.',icon:'history'},
+    {label:'5~10주',detail:'언어별 실습을 합니다.',icon:'history'},
+    {label:'11~13주',detail:'테스트와 리팩토링을 연습합니다.',icon:'history'}
+  ]}]});
+  renderInfographicPages(document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.ok(svg.classList.contains('infographic-layout-flow'));
+  assert.equal(svg.querySelectorAll('path[marker-end]').length,2);
+  dom.window.close();
+});
+
+test('legacy infographic does not connect unrelated facts just because a detail mentions stages', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const document=dom.window.document;
+  const container=document.getElementById('stage');
+  const content='## 핵심 요약\n\n- GitHub Copilot으로 Python 실습을 합니다.\n- VS Code와 Node.js를 설치합니다.\n- 1~4주에는 도구 기초를 단계별로 배웁니다.';
+  renderInfographicPages(document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=document.createElement('div');node.textContent=value;return node;
+  }});
+  const svg=container.querySelector('.infographic-visual');
+  assert.ok(svg.classList.contains('infographic-layout-group'));
+  assert.equal(svg.querySelectorAll('path[marker-end]').length,0);
+  dom.window.close();
+});
+
 test('all infographic layouts keep cards and their full detail text inside the canvas', () => {
-  const cases=[['flow',2],['flow',4],['compare',2],['cycle',2],['cycle',3],['cycle',4],['hub',2],['hub',3],['hub',4]];
+  const cases=[['flow',2],['flow',4],['group',2],['group',4],['compare',2],['cycle',2],['cycle',3],['cycle',4],['hub',2],['hub',3],['hub',4]];
   for (const [layout,count] of cases) {
     const dom = new JSDOM('<!doctype html><div id="stage"></div>');
     const container = dom.window.document.getElementById('stage');

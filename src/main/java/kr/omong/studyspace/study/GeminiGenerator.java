@@ -27,11 +27,10 @@ public class GeminiGenerator {
             case "SUMMARY" -> "선택한 노트와 분석 완료 자료를 바탕으로 학습에 다시 활용할 수 있는 충실한 요약문을 작성하세요. 문제·정답·플래시카드를 만들지는 마세요. 너무 짧은 개요로 끝내지 말고, 노트의 길이와 정보량에 비례해 중요한 내용을 충분히 담으세요(긴 노트는 보통 7~12개 문단 또는 소제목이 있는 구조화된 요약). 핵심 개념의 정의뿐 아니라 개념 사이의 관계, 비교·순서·원인과 결과, 수업 사례와 교수님 강조점을 보존하세요. 시험 범위나 연습문제가 있으면 문제를 그대로 옮기지는 말되, 출제 범위와 각 문제군이 점검하는 주제들을 빠뜨리지 말고 주제별로 묶어 정리하세요. 노트의 주요 주제와 섹션을 모두 다루고, 세부 항목은 의미가 유지되도록 묶되 몇 가지만 임의로 골라 요약하지 마세요. 불완전하거나 비어 있는 메모는 완성된 사실처럼 보충하지 말고 미완성임을 밝혀 주세요. 읽기 쉬운 한국어 Markdown으로 작성하고, 노트의 AI 전용 메타데이터는 요약하지 마세요. 출처·파일명·노트 제목·버전 꼬리표나 각주 없이 요약 내용만 출력하세요. 자료에서 확인되지 않는 점은 추측하지 마세요.";
             case "AI_NOTE" -> "제목, 핵심 개념, 예시, 주의점으로 학습 노트를 재구성하세요.";
             case "SUBJECTIVE_QUIZ" -> "주관식 문제 5개와 각 모범 답안, 해설, 원문 근거를 작성하세요.";
-            case "INFOGRAPHIC" -> "노트와 자료에 근거한 그래픽 인포그래픽 데이터를 JSON으로 만드세요. 설명문이나 Markdown 목록이 아니라, 프런트엔드가 카드·아이콘·선·화살표로 그릴 수 있는 시각 자료입니다. 1~3페이지로 제한하고 각 페이지는 하나의 주제를 설명하세요. 각 페이지에 title, subtitle, relation, layout(flow|compare|cycle|hub), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 label(짧은 개념명), detail(한두 문장 이내의 핵심 설명), icon(data|shield|lock|network|history|person|key|server|mobile|gear|globe|warning|check|book|money|idea 중 하나)을 포함하세요. 개념 사이에 실제 순서가 있을 때 flow, 두 개념을 대조할 때 compare, 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 노드에는 긴 문단을 넣지 말고 관계가 시각적으로 드러나도록 배치하세요. 노트에 여러 주제가 있으면 2~3페이지로 나누고, 주요 개념·정의·관계와 교수님 강조점은 빠뜨리지 마세요. 페이지마다 서로 다른 주제를 다루며 출처나 파일명은 표시하지 마세요. 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
+            case "INFOGRAPHIC" -> infographicInstruction();
             case "MIND_MAP" -> "label(1~200자 문자열), children(같은 구조의 배열)만 가진 JSON 트리로 마인드맵을 반환하세요. 최대 깊이 8, 노드 100개. Markdown 코드 펜스 금지.";
             default -> throw new Failure("UNSUPPORTED_KIND");
         };
-        if (kind.equals("INFOGRAPHIC")) instruction = infographicInstruction();
         var config=new HashMap<String,Object>();config.put("maxOutputTokens",8192);config.put("temperature",0.3);
         if(kind.equals("MIND_MAP") || kind.equals("INFOGRAPHIC")) {
             config.put("responseMimeType","application/json");
@@ -176,7 +175,7 @@ public class GeminiGenerator {
     }
 
     private String infographicInstruction() {
-        return "노트와 분석 완료된 강의자료를 모두 근거로 그래픽 인포그래픽 데이터를 JSON으로 만드세요. 설명문이나 Markdown 목록이 아니라 카드·아이콘·선·화살표로 그릴 시각 자료입니다. 내용이 충분하면 2~3페이지로 나누어 노트의 수업 내용과 첨부자료의 핵심을 모두 다루고, 어느 한쪽만 요약하지 마세요. 각 페이지에는 title, subtitle, relation, layout(flow|compare|cycle|hub), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 짧은 label(2~18자 개념명), detail(한 문장, 60자 이내), icon(data|shield|lock|network|history|person|key|server|mobile|gear|globe|warning|check|book|money|idea 중 하나)을 포함하세요. label과 detail은 같은 말을 반복하지 말고, label에는 Markdown 기호·번호·이모지를 넣지 마세요. 페이지 제목·부제·관계 문구도 짧게 쓰고 서로 중복하지 마세요. 개념 사이에 실제 순서가 있을 때 flow, 두 개념을 대조할 때 compare, 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 서로 다른 주제를 페이지별로 다루고 핵심 개념·정의·관계와 교수님 강조점을 빠뜨리지 마세요. 출처나 파일명은 표시하지 말고 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
+        return "노트와 분석 완료된 강의자료를 모두 근거로 그래픽 인포그래픽 데이터를 JSON으로 만드세요. 설명문이나 Markdown 목록이 아니라 카드·아이콘·선·화살표로 그릴 시각 자료입니다. 내용이 충분하면 2~3페이지로 나누어 노트의 수업 내용과 첨부자료의 핵심을 모두 다루고, 어느 한쪽만 요약하지 마세요. 각 페이지에는 title, subtitle, relation, layout(flow|compare|cycle|hub|group), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 짧은 label(2~18자 개념명), detail(한 문장, 60자 이내), icon(data|shield|lock|network|history|person|key|server|mobile|gear|globe|warning|check|book|money|idea 중 하나)을 포함하세요. label과 detail은 같은 말을 반복하지 말고, label에는 Markdown 기호·번호·이모지를 넣지 마세요. 페이지 제목·부제·관계 문구도 짧게 쓰고 서로 중복하지 마세요. 실제 순서·인과·시간 흐름이 자료에 분명히 있을 때만 flow와 화살표를 사용하세요. 관계가 없는 병렬 개념은 group으로 배치해 순서를 암시하지 마세요. 두 개념을 대조할 때 compare, 실제 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 아이콘은 아래 의미에 맞춰 고르세요: data=데이터·입력/출력, shield=보안·권한, lock=기밀·암호화, network=통신·연결, history=시간·단계, person=사용자·역할, key=인증, server=서버·시스템, mobile=모바일, gear=개발도구·코드 작업, globe=웹, warning=위험·오류, check=검증·완료, book=수업·시험·과제, money=금액, idea=정의·원칙·추상 개념. 핵심 개념·정의·관계와 교수님 강조점을 빠뜨리지 마세요. 출처나 파일명은 표시하지 말고 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
     }
 
     static Map<String,Object> structuredSchema(String kind) {
@@ -190,7 +189,7 @@ public class GeminiGenerator {
             pageFields.put("title",Map.of("type","string","maxLength",80));
             pageFields.put("subtitle",Map.of("type","string","maxLength",90));
             pageFields.put("relation",Map.of("type","string","maxLength",80));
-            pageFields.put("layout",Map.of("type","string","enum",List.of("flow","compare","cycle","hub")));
+            pageFields.put("layout",Map.of("type","string","enum",List.of("flow","compare","cycle","hub","group")));
             pageFields.put("nodes",Map.of("type","array","minItems",2,"maxItems",4,"items",nodeSchema));
             var pageSchema=Map.of("type","object","properties",pageFields,"required",List.copyOf(pageFields.keySet()),"additionalProperties",false);
             return Map.of("type","object","properties",Map.of("pages",Map.of("type","array","minItems",1,"maxItems",3,"items",pageSchema)),"required",List.of("pages"),"additionalProperties",false);
@@ -233,7 +232,7 @@ public class GeminiGenerator {
     private void validateInfographic(JsonNode root) {
         JsonNode pages=root.path("pages");
         if(!pages.isArray()||pages.isEmpty()||pages.size()>3) throw new Failure("PROVIDER_INVALID_RESULT");
-        Set<String> layouts=Set.of("flow","compare","cycle","hub");
+        Set<String> layouts=Set.of("flow","compare","cycle","hub","group");
         Set<String> icons=Set.of("data","shield","lock","network","history","person","key","server","mobile","gear","globe","warning","check","book","money","idea");
         for(JsonNode page:pages) {
             JsonNode nodes=page.path("nodes");

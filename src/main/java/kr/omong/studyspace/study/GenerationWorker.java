@@ -107,23 +107,12 @@ public class GenerationWorker {
         List<String> passages=MockStudyContent.passagesExcluding(input.title(),material.toString());
         if(passages.isEmpty()) passages=List.of(input.title()+" 노트에 작성된 내용을 확인해 주세요.");
         String excerpt=String.join("\n\n",passages.stream().limit(8).map(value->"- "+value).toList());
-        String lead=passages.getFirst();
         String sourcePreview=sourcePreview(sources);
         if("INFOGRAPHIC".equals(input.kind())) return mockInfographic(input.title(),passages);
         if("MIND_MAP".equals(input.kind())) {
             var children=new java.util.ArrayList<MindNode>();
             for(String part:passages){String value=MockStudyContent.clip(part,72);children.add(new MindNode(value,List.of()));if(children.size()==8)break;}
             return json.writeValueAsString(new MindNode(input.title(),children));
-        }
-        if("INFOGRAPHIC".equals(input.kind())) {
-            var pages=new java.util.ArrayList<String>();
-            pages.add("# "+input.title()+"\n\n## 핵심 한눈에 보기\n\n"+lead);
-            for(int start=1,page=1;start<passages.size();start+=5,page++) {
-                int end=Math.min(start+5,passages.size());
-                String content=String.join("\n\n",passages.subList(start,end).stream().map(value->"- "+value).toList());
-                pages.add("## 핵심 개념 "+page+"\n\n"+content);
-            }
-            return String.join("\n\n---PAGE---\n\n",pages);
         }
         if("AI_NOTE".equals(input.kind())) return """
                 > 노트와 첨부자료의 원문을 이용한 개발용 미리보기입니다. Gemini API를 호출하지 않았습니다.
@@ -176,7 +165,7 @@ public class GenerationWorker {
             }
             while(nodes.size()<2) nodes.add(Map.of("label","핵심 개념","detail",MockStudyContent.clip(passages.isEmpty()?title:passages.getFirst(),180),"icon","idea"));
             pages.add(Map.of("title",page==0?title:passages.get(from).substring(0,Math.min(38,passages.get(from).length())),
-                    "subtitle","노트의 핵심 개념을 연결해 시각적으로 정리했습니다.","relation","개념을 순서와 관계에 따라 살펴보세요.","layout","flow","nodes",nodes));
+                    "subtitle","노트의 핵심 주제를 간결하게 정리했습니다.","relation","서로 다른 핵심 주제를 따로 살펴봅니다.","layout","group","nodes",nodes));
         }
         try { return json.writeValueAsString(Map.of("pages",pages)); }
         catch(Exception failure) { throw new IllegalStateException("인포그래픽 미리보기를 만들지 못했습니다.",failure); }

@@ -41,6 +41,23 @@ class GenerationTests {
                 .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("서버는 처리 결과를 HTTP 응답으로 돌려줍니다.")));
     }
 
+    @Test void mockInfographicDoesNotInventSequenceBetweenUnrelatedNoteFacts() throws Exception {
+        db.update("insert into users(email,password_hash,nickname) values('group-preview@example.com','test','그룹 미리보기')");
+        long ownerId=db.queryForObject("select id from users where email='group-preview@example.com'",Long.class);
+        db.update("insert into courses(id,user_id,semester,name) values('group-preview-course',?,'2026-2','수업')",ownerId);
+        db.update("insert into notes(id,course_id,user_id,title,body,version) values('group-preview-note','group-preview-course',?,'수업 내용','출석은 호명으로 확인합니다.\nPython을 설치해 실습합니다.',1)",ownerId);
+        var owner=user(Long.toString(ownerId));
+        mvc.perform(post("/api/notes/group-preview-note/generations").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kind\":\"INFOGRAPHIC\",\"requestId\":\"ffb1223a-3be4-4470-85cc-79a80076b209\",\"attachmentIds\":[]}"))
+                .andExpect(status().isAccepted());
+        for(int i=0;i<100 && !"COMPLETED".equals(db.queryForObject("select status from generation_jobs where user_id=?",String.class,ownerId));i++) Thread.sleep(10);
+        mvc.perform(get("/api/notes/group-preview-note/generations").with(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].mockResult").value(true))
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("\"layout\":\"group\"")))
+                .andExpect(jsonPath("$[0].content").value(org.hamcrest.Matchers.containsString("Python")));
+    }
+
     @Test void mockGenerationIsQueuedStoredIdempotentAndOwnerOnly() throws Exception {
         db.update("insert into users(email,password_hash,nickname) values('generation@example.com','test','학생')");
         long ownerId=db.queryForObject("select id from users where email='generation@example.com'",Long.class);
