@@ -229,6 +229,21 @@
   padding: 0;
   gap: 10px;
 }
+.notesup-workspace .rail-brand-button{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.notesup-workspace .rail-brand-button:focus-visible{
+  outline: 2px solid #3555c6;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
 .notesup-workspace .rail-brand .brand-logo{
   display: block;
   width: 42px;

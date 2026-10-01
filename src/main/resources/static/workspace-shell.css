@@ -125,8 +125,7 @@ body:has(#auth-card:not(.hidden)) .top-semester-filter{ display:none !important;
 #note-editor-card:has(#note-form.hidden) .workspace-tabs{ display:none; }
 #note-form.recording-workspace{ grid-template-columns:minmax(0,1fr); }
 #note-form.recording-workspace #recording-panel{ margin-top:0; padding-top:0; border-top:0; }
-.notesup-workspace .rail-brand.recording-active .brand-logo,
-.notesup-workspace .rail-brand.recording-active .workspace-brand{ display:none; }
+.notesup-workspace .rail-brand.recording-active .rail-brand-button{ display:none; }
 .notesup-workspace .rail-recording-status{ align-items:center; gap:9px; color:#b42318; font:700 13px/1.2 ui-monospace,SFMono-Regular,monospace; font-variant-numeric:tabular-nums; }
 .notesup-workspace .rail-recording-status:not([hidden]){ display:flex; }
 .notesup-workspace .rail-recording-dot{ width:8px; height:8px; border-radius:50%; background:#d92d20; box-shadow:0 0 0 4px #fee4e2; animation:rail-recording-pulse 1.4s ease-in-out infinite; }

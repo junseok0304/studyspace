@@ -76,6 +76,12 @@ test('recording opens a focused workspace and navigation keeps controls mounted'
   assert.equal(doc.querySelector('.course-menu').parentElement,doc.querySelector('#study aside'));
   assert.equal(doc.getElementById('dashboard-semester').closest('.course-rail') !== null,true);
   assert.equal(doc.querySelector('.rail-brand img.brand-logo')?.getAttribute('src'),'/assets/studyspace-logo.png');
+  const brandButton=doc.querySelector('.rail-brand-button');
+  assert.equal(brandButton?.getAttribute('aria-label'),'StudySpace 홈');
+  let dashboardClicks=0;
+  doc.getElementById('dashboard-button').addEventListener('click',()=>dashboardClicks++);
+  brandButton.click();
+  assert.equal(dashboardClicks,1);
   assert.equal(doc.querySelector('.rail-section-label .course-management') !== null,true);
   const courseManagement=doc.querySelector('.rail-section-label .course-management');
   const courseManagementSummary=courseManagement.querySelector(':scope > summary');

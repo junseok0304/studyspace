@@ -64,8 +64,13 @@ export function mountWorkspaceNavigation(doc = document) {
   }
   const railBrand = doc.createElement('div');
   railBrand.className = 'rail-brand';
-  if (logo) railBrand.append(logo);
-  if (brandName) railBrand.append(brandName);
+  const brandButton = doc.createElement('button');
+  brandButton.type = 'button';
+  brandButton.className = 'rail-brand-button';
+  brandButton.setAttribute('aria-label', 'StudySpace 홈');
+  if (logo) brandButton.append(logo);
+  if (brandName) brandButton.append(brandName);
+  railBrand.append(brandButton);
   const recordingStatus = doc.createElement('div');
   recordingStatus.id = 'rail-recording-status';
   recordingStatus.className = 'rail-recording-status';
@@ -109,6 +114,7 @@ export function mountWorkspaceNavigation(doc = document) {
   // names never disappear or squeeze into a narrow column while writing.
   const legacyNav = courseRail.querySelector('.study-nav');
   const home = doc.getElementById('dashboard-button');
+  brandButton.addEventListener('click', () => home.click());
   const schoolLink = legacyNav?.querySelector('a[href="/mypage.html"]');
   legacyNav?.remove();
 
