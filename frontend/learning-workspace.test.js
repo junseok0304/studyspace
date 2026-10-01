@@ -97,6 +97,26 @@ test('infographic content is paginated with working accessible navigation', () =
   dom.window.close();
 });
 
+test('infographic keeps its current page when unchanged content is rendered again', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const document=dom.window.document;
+  const container=document.getElementById('stage');
+  const content='# 수업 개요\n\n## 1. 첫째\n\n첫 페이지 내용입니다.\n\n---PAGE---\n\n## 2. 둘째\n\n두 번째 페이지 내용입니다.';
+  const options={title:'강의노트',content,renderMarkdown:value=>{
+    const node=document.createElement('div');node.textContent=value;return node;
+  }};
+  renderInfographicPages(document,container,options);
+  container.querySelector('[aria-label="다음 인포그래픽 페이지"]').click();
+  assert.equal(container.querySelector('.infographic-page-number').textContent,'2 / 2');
+
+  renderInfographicPages(document,container,options);
+  assert.equal(container.querySelector('.infographic-page-number').textContent,'2 / 2');
+
+  renderInfographicPages(document,container,{...options,content:'# 새 결과\n\n## 새 내용\n\n새 결과의 첫 페이지입니다.'});
+  assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 1');
+  dom.window.close();
+});
+
 test('infographic JSON is rendered as a visual diagram with connected concept cards', () => {
   const dom = new JSDOM('<!doctype html><div id="stage"></div>');
   const document = dom.window.document;

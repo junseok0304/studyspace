@@ -1,4 +1,6 @@
 /** Split a generated infographic into readable, navigable pages. */
+const infographicViewerStates = new WeakMap();
+
 export function paginateInfographic(markdown, maxChars = 1400) {
   const source = stripInfographicSources(markdown).trim();
   if (!source) return [];
@@ -65,6 +67,10 @@ export function stripInfographicSources(markdown) {
 
 export function renderInfographicPages(document, container, {title, content, renderMarkdown}) {
   const pages = normalizeInfographicPages(removeRepeatedCoverTitle(content, title), title);
+  const pageKey = `${title || ''}\u0000${pages.join('\u0000')}`;
+  const previousState = infographicViewerStates.get(container);
+  let page = previousState?.pageKey === pageKey ? Math.max(0, Math.min(previousState.page, pages.length - 1)) : 0;
+  infographicViewerStates.set(container, {pageKey, page});
   container.replaceChildren();
   if (!pages.length) return 0;
 
@@ -96,8 +102,8 @@ export function renderInfographicPages(document, container, {title, content, ren
   viewer.append(topbar, sheet);
   container.append(viewer);
 
-  let page = 0;
   const show = () => {
+    infographicViewerStates.set(container, {pageKey, page});
     previous.disabled = page === 0;
     next.disabled = page === pages.length - 1;
     pageNumber.textContent = `${page + 1} / ${pages.length}`;
