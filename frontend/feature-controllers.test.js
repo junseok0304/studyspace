@@ -211,6 +211,28 @@ test('saved infographic is rebuilt when analyzed attachment sources have changed
   dom.window.close();
 });
 
+test('summary coverage estimate excludes hidden AI metadata from the note length', async () => {
+  const dom=new JSDOM(markup,{url:'http://localhost:8091/'});
+  const byId=id=>dom.window.document.getElementById(id);
+  const calls=[];
+  const summary='핵심 내용을 설명합니다. '.repeat(60);
+  const editor={id:'note-1',version:1,title:'강의노트',body:`<!-- AI 전용 메타데이터 ${'hidden '.repeat(800)} -->\n## 짧은 내용\n실제 노트는 짧습니다.`};
+  const request=async(path,options={})=>{
+    calls.push({path,options});
+    if(path==='/api/notes/note-1/generations') {
+      if(options.method==='POST') return {id:'unexpected-refresh'};
+      return [{id:'summary-existing',kind:'SUMMARY',status:'COMPLETED',sourceNoteVersion:1,sourceAttachmentIds:[],content:summary}];
+    }
+    return [];
+  };
+  const generation=mountGeneration({request,byId,getEditor:()=>editor,getAttachmentIds:()=>[],render:()=>{}});
+
+  await generation.openSummary();
+
+  assert.equal(calls.some(call=>call.options.method==='POST'),false);
+  dom.window.close();
+});
+
 test('quiz and flashcard sets are refreshed when the attached file set changes', async () => {
   const dom=new JSDOM(markup,{url:'http://localhost:8091/'});
   const previousDocument=globalThis.document,previousWindow=globalThis.window;

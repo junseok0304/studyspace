@@ -16,8 +16,8 @@ export function mountGeneration({request, byId, getEditor, getAttachmentIds, ren
     return Number(row?.attachmentCount || 0) === current.length;
   };
   const summaryNeedsCoverageRefresh = (content, editor) => {
-    const sourceLength = String(editor?.body || '').replace(/<!--[\\s\\S]*?-->/g, '').replace(/^---[\\s\\S]*?---\\s*/m, '').trim().length;
-    const summaryLength = String(content || '').replace(/[#>*_`\\-]/g, '').trim().length;
+    const sourceLength = String(editor?.body || '').replace(/<!--[\s\S]*?-->/g, '').replace(/^---[\s\S]*?---\s*/m, '').trim().length;
+    const summaryLength = String(content || '').replace(/[#>*_`-]/g, '').trim().length;
     return sourceLength >= 1800 && summaryLength < Math.max(700, sourceLength * 0.24);
   };
   const needsSummaryRefresh = content => {
