@@ -105,7 +105,7 @@ export function mountAttachments({request, byId, getEditor, getGenerationFeature
       updateSourceSummary();
     }
     const upload = el('upload-attachments');
-    input.disabled = !normalizedId; upload.disabled = !normalizedId;
+    input.disabled = !normalizedId; upload.disabled = !normalizedId || pendingFiles.length === 0;
     dropzone.setAttribute('aria-disabled', String(!normalizedId));
     if (!normalizedId) {
       el('attachment-count').textContent = '';
