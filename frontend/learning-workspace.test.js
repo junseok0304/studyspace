@@ -134,7 +134,10 @@ test('infographic avoids markdown, numbering, and repeated label text in legacy 
   assert.match(svg.textContent,/핵심 주제/);
   assert.doesNotMatch(svg.textContent,/📌|\*\*/);
   assert.equal(svg.querySelectorAll('.node-detail').length,1);
-  assert.doesNotMatch(svg.querySelector('.subtitle').textContent,/핵심 개념 사이의 연결/);
+  assert.equal(svg.querySelector('.subtitle'),null);
+  assert.equal(svg.querySelector('.relation'),null);
+  assert.ok(Number(svg.querySelector('.infographic-node > rect').getAttribute('y'))<258);
+  assert.doesNotMatch(container.querySelector('.infographic-semantic-content').textContent,/핵심 개념을 연결합니다|핵심 개념 사이의 연결/);
   dom.window.close();
 });
 
@@ -150,6 +153,53 @@ test('infographic strips legacy book emoji and numbering from page titles', () =
   const svg=container.querySelector('.infographic-visual');
   assert.match(svg.textContent,/수업 개요 및 학습 환경/);
   assert.doesNotMatch(svg.textContent,/📚|2\./);
+  dom.window.close();
+});
+
+test('all infographic layouts keep cards and their full detail text inside the canvas', () => {
+  const cases=[['flow',2],['flow',4],['compare',2],['cycle',2],['cycle',3],['cycle',4],['hub',2],['hub',3],['hub',4]];
+  for (const [layout,count] of cases) {
+    const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+    const container = dom.window.document.getElementById('stage');
+    const detail='API 요청은 헤더와 인증을 확인한 뒤 권한이 있는 경우에만 처리하여 잘못된 데이터 변경을 막습니다.';
+    const content = JSON.stringify({pages:[{title:'학습 개념의 연결',subtitle:'네 가지 요소의 관계',relation:'각 요소가 서로 이어집니다',layout,nodes:[
+      ...Array.from({length:count},(_,index)=>({label:`개념 ${index+1}의 핵심 용어`,detail,icon:'idea'}))
+    ]}]});
+    renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+      const node=dom.window.document.createElement('div');node.textContent=value;return node;
+    }});
+    const svg=container.querySelector('.infographic-visual');
+    const cards=[...svg.querySelectorAll('.infographic-node')];
+    for (const card of cards) {
+      const rect=card.querySelector(':scope > rect');
+      const x=Number(rect.getAttribute('x')),y=Number(rect.getAttribute('y'));
+      const width=Number(rect.getAttribute('width')),height=Number(rect.getAttribute('height'));
+      assert.ok(x>=0 && x+width<=1120,`${layout} card extends horizontally beyond the canvas`);
+      assert.ok(y>=0 && y+height<=620,`${layout} card extends vertically beyond the canvas`);
+      const detailLines=[...card.querySelectorAll('.node-detail text')];
+      const labelLines=[...card.querySelectorAll('.node-label text')];
+      assert.ok(detailLines.length>0,`${layout} card has no visible detail`);
+      assert.ok(Number(detailLines.at(-1).getAttribute('y'))+3<=y+height,`${layout} card detail extends beyond its card`);
+      if (layout==='cycle' && count===4) assert.ok(Number(detailLines[0].getAttribute('y'))-Number(labelLines.at(-1).getAttribute('y'))>=14,'four-node cycle label and detail overlap');
+      assert.equal(detailLines.map(line=>line.textContent).join('').replace(/\s/g,''),detail.replace(/\s/g,''),`${layout}/${count} card detail was truncated: ${JSON.stringify(detailLines.map(line=>line.textContent))}`);
+    }
+    assert.equal(cards.length,count);
+    dom.window.close();
+  }
+});
+
+test('infographic cards remove separators repeated between a label and its detail', () => {
+  const dom=new JSDOM('<!doctype html><div id="stage"></div>');
+  const container=dom.window.document.getElementById('stage');
+  const content=JSON.stringify({pages:[{title:'수업 흐름',subtitle:'',relation:'',layout:'flow',nodes:[
+    {label:'1~4주',detail:'1~4주: 코파일럿 기초 실습',icon:'idea'},
+    {label:'5~10주',detail:'5~10주：언어별 실전',icon:'data'}
+  ]}]});
+  renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=dom.window.document.createElement('div');node.textContent=value;return node;
+  }});
+  const details=[...container.querySelectorAll('.node-detail')].map(node=>node.textContent.trim());
+  assert.deepEqual(details,['코파일럿 기초 실습','언어별 실전']);
   dom.window.close();
 });
 

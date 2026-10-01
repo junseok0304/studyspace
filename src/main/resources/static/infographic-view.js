@@ -108,8 +108,12 @@ export function renderInfographicPages(document, container, {title, content, ren
     const semantic = document.createElement('div');
     semantic.className = 'infographic-semantic-content';
     const titleAlreadyShown = cleanText(pageContent.title) === cleanText(title);
-    const semanticHeadings = titleAlreadyShown ? '' : `# ${title || pageContent.title}\n\n## ${pageContent.title}\n\n`;
-    semantic.append(renderMarkdown(`${semanticHeadings}${pageContent.subtitle}\n\n${pageContent.nodes.map(node => `### ${node.label}\n\n${node.detail}`).join('\n\n')}`));
+    const semanticParts = titleAlreadyShown ? [] : [`# ${title || pageContent.title}`, `## ${pageContent.title}`];
+    const rawRelation = cleanText(pageContent.relation);
+    const semanticSubtitle = cleanCaption(cleanText(pageContent.subtitle).replace(new RegExp(`\\s*${escapeRegex(rawRelation)}$`), '').trim());
+    if (semanticSubtitle) semanticParts.push(semanticSubtitle);
+    semanticParts.push(...pageContent.nodes.map(node => `### ${node.label}\n\n${node.detail}`));
+    semantic.append(renderMarkdown(semanticParts.join('\n\n')));
     sheet.append(semantic);
     sheet.scrollTop = 0;
   };
@@ -145,6 +149,8 @@ function normalizeInfographicPages(content, fallbackTitle) {
   try {
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed.pages) && parsed.pages.length) return parsed.pages.slice(0, 3).map(page => {
+      const rawRelation = cleanText(page.relation);
+      const subtitle = cleanCaption(cleanText(page.subtitle).replace(new RegExp(`\\s*${escapeRegex(rawRelation)}$`), '').trim());
       const nodes = (page.nodes || []).slice(0, 4).map(node => ({
         label: cleanText(node.label).slice(0, 50), detail: cleanText(node.detail).slice(0, 60),
         icon: Object.hasOwn(ICON_PATHS, node.icon) ? node.icon : 'idea'
@@ -152,7 +158,7 @@ function normalizeInfographicPages(content, fallbackTitle) {
       const distinctNodes = nodes.filter(node => node.detail !== node.label);
       return {
         title: cleanText(page.title) || fallbackTitle || '핵심 개념',
-        subtitle: cleanText(page.subtitle), relation: cleanText(page.relation),
+        subtitle, relation: cleanCaption(rawRelation),
         layout: ['flow', 'compare', 'cycle', 'hub'].includes(page.layout) ? page.layout : 'flow',
         nodes: distinctNodes.length >= 2 ? distinctNodes : nodes
       };
@@ -174,8 +180,8 @@ function markdownPage(markdown, fallbackTitle, index) {
   const nodes = chosen.map((detail, nodeIndex) => ({label: inferLabel(detail, nodeIndex), detail: detail.slice(0, 180), icon: inferIcon(detail)}));
   const distinctNodes = nodes.filter(node => cleanText(node.detail) !== cleanText(node.label));
   return {
-    title: pageTitle, subtitle: prose[0] ? cleanText(prose[0]).slice(0, 120) : '핵심 개념과 관계를 그림으로 정리했습니다.',
-    relation: layout === 'compare' ? '두 관점을 나란히 살펴봅니다' : layout === 'cycle' ? '각 요소가 서로 이어집니다' : '핵심 개념 사이의 연결', layout,
+    title: pageTitle, subtitle: cleanCaption(prose[0] ? cleanText(prose[0]).slice(0, 120) : ''),
+    relation: layout === 'compare' ? '두 관점을 나란히 살펴봅니다' : layout === 'cycle' ? '각 요소가 서로 이어집니다' : layout === 'hub' ? '중심 개념과 주요 요소' : '', layout,
     nodes: distinctNodes.length >= 2 ? distinctNodes : nodes
   };
 }
@@ -195,23 +201,27 @@ function renderInfographicGraphic(document, page, pageIndex) {
   svg.append(svgNode(document, 'circle', {cx: 1010, cy: 70, r: 102, fill: '#eaf2fb'}));
   svg.append(svgNode(document, 'circle', {cx: 70, cy: 585, r: 110, fill: '#eaf6f4'}));
   svg.append(svgText(document, `infographic-title-${pageIndex}`, page.title, 58, 75, 'title'));
-  const relationText = cleanText(page.relation);
-  const subtitle = cleanText(page.subtitle).replace(new RegExp(`\\s*${escapeRegex(relationText)}$`), '').trim();
-  svg.append(svgText(document, `infographic-desc-${pageIndex}`, subtitle, 60, 112, 'subtitle'));
-  const relation = svgNode(document, 'g');
-  relation.append(svgNode(document, 'rect', {x: 60, y: 145, width: 1000, height: 42, rx: 21, fill: '#e9eef8'}));
-  relation.append(svgText(document, null, relationText, 560, 172, 'relation', 'middle'));
-  svg.append(relation);
-  if (page.layout === 'cycle') drawCycle(document, svg, page, id);
-  else if (page.layout === 'hub') drawHub(document, svg, page, id);
-  else drawFlow(document, svg, page, id);
+  const rawRelation = cleanText(page.relation);
+  const relationText = cleanCaption(rawRelation);
+  const subtitle = cleanCaption(cleanText(page.subtitle).replace(new RegExp(`\\s*${escapeRegex(rawRelation)}$`), '').trim());
+  if (subtitle) svg.append(svgText(document, `infographic-desc-${pageIndex}`, subtitle, 60, 112, 'subtitle'));
+  if (relationText) {
+    const relation = svgNode(document, 'g');
+    relation.append(svgNode(document, 'rect', {x: 60, y: 145, width: 1000, height: 42, rx: 21, fill: '#e9eef8'}));
+    relation.append(svgText(document, null, relationText, 560, 172, 'relation', 'middle'));
+    svg.append(relation);
+  }
+  const diagramOffset = relationText ? 0 : subtitle ? -35 : -58;
+  if (page.layout === 'cycle') drawCycle(document, svg, page, id, diagramOffset);
+  else if (page.layout === 'hub') drawHub(document, svg, page, id, diagramOffset);
+  else drawFlow(document, svg, page, id, diagramOffset);
   svg.append(svgText(document, null, `${pageIndex + 1} · 시각 학습 자료`, 1050, 594, 'page-tag', 'end'));
   return svg;
 }
 
-function drawFlow(document, svg, page, arrowId) {
+function drawFlow(document, svg, page, arrowId, verticalOffset = 0) {
   const nodes = page.nodes, gap = 34, width = Math.min(994 / nodes.length - gap, 270), total = nodes.length * width + (nodes.length - 1) * gap;
-  const start = (1120 - total) / 2, y = 258, height = 272;
+  const start = (1120 - total) / 2, y = 258 + verticalOffset, height = 272;
   nodes.forEach((node, index) => {
     const x = start + index * (width + gap), color = PALETTE[index % PALETTE.length];
     if (index < nodes.length - 1 && page.layout === 'compare') {
@@ -223,9 +233,13 @@ function drawFlow(document, svg, page, arrowId) {
   });
 }
 
-function drawCycle(document, svg, page, arrowId) {
-  const nodes = page.nodes, center = {x: 560, y: 405}, radius = nodes.length === 2 ? 210 : 175;
-  const cardW = nodes.length === 2 ? 300 : 252, cardH = 178;
+function drawCycle(document, svg, page, arrowId, verticalOffset = 0) {
+  const nodes = page.nodes;
+  const fourNodeLayout = nodes.length === 4;
+  const center = {x: 560, y: (fourNodeLayout ? 402 : nodes.length === 2 ? 405 : 436) + verticalOffset};
+  const radius = nodes.length === 2 ? 210 : fourNodeLayout ? 122 : 147;
+  const cardW = nodes.length === 2 ? 300 : fourNodeLayout ? 212 : 252;
+  const cardH = 178;
   const points = nodes.length === 2 ? [{x: 335, y: center.y}, {x: 785, y: center.y}] : nodes.map((_, index) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / nodes.length; return {x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius}; });
   points.forEach((point, index) => {
     const next = points[(index + 1) % points.length];
@@ -235,11 +249,12 @@ function drawCycle(document, svg, page, arrowId) {
   points.forEach((point, index) => drawCard(document, svg, nodes[index], point.x - cardW / 2, point.y - cardH / 2, cardW, cardH, PALETTE[index % PALETTE.length], index + 1, true));
 }
 
-function drawHub(document, svg, page, arrowId) {
-  const nodes = page.nodes, centerX = 560, centerY = 405;
+function drawHub(document, svg, page, arrowId, verticalOffset = 0) {
+  const nodes = page.nodes, centerX = 560, centerY = 405 + verticalOffset;
   const cardW = nodes.length === 2 ? 350 : nodes.length === 3 ? 310 : 330;
   const cardH = nodes.length === 2 ? 210 : 176;
-  const positions = nodes.length === 2 ? [[285, 405], [835, 405]] : nodes.length === 3 ? [[270, 295], [850, 295], [560, 540]] : [[270, 295], [850, 295], [270, 535], [850, 535]];
+  const basePositions = nodes.length === 2 ? [[285, 405], [835, 405]] : nodes.length === 3 ? [[270, 295], [850, 295], [560, 510]] : [[270, 295], [850, 295], [270, 510], [850, 510]];
+  const positions = basePositions.map(([x,y]) => [x,y+verticalOffset]);
   positions.forEach(([x, y]) => svg.append(svgNode(document, 'path', {d: `M${centerX} ${centerY} L${x} ${y}`, stroke: '#9aacc2', 'stroke-width': 3, 'marker-end': `url(#${arrowId})`})));
   svg.append(svgNode(document, 'circle', {cx: centerX, cy: centerY, r: nodes.length === 2 ? 58 : 62, fill: '#405f95', stroke: '#fff', 'stroke-width': 8}));
   svg.append(svgText(document, null, wrap(page.title, 15).slice(0, 2), centerX, centerY - 3, 'hub-label', 'middle'));
@@ -250,19 +265,21 @@ function drawCard(document, svg, node, x, y, width, height, color, number, compa
   const card = svgNode(document, 'g', {class: 'infographic-node'});
   card.append(svgNode(document, 'rect', {x, y, width, height, rx: 20, fill: '#fff', stroke: '#e0e7f0', 'stroke-width': 2, filter: 'drop-shadow(0 8px 14px rgba(51,74,104,.09))'}));
   card.append(svgNode(document, 'path', {d: `M${x + 20} ${y} H${x + width - 20} Q${x + width} ${y} ${x + width} ${y + 20} V${y + 11} H${x} V${y + 20} Q${x} ${y} ${x + 20} ${y}`, fill: color}));
-  const iconY = compact ? y + 43 : y + 70, iconR = compact ? 23 : 32;
+  const compactCycleCard = compact && width <= 220 && height <= 180;
+  const iconY = compactCycleCard ? y + 37 : compact ? y + 43 : y + 70;
+  const iconR = compactCycleCard ? 20 : compact ? 23 : 32;
   card.append(svgNode(document, 'circle', {cx: x + width / 2, cy: iconY, r: iconR, fill: color}));
   drawIcon(document, card, node.icon, x + width / 2 - 12, iconY - 12);
-  const labelY = compact ? y + 82 : y + 132;
+  const labelY = compactCycleCard ? y + 68 : compact ? y + 82 : y + 132;
   const labelChars = Math.max(9, Math.floor((width - 34) / 18));
   card.append(svgText(document, null, wrap(node.label, labelChars).slice(0, 2), x + width / 2, labelY, 'node-label', 'middle', 21));
-  const detailY = compact ? y + 112 : y + 174;
+  const detailY = compactCycleCard ? y + 105 : compact ? y + 112 : y + 174;
   const detailChars = Math.max(10, Math.floor((width - 38) / 14));
   let detail = cleanText(node.detail);
   const label = cleanText(node.label);
   if (detail === label) detail = '';
-  else if (label && detail.startsWith(label)) detail = detail.slice(label.length).trimStart();
-  if (detail) card.append(svgText(document, null, wrap(detail, detailChars).slice(0, compact ? 4 : 5), x + width / 2, detailY, 'node-detail', 'middle', 18));
+  else if (label && detail.startsWith(label)) detail = detail.slice(label.length).replace(/^[\s:：·–—-]+/, '').trim();
+  if (detail) card.append(svgText(document, null, wrap(detail, detailChars).slice(0, compactCycleCard ? 5 : compact ? 4 : 6), x + width / 2, detailY, 'node-detail', 'middle', compactCycleCard ? 15 : 18));
   card.append(svgText(document, null, String(number).padStart(2, '0'), x + 17, y + 28, 'node-index'));
   svg.append(card);
 }
@@ -295,6 +312,12 @@ function cleanText(value) {
   return String(value || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ')
     .replace(/^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u, '').replace(/^\d+[.)]\s*/, '')
     .replace(/\*\*|__|\*|_|`|~~/g, '').trim();
+}
+function cleanCaption(value) {
+  const text = cleanText(value);
+  const key = text.normalize('NFKC').replace(/[\s.!。]/g, '');
+  if (['핵심개념사이의연결','핵심개념과관계','핵심개념과관계를그림으로정리했습니다','핵심내용을그림으로정리했습니다','핵심개념을연결합니다'].includes(key)) return '';
+  return text;
 }
 function escapeRegex(value) { return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function wrap(text, limit) {
