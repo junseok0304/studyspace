@@ -20,17 +20,19 @@ test('learning views switch directly and reuse the current note version', async 
     quiz:{ensureForNote:async()=>{},openForNote:async()=>calls.push('quiz')},
     flashcards:{ensureForNote:async()=>{},openForNote:async()=>calls.push('flashcards'),openDueForNote:async()=>calls.push('due-flashcards')}});
 
+  doc.dispatchEvent(new dom.window.Event('studyspace:note-opened'));
+  assert.deepEqual(calls,[]);
   await workspace.show('infographic');
   await workspace.show('infographic');
-  assert.deepEqual(calls,['summary','infographic','infographic']);
+  assert.deepEqual(calls,['infographic']);
   await workspace.show('quiz');
-  assert.deepEqual(calls,['summary','infographic','infographic','summary','infographic','quiz']);
+  assert.deepEqual(calls,['infographic','quiz']);
   assert.equal(byId('learning-quiz-view').hidden,false);
   assert.equal(doc.querySelector('#learning-tabs [data-learning-view="quiz"]').getAttribute('aria-pressed'),'true');
 
   doc.dispatchEvent(new dom.window.CustomEvent('studyspace:tool-selected',{detail:{id:'learning-panel',view:'flashcards'}}));
   await new Promise(resolve=>setTimeout(resolve,0));
-  assert.deepEqual(calls,['summary','infographic','infographic','summary','infographic','quiz','summary','infographic','flashcards']);
+  assert.deepEqual(calls,['infographic','quiz','flashcards']);
   assert.equal(byId('learning-flashcards-view').hidden,false);
   dom.window.close();
 });
@@ -228,7 +230,7 @@ test('infographic titles remove generic English labels after Korean headings', (
   dom.window.close();
 });
 
-test('infographic keeps unrelated concepts parallel and selects relevant icons', () => {
+test('infographic keeps unrelated concepts parallel without decorative icons', () => {
   const dom=new JSDOM('<!doctype html><div id="stage"></div>');
   const document=dom.window.document;
   const container=document.getElementById('stage');
@@ -243,8 +245,8 @@ test('infographic keeps unrelated concepts parallel and selects relevant icons',
   const svg=container.querySelector('.infographic-visual');
   assert.ok(svg.classList.contains('infographic-layout-group'));
   assert.equal(svg.querySelectorAll('path[marker-end]').length,0);
-  assert.deepEqual([...svg.querySelectorAll('.infographic-icon')].map(icon=>icon.dataset.icon),['book','gear','history']);
-  assert.ok(svg.querySelector('.infographic-icon[aria-label="수업·학습"] title'));
+  assert.equal(svg.querySelectorAll('.infographic-icon').length,0);
+  assert.match(container.querySelector('.infographic-semantic-content').textContent,/Python과 JavaScript를 설치/);
   dom.window.close();
 });
 

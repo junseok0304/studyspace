@@ -180,10 +180,9 @@ public class GenerationWorker {
             for(int index=from;index<to;index++) {
                 String detail=MockStudyContent.clip(passages.get(index),180);
                 String label=detail.length()>28?detail.substring(0,28).stripTrailing()+"…":detail;
-                String icon=detail.matches(".*(보안|기밀|권한|접근).*")?"shield":detail.matches(".*(데이터|정보).*")?"data":"idea";
-                nodes.add(Map.of("label",label,"detail",detail,"icon",icon));
+                nodes.add(Map.of("label",label,"detail",detail));
             }
-            while(nodes.size()<2) nodes.add(Map.of("label","핵심 개념","detail",MockStudyContent.clip(passages.isEmpty()?title:passages.getFirst(),180),"icon","idea"));
+            while(nodes.size()<2) nodes.add(Map.of("label","핵심 개념","detail",MockStudyContent.clip(passages.isEmpty()?title:passages.getFirst(),180)));
             pages.add(Map.of("title",page==0?title:passages.get(from).substring(0,Math.min(38,passages.get(from).length())),
                     "subtitle","","relation","","layout","group","nodes",nodes));
         }

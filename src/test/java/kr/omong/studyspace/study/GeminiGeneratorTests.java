@@ -30,14 +30,15 @@ class GeminiGeneratorTests {
     @Test void validatesVisualInfographicPagesAndTheirDiagramNodes() throws Exception {
         String infographic="""
                 {"pages":[{"title":"사실에서 정보까지","subtitle":"표현과 해석의 흐름","relation":"사실 → 데이터 → 정보","layout":"flow","nodes":[
-                  {"label":"사실","detail":"객관적으로 존재하는 내용","icon":"idea"},
-                  {"label":"데이터","detail":"기호로 표현한 사실","icon":"data"}
+                  {"label":"사실","detail":"관찰하거나 기록할 수 있는 객관적인 사건과 값입니다."},
+                  {"label":"데이터","detail":"사실을 문자나 숫자 같은 기호로 표현해 처리할 수 있게 만든 것입니다."}
                 ]}]}
                 """;
         assertEquals(infographic.strip(),generator.parse(response(infographic),"INFOGRAPHIC").text());
         var pageSchema=new ObjectMapper().valueToTree(GeminiGenerator.structuredSchema("INFOGRAPHIC")).path("properties").path("pages");
         assertEquals(6,pageSchema.path("maxItems").asInt());
         assertTrue(pageSchema.path("items").path("properties").path("layout").path("enum").toString().contains("group"));
+        assertFalse(pageSchema.path("items").path("properties").path("nodes").path("items").path("properties").has("icon"));
         String parallel=infographic.replace("\"flow\"","\"group\"");
         assertEquals(parallel.strip(),generator.parse(response(parallel),"INFOGRAPHIC").text());
         var page=new ObjectMapper().readTree(infographic).path("pages").path(0).toString();

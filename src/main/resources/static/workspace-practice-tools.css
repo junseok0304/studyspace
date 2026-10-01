@@ -512,7 +512,19 @@
 .notesup-workspace .infographic-visual .node-detail{ fill:#637188; font:500 14px system-ui,sans-serif; }
 .notesup-workspace .infographic-visual .node-index{ fill:#77879a; font:700 11px system-ui,sans-serif; }
 .notesup-workspace .infographic-visual .hub-label{ fill:#fff; font:700 15px system-ui,sans-serif; }
-.notesup-workspace .infographic-semantic-content{ position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:normal!important; border:0!important; }
+.notesup-workspace .infographic-semantic-content{
+  margin:14px 0 0;
+  padding:22px 28px;
+  border:1px solid #e1e7ef;
+  border-radius:16px;
+  background:#fff;
+  color:#45546a;
+}
+.notesup-workspace .infographic-page .infographic-semantic-content h1{ margin:0 0 8px; color:#66758a; font-size:13px; text-align:left; }
+.notesup-workspace .infographic-page .infographic-semantic-content h2{ margin:0 0 12px; padding:0; border:0; color:#263850; font-size:20px; }
+.notesup-workspace .infographic-page .infographic-semantic-content h3{ margin:18px 0 5px; color:#2c3c52; font-size:16px; }
+.notesup-workspace .infographic-page .infographic-semantic-content p{ margin:0 0 10px; line-height:1.65; }
+.notesup-workspace .infographic-page .infographic-semantic-content blockquote{ margin:10px 0; padding:8px 12px; border-left:3px solid #8799cb; background:#f3f6fb; }
 .notesup-workspace .infographic-page > :first-child{ margin-top:0; }
 .notesup-workspace .infographic-page h1{ margin:0 0 28px; color:#1f3446; font-size:clamp(23px,3vw,36px); line-height:1.3; text-align:center; }
 .notesup-workspace .infographic-page h2{ margin:25px 0 12px; padding-bottom:8px; border-bottom:1px solid rgba(62,124,128,.2); color:#245b65; font-size:clamp(17px,2vw,23px); }

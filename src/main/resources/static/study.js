@@ -342,7 +342,7 @@ export async function start(request, userId) {
     // The workspace context already explains the empty state. Keep the save
     // status line reserved for actionable feedback so the same instruction is
     // not repeated in two places.
-    if (selected) edit(selected); else { tell(''); await recordingFeature.loadRecordings(row.id); }
+    if (selected) edit(selected); else { tell(''); await recordingFeature.loadRecordings(row.id); document.dispatchEvent(new Event('studyspace:course-opened')); }
     persistWorkspaceState(nextTool);
     return true;
     } finally {

@@ -13,6 +13,34 @@ test('course changes keep the course-wide recording view when appropriate',()=>{
   assert.equal(courseChangeTool('learning-panel'), 'note');
 });
 
+test('mobile navigation follows course, note, and current workspace selection',()=>{
+  const dom=new JSDOM(readFileSync(new URL('../src/main/resources/static/index.html',import.meta.url),'utf8'));
+  const doc=dom.window.document;
+  mountWorkspaceNavigation(doc);
+  const study=doc.getElementById('study');
+  const nav=doc.querySelector('.mobile-workspace-navigation');
+  const button=view=>nav.querySelector(`[data-mobile-view="${view}"]`);
+  assert.equal(study.dataset.mobileView,'home');
+  assert.equal(button('notes').disabled,true);
+  button('courses').click();
+  assert.equal(study.dataset.mobileView,'courses');
+  doc.getElementById('dashboard').classList.add('hidden');
+  doc.getElementById('note-list-card').classList.remove('hidden');
+  doc.getElementById('note-editor-card').classList.remove('hidden');
+  doc.dispatchEvent(new dom.window.CustomEvent('studyspace:view',{detail:{dashboard:false}}));
+  doc.dispatchEvent(new dom.window.Event('studyspace:course-opened'));
+  assert.equal(study.dataset.mobileView,'notes');
+  assert.equal(button('editor').disabled,true);
+  doc.getElementById('note-form').classList.remove('hidden');
+  doc.dispatchEvent(new dom.window.Event('studyspace:note-opened'));
+  assert.equal(study.dataset.mobileView,'editor');
+  button('notes').click();
+  assert.equal(study.dataset.mobileView,'notes');
+  button('editor').click();
+  assert.equal(study.dataset.mobileView,'editor');
+  dom.window.close();
+});
+
 test('recording opens a focused workspace and navigation keeps controls mounted',()=>{
   const dom=new JSDOM(readFileSync(new URL('../src/main/resources/static/index.html',import.meta.url),'utf8'));
   const doc=dom.window.document;

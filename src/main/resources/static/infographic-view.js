@@ -133,25 +133,6 @@ export function renderInfographicPages(document, container, {title, content, ren
 let infographicId = 0;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PALETTE = ['#4f78be', '#1d9690', '#8a6fc0', '#df8d45'];
-const ICON_LABELS = {data:'데이터',shield:'보안',lock:'기밀·잠금',network:'연결·네트워크',history:'시간·흐름',person:'사람',key:'인증·키',server:'서버·시스템',mobile:'모바일',gear:'도구·작업',globe:'웹·인터넷',warning:'위험·주의',check:'검증·완료',book:'수업·학습',money:'비용·금액',idea:'개념·아이디어'};
-const ICON_PATHS = {
-  data: ['M3 5c0-2 14-2 14 0s-14 2-14 0v10c0 2 14 2 14 0V5', 'M3 10c0 2 14 2 14 0'],
-  shield: ['M10 2 17 5v5c0 4-3 7-7 9-4-2-7-5-7-9V5z', 'm7 10 2 2 4-4'],
-  lock: ['M5 9V6a5 5 0 0 1 10 0v3', 'M4 9h12v9H4z', 'M10 12v3'],
-  network: ['M10 4 5 14h10z', 'M10 4v11', 'M5 14h10'],
-  history: ['M3 5v5h5', 'M4.5 9a6 6 0 1 1-.2 3', 'M10 6v5l3 2'],
-  person: ['M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7', 'M3 18c.5-4 13.5-4 14 0'],
-  key: ['M12 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0', 'm11 10 6 6m-2-2 2-2m-4 0 2-2'],
-  server: ['M3 3h14v5H3zM3 12h14v5H3z', 'M6 5.5h.1M6 14.5h.1M10 5.5h4M10 14.5h4'],
-  mobile: ['M5 2h10v16H5z', 'M9 15h2'],
-  gear: ['M10 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8', 'M10 2v2m0 12v2M2 10h2m12 0h2M4.3 4.3l1.4 1.4m8.6 8.6 1.4 1.4m0-11.4-1.4 1.4m-8.6 8.6-1.4 1.4'],
-  globe: ['M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16', 'M2 10h16M10 2c4 4 4 12 0 16M10 2c-4 4-4 12 0 16'],
-  warning: ['m10 2 8 15H2z', 'M10 7v4m0 3h.1'],
-  check: ['M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16', 'm6 10 3 3 5-6'],
-  book: ['M3 4h5a3 3 0 0 1 3 3v10a3 3 0 0 0-3-3H3z', 'M17 4h-3a3 3 0 0 0-3 3v10a3 3 0 0 1 3-3h3z'],
-  money: ['M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16', 'M12.5 7.5c-.5-1-4-1-4 1s4 1 4 3-3.5 2-5 1', 'M10 5v10'],
-  idea: ['M7 13c0-2-2-3-2-6a5 5 0 0 1 10 0c0 3-2 4-2 6z', 'M7 15h6m-5 2h4']
-};
 
 function normalizeInfographicPages(content, fallbackTitle) {
   try {
@@ -159,11 +140,9 @@ function normalizeInfographicPages(content, fallbackTitle) {
     if (Array.isArray(parsed.pages) && parsed.pages.length) return parsed.pages.slice(0, 6).map(page => {
       const rawRelation = cleanText(page.relation);
       const subtitle = cleanCaption(cleanText(page.subtitle).replace(new RegExp(`\\s*${escapeRegex(rawRelation)}$`), '').trim());
-      const nodes = (page.nodes || []).slice(0, 4).map(node => {
-        const label=cleanText(node.label).slice(0, 50), detail=cleanText(node.detail).slice(0, 60);
-        const semantic=semanticIcon(`${label} ${detail}`);
-        return {label,detail,icon:semantic|| (Object.hasOwn(ICON_PATHS,node.icon)?node.icon:'idea')};
-      }).filter(node => node.label && node.detail);
+      const nodes = (page.nodes || []).slice(0, 4).map(node => ({
+        label: cleanText(node.label).slice(0, 50), detail: cleanText(node.detail).slice(0, 180)
+      })).filter(node => node.label && node.detail);
       const distinctNodes = nodes.filter(node => node.detail !== node.label);
       const requestedLayout=['flow','compare','cycle','hub','group'].includes(page.layout)?page.layout:'group';
       const sequenceText=[page.title,page.subtitle,page.relation].join(' ');
@@ -187,7 +166,7 @@ function markdownPage(markdown, fallbackTitle, index) {
   const candidates = bullets.length ? bullets : prose;
   const chosen = [...new Set(candidates.map(cleanText).filter(Boolean))].slice(0, 4);
   const pageTitle = cleanInfographicTitle(headings.find(Boolean) || (index ? `${fallbackTitle || '핵심 내용'} · ${index + 1}` : fallbackTitle || '핵심 내용'));
-  const nodes = chosen.map((detail, nodeIndex) => ({label: inferLabel(detail, nodeIndex), detail: detail.slice(0, 180), icon: inferIcon(detail)}));
+  const nodes = chosen.map((detail, nodeIndex) => ({label: inferLabel(detail, nodeIndex), detail: detail.slice(0, 180)}));
   const diagramContext=`${headings.join(' ')} ${prose[0]||''}`;
   const layout = /비교|차이|반면|대조/.test(markdown) ? 'compare' : /순환|반복|주기/.test(markdown) ? 'cycle' : /중심|하위|구성요소/.test(markdown) ? 'hub' : hasExplicitSequence(diagramContext)||hasOrderedTimeNodes(nodes) ? 'flow' : 'group';
   const distinctNodes = nodes.filter(node => cleanText(node.detail) !== cleanText(node.label));
@@ -286,33 +265,22 @@ function drawCard(document, svg, node, x, y, width, height, color, number, compa
   card.append(svgNode(document, 'rect', {x, y, width, height, rx: 20, fill: '#fff', stroke: '#e0e7f0', 'stroke-width': 2, filter: 'drop-shadow(0 8px 14px rgba(51,74,104,.09))'}));
   card.append(svgNode(document, 'path', {d: `M${x + 20} ${y} H${x + width - 20} Q${x + width} ${y} ${x + width} ${y + 20} V${y + 11} H${x} V${y + 20} Q${x} ${y} ${x + 20} ${y}`, fill: color}));
   const compactCycleCard = compact && width <= 252 && height <= 180;
-  const iconY = compactCycleCard ? y + 36 : compact ? y + 43 : y + 70;
-  const iconR = compactCycleCard ? 19 : compact ? 23 : 32;
-  card.append(svgNode(document, 'circle', {cx: x + width / 2, cy: iconY, r: iconR, fill: color}));
-  drawIcon(document, card, node.icon, x + width / 2 - 12, iconY - 12);
-  const labelY = compactCycleCard ? y + 67 : compact ? y + 82 : y + 132;
+  const labelY = compactCycleCard ? y + 43 : compact ? y + 55 : y + 78;
   const labelChars = Math.max(9, Math.floor((width - 34) / 18));
   const labelLayout=wrapLabel(node.label,labelChars);
   const labelGroup = svgText(document, null, labelLayout.lines.slice(0, 2), x + width / 2, labelY, compactCycleCard ? 'node-label node-label-cycle' : 'node-label', 'middle', compactCycleCard ? 18 : 21);
   if (compactCycleCard) labelGroup.querySelectorAll('text').forEach(line => line.setAttribute('font-size', '16'));
   else if(labelLayout.compact) labelGroup.querySelectorAll('text').forEach(line=>line.setAttribute('font-size','15'));
   card.append(labelGroup);
-  const detailY = compactCycleCard ? y + 100 : compact ? y + 112 : y + 174;
+  const detailY = compactCycleCard ? y + 82 : compact ? y + 98 : y + 126;
   const detailChars = Math.max(10, Math.floor((width - 38) / 14));
   let detail = cleanText(node.detail);
   const label = cleanText(node.label);
   if (detail === label) detail = '';
   else if (label && detail.startsWith(label)) detail = detail.slice(label.length).replace(/^[\s:：·–—-]+/, '').trim();
-  if (detail) card.append(svgText(document, null, wrap(detail, detailChars).slice(0, compactCycleCard ? 6 : compact ? 4 : 6), x + width / 2, detailY, 'node-detail', 'middle', compactCycleCard ? 15 : 18));
+  if (detail) card.append(svgText(document, null, wrap(detail, detailChars).slice(0, compactCycleCard ? 6 : compact ? 5 : 8), x + width / 2, detailY, 'node-detail', 'middle', compactCycleCard ? 15 : 18));
   card.append(svgText(document, null, String(number).padStart(2, '0'), x + 17, y + 28, 'node-index'));
   svg.append(card);
-}
-
-function drawIcon(document, parent, icon, x, y) {
-  const group = svgNode(document, 'g', {class:'infographic-icon','data-icon':icon,role:'img','aria-label':ICON_LABELS[icon]||ICON_LABELS.idea,transform: `translate(${x} ${y})`, fill: 'none', stroke: '#fff', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'});
-  const title=svgNode(document,'title');title.textContent=ICON_LABELS[icon]||ICON_LABELS.idea;group.append(title);
-  (ICON_PATHS[icon] || ICON_PATHS.idea).forEach(d => group.append(svgNode(document, 'path', {d})));
-  parent.append(group);
 }
 
 function svgNode(document, name, attributes = {}) {
@@ -384,29 +352,6 @@ function inferLabel(text, index) {
   const match = String(text).match(/^([^:：。,.!?]{2,24})[:：]/);
   return match?.[1]?.trim() || String(text).slice(0, 18).trim() || `핵심 ${index + 1}`;
 }
-function semanticIcon(text) {
-  const value = String(text);
-  if (/기밀|비밀|암호화|잠금/.test(value)) return 'lock';
-  if (/보안|무결성|가용성|권한|접근 제어/.test(value)) return 'shield';
-  if (/위험|공격|취약|오답|오류|예외/.test(value)) return 'warning';
-  if (/인증|로그인|비밀번호|토큰|키 관리/.test(value)) return 'key';
-  if (/사용자|사람|교수|학생|역할/.test(value)) return 'person';
-  if (/데이터|자료형|입력값|출력값|json|파일 저장/.test(value)) return 'data';
-  if (/네트워크|인터넷|통신|요청.{0,12}응답|응답.{0,12}요청|연결망/.test(value)) return 'network';
-  if (/서버|시스템|운영체제|로그 파일|프로세스/.test(value)) return 'server';
-  if (/모바일|휴대폰|스마트폰|블루투스|앱/.test(value)) return 'mobile';
-  if (/비용|가격|금액|예산|수입|지출|잔액/.test(value)) return 'money';
-  if (/역사|연혁|시기|연도|주차|주간|\d+\s*(?:~|–|-)\s*\d+\s*주|\d+\s*주차|단계|최초|이후|전반|후반/.test(value)) return 'history';
-  if (/수업|강의|출석|교수|시험|문제|과제|학습|교재|평가|성적/.test(value)) return 'book';
-  if (/python|javascript|node\.js|코드|프로그래밍|개발|실습|코파일럿|copilot|도구|설치|환경|자동화/i.test(value)) return 'gear';
-  if (/웹|브라우저|url|사이트|www\./i.test(value)) return 'globe';
-  if (/확인|검증|완료|정답|허용|가능/.test(value)) return 'check';
-  if (/개념|아이디어|프롬프트|원칙|정의/.test(value)) return 'idea';
-  return '';
-}
-
-function inferIcon(text) { return semanticIcon(text)||'idea'; }
-
 function hasExplicitSequence(text) {
   return /(?:단계별|순서|먼저|그다음|다음 단계|이후|마지막으로|전(?:체|반)|후(?:반|속)|거쳐|부터.{0,30}까지|원인.{0,24}결과|요청.{0,32}응답|입력.{0,32}출력|전달.{0,24}반환|흐름|순환|반복|주기|→|->)/i.test(String(text||''));
 }

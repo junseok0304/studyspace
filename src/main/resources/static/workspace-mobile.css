@@ -1,0 +1,151 @@
+/* Mobile workspace: one task at a time, with course and note navigation always reachable. */
+.mobile-workspace-header,
+.mobile-workspace-navigation{ display:none; }
+
+@media (max-width:650px){
+  html,body{ max-width:100%; overflow-x:hidden; }
+  .study.notesup-workspace,
+  .study.notesup-workspace.tool-mode{
+    display:block;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    margin:0;
+    padding:0 12px calc(120px + env(safe-area-inset-bottom));
+    box-sizing:border-box;
+  }
+  .study.notesup-workspace.hidden{ display:none!important; }
+  .mobile-workspace-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    min-height:54px;
+    margin:0 -12px;
+    padding:0 16px;
+    padding-top:env(safe-area-inset-top);
+    background:#fff;
+    border-bottom:1px solid #e4e9f1;
+  }
+  .mobile-workspace-brand{
+    padding:8px 0;
+    border:0;
+    background:none;
+    color:#26344a;
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:-.04em;
+  }
+  .mobile-workspace-title{ min-width:0; overflow:hidden; color:#66758a; font-size:13px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+  .mobile-workspace-navigation{
+    position:sticky;
+    top:0;
+    z-index:20;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:4px;
+    margin:0 -12px 14px;
+    padding:8px 12px;
+    border-bottom:1px solid #e4e9f1;
+    background:#fff;
+  }
+  .mobile-workspace-navigation button{
+    min-width:0;
+    min-height:44px;
+    padding:5px 2px;
+    border:0;
+    border-radius:9px;
+    background:transparent;
+    color:#617087;
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .mobile-workspace-navigation button[aria-current="page"]{ background:#e9edff; color:#3e53b0; }
+  .mobile-workspace-navigation button:disabled{ opacity:.38; }
+  .mobile-workspace-brand:focus-visible,
+  .mobile-workspace-navigation button:focus-visible{ outline:2px solid #3555c6; outline-offset:2px; }
+
+  .study.notesup-workspace > aside.course-rail,
+  .study.notesup-workspace > #dashboard,
+  .study.notesup-workspace > #tips-panel,
+  .study.notesup-workspace > #note-list-card,
+  .study.notesup-workspace > #note-editor-card{ display:none!important; }
+  .study.notesup-workspace[data-mobile-view="home"] > #dashboard:not(.hidden){ display:block!important; }
+  .study.notesup-workspace[data-mobile-view="courses"] > aside.course-rail:not(.hidden){ display:flex!important; }
+  .study.notesup-workspace[data-mobile-view="notes"] > #note-list-card:not(.hidden),
+  .study.notesup-workspace.note-rail-collapsed[data-mobile-view="notes"] > #note-list-card:not(.hidden),
+  .study.notesup-workspace.tool-mode[data-mobile-view="notes"] > #note-list-card:not(.hidden){ display:block!important; }
+  .study.notesup-workspace[data-mobile-view="editor"] > #note-editor-card:not(.hidden){ display:block!important; }
+  .study.notesup-workspace[data-mobile-view="tips"] > #tips-panel:not(.hidden){ display:block!important; }
+
+  .study.notesup-workspace > aside.course-rail,
+  .study.notesup-workspace > #note-list-card,
+  .study.notesup-workspace > #note-editor-card,
+  .study.notesup-workspace > #dashboard,
+  .study.notesup-workspace > #tips-panel{
+    width:100%;
+    min-width:0;
+    margin:0;
+    border-radius:14px;
+    box-sizing:border-box;
+  }
+  .study.notesup-workspace > aside.course-rail{ padding:12px 14px 16px!important; }
+  .study.notesup-workspace .rail-brand{ display:none; }
+  .study.notesup-workspace .rail-account{ margin-top:18px; }
+  .study.notesup-workspace #courses{ max-height:none; overflow:visible; }
+  .study.notesup-workspace #courses button{ min-height:48px; }
+  .study.notesup-workspace #note-list-card{ padding:16px!important; }
+  .study.notesup-workspace.note-rail-collapsed[data-mobile-view="notes"] #note-list-card{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    padding:16px!important;
+  }
+  .study.notesup-workspace #note-list-card .note-rail-content,
+  .study.notesup-workspace.note-rail-collapsed #note-list-card .note-rail-content{ display:block!important; }
+  .study.notesup-workspace.note-rail-collapsed #note-list-card .note-list-title,
+  .study.notesup-workspace.note-rail-collapsed #note-list-card .note-management,
+  .study.notesup-workspace.note-rail-collapsed #note-list-card #new-note{ display:initial!important; }
+  .study.notesup-workspace #note-list-card .note-list-heading{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+  }
+  .study.notesup-workspace #note-list-card .note-list-title{ grid-column:1; grid-row:1; justify-content:flex-start; }
+  .study.notesup-workspace #note-list-card .note-management{ grid-column:2; grid-row:1; }
+  .study.notesup-workspace #note-list-card #new-note{ grid-column:1 / -1; grid-row:2; }
+  .study.notesup-workspace #note-list-card .rail-toggle{ display:none!important; }
+  .study.notesup-workspace #notes{ max-height:none!important; overflow:visible!important; }
+  .study.notesup-workspace #notes button{ min-height:56px; }
+  .study.notesup-workspace #note-editor-card{ padding:14px!important; }
+  .study.notesup-workspace .workspace-tabs,
+  .study.notesup-workspace .learning-tabs{
+    display:flex;
+    width:100%;
+    max-width:100%;
+    gap:6px;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+    position:static;
+  }
+  .study.notesup-workspace .workspace-tabs button,
+  .study.notesup-workspace .learning-tabs button{ flex:0 0 auto; min-height:44px; white-space:nowrap; }
+  .study.notesup-workspace .writing-panel,
+  .study.notesup-workspace .learning-panel,
+  .study.notesup-workspace .learning-view,
+  .study.notesup-workspace .attachment-panel,
+  .study.notesup-workspace .recording-panel{ min-width:0; max-width:100%; }
+  .study.notesup-workspace .learning-view-heading,
+  .study.notesup-workspace .learning-heading{ flex-wrap:wrap; gap:10px; }
+  .study.notesup-workspace .learning-view-heading > *,
+  .study.notesup-workspace .quiz-create-controls{ min-width:0; max-width:100%; }
+  .study.notesup-workspace .attachment-dropzone{ padding:16px 10px; }
+  .study.notesup-workspace #note-body{ min-height:52vh; }
+  .study.notesup-workspace input,
+  .study.notesup-workspace textarea,
+  .study.notesup-workspace select{ max-width:100%; box-sizing:border-box; }
+  .study.notesup-workspace .infographic-visual{ display:none; }
+}

@@ -371,6 +371,77 @@ export function mountWorkspaceNavigation(doc = document) {
     updateContext();
     updatePageTitle();
   });
+  mountMobileNavigation(doc, study, home, list, card, tips, tipsPanel);
   select('note');
+}
+
+function mountMobileNavigation(doc, study, home, list, card, tips, tipsPanel) {
+  const header = doc.createElement('header');
+  header.className = 'mobile-workspace-header';
+  const brand = doc.createElement('button');
+  brand.type = 'button';
+  brand.className = 'mobile-workspace-brand';
+  brand.textContent = 'StudySpace';
+  brand.setAttribute('aria-label', 'StudySpace 홈');
+  brand.onclick = () => home.click();
+  const title = doc.createElement('span');
+  title.className = 'mobile-workspace-title';
+  title.textContent = '학습 현황';
+  header.append(brand, title);
+
+  const navigation = doc.createElement('nav');
+  navigation.className = 'mobile-workspace-navigation';
+  navigation.setAttribute('aria-label', '모바일 학습 화면');
+  const entries = [
+    ['home', '홈'],
+    ['courses', '과목'],
+    ['notes', '노트 목록'],
+    ['editor', '현재 노트']
+  ];
+  const buttons = new Map(entries.map(([view, label]) => {
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.dataset.mobileView = view;
+    button.textContent = label;
+    button.onclick = () => {
+      if (view === 'home') home.click();
+      else setView(view);
+    };
+    navigation.append(button);
+    return [view, button];
+  }));
+  study.prepend(header, navigation);
+
+  const available = view => view === 'notes' ? !list.classList.contains('hidden')
+    : view === 'editor' ? !card.classList.contains('hidden') && !doc.getElementById('note-form').classList.contains('hidden')
+      : true;
+  const headings = {home:'학습 현황',courses:'과목 선택',notes:'강의노트 선택',editor:'현재 노트',tips:'작성 팁'};
+  function setView(view) {
+    if (!available(view)) return;
+    study.dataset.mobileView = view;
+    title.textContent = headings[view] || headings.home;
+    buttons.forEach((button, key) => {
+      button.disabled = !available(key);
+      button.setAttribute('aria-current', key === view ? 'page' : 'false');
+    });
+    if (doc.defaultView?.matchMedia?.('(max-width: 650px)').matches) {
+      doc.defaultView.scrollTo?.(0, 0);
+    }
+  }
+  doc.addEventListener('studyspace:view', event => {
+    if (event.detail.dashboard) setView('home');
+    else setView('notes');
+  });
+  doc.addEventListener('studyspace:course-opened', () => setView('notes'));
+  doc.addEventListener('studyspace:note-opened', () => setView('editor'));
+  doc.addEventListener('studyspace:tool-selected', () => {
+    if (available('editor')) setView('editor');
+  });
+  tips.addEventListener('click', () => setView('tips'));
+  doc.addEventListener('studyspace:note-closed', () => {
+    if (study.dataset.mobileView === 'editor') setView('notes');
+  });
+  if (tipsPanel && !tipsPanel.classList.contains('hidden')) setView('tips');
+  else setView(doc.getElementById('dashboard').classList.contains('hidden') ? 'notes' : 'home');
 }
 import { setBaseTitle } from './page-title.js';

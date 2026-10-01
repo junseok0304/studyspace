@@ -202,17 +202,16 @@ public class GeminiGenerator {
 
     private String infographicInstruction(int sourceLength) {
         String pageGuide=sourceLength>=5000?"내용이 충분하면 4~6페이지":sourceLength>=1800?"내용이 충분하면 3~5페이지":"내용에 맞게 1~3페이지";
-        return "노트와 분석 완료된 강의자료를 모두 근거로 그래픽 인포그래픽 데이터를 JSON으로 만드세요. 설명문이나 Markdown 목록이 아니라 카드·아이콘·선·화살표로 그릴 시각 자료입니다. "
+        return "노트와 분석 완료된 강의자료를 모두 근거로 글과 관계 그래픽 중심의 인포그래픽 데이터를 JSON으로 만드세요. 개념명과 구체적인 설명이 읽는 것만으로 이해되게 작성하고, 아이콘이나 이모지는 사용하지 마세요. "
                 +pageGuide+"로 구성하세요. 긴 자료를 첫 몇 개 개념만 고른 개요로 줄이지 마세요. 노트의 주요 소제목과 첨부자료별 핵심 주제를 먼저 파악한 뒤 페이지에 고르게 배분하고, 정의·작동 원리·비교·순서·원인과 결과·수업 사례·교수님 강조점 중 자료에 있는 중요한 내용을 빠뜨리지 마세요. 각 페이지는 서로 다른 주제를 다루며, 충분한 내용이 있으면 3~4개 노드를 사용하세요. 정보가 부족하면 빈 페이지나 반복 노드로 페이지 수를 채우지 마세요. "
-                +"각 페이지에는 title, subtitle, relation, layout(flow|compare|cycle|hub|group), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 짧은 label(2~18자 개념명), detail(한 문장, 60자 이내), icon(data|shield|lock|network|history|person|key|server|mobile|gear|globe|warning|check|book|money|idea 중 하나)을 포함하세요. detail에는 개념의 구체적인 뜻이나 관계를 담고, 단순 주제명만 쓰지 마세요. label과 detail은 같은 말을 반복하지 말고, label에는 Markdown 기호·번호·이모지를 넣지 마세요. 페이지 제목·부제·관계 문구도 짧게 쓰고 서로 중복하지 마세요. 실제 순서·인과·시간 흐름이 자료에 분명히 있을 때만 flow와 화살표를 사용하세요. 관계가 없는 병렬 개념은 group으로 배치해 순서를 암시하지 마세요. 두 개념을 대조할 때 compare, 실제 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 아이콘은 아래 의미에 맞춰 고르세요: data=데이터·입력/출력, shield=보안·권한, lock=기밀·암호화, network=통신·연결, history=시간·단계, person=사용자·역할, key=인증, server=서버·시스템, mobile=모바일, gear=개발도구·코드 작업, globe=웹, warning=위험·오류, check=검증·완료, book=수업·시험·과제, money=금액, idea=정의·원칙·추상 개념. 출처나 파일명은 표시하지 말고 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
+                +"각 페이지에는 title, subtitle, relation, layout(flow|compare|cycle|hub|group), nodes를 넣으세요. 노드는 2~4개이며 각 노드는 짧은 label(2~18자 개념명)과 detail(구체적인 설명 1~2문장, 180자 이내)을 포함하세요. detail에는 정의, 조건, 예시 또는 다른 개념과의 관계를 담고 단순 주제명만 쓰지 마세요. label과 detail은 같은 말을 반복하지 말고, label에는 Markdown 기호·번호·이모지를 넣지 마세요. 페이지 제목·부제·관계 문구도 짧게 쓰고 서로 중복하지 마세요. 실제 순서·인과·시간 흐름이 자료에 분명히 있을 때만 flow와 화살표를 사용하세요. 관계가 없는 병렬 개념은 group으로 배치해 순서를 암시하지 마세요. 두 개념을 대조할 때 compare, 실제 순환 관계일 때 cycle, 하나의 중심 개념과 하위 요소를 설명할 때 hub를 선택하세요. 출처나 파일명은 표시하지 말고 자료에 없는 사실은 만들지 마세요. JSON 이외의 텍스트는 출력하지 마세요.";
     }
 
     static Map<String,Object> structuredSchema(String kind) {
         if(kind.equals("INFOGRAPHIC")) {
             var nodeFields=new LinkedHashMap<String,Object>();
             nodeFields.put("label",Map.of("type","string","maxLength",50));
-            nodeFields.put("detail",Map.of("type","string","maxLength",60));
-            nodeFields.put("icon",Map.of("type","string","enum",List.of("data","shield","lock","network","history","person","key","server","mobile","gear","globe","warning","check","book","money","idea")));
+            nodeFields.put("detail",Map.of("type","string","maxLength",180));
             var nodeSchema=Map.of("type","object","properties",nodeFields,"required",List.copyOf(nodeFields.keySet()),"additionalProperties",false);
             var pageFields=new LinkedHashMap<String,Object>();
             pageFields.put("title",Map.of("type","string","maxLength",80));
@@ -262,7 +261,6 @@ public class GeminiGenerator {
         JsonNode pages=root.path("pages");
         if(!pages.isArray()||pages.isEmpty()||pages.size()>6) throw new Failure("PROVIDER_INVALID_RESULT");
         Set<String> layouts=Set.of("flow","compare","cycle","hub","group");
-        Set<String> icons=Set.of("data","shield","lock","network","history","person","key","server","mobile","gear","globe","warning","check","book","money","idea");
         for(JsonNode page:pages) {
             JsonNode nodes=page.path("nodes");
             if(!page.path("title").isTextual()||page.path("title").asText().isBlank()||page.path("title").asText().length()>80
@@ -270,8 +268,7 @@ public class GeminiGenerator {
                     ||!page.path("relation").isTextual()||page.path("relation").asText().length()>140
                     ||!layouts.contains(page.path("layout").asText())||!nodes.isArray()||nodes.size()<2||nodes.size()>4) throw new Failure("PROVIDER_INVALID_RESULT");
             for(JsonNode node:nodes) if(!node.path("label").isTextual()||node.path("label").asText().isBlank()||node.path("label").asText().length()>50
-                    ||!node.path("detail").isTextual()||node.path("detail").asText().isBlank()||node.path("detail").asText().length()>180
-                    ||!icons.contains(node.path("icon").asText())) throw new Failure("PROVIDER_INVALID_RESULT");
+                    ||!node.path("detail").isTextual()||node.path("detail").asText().isBlank()||node.path("detail").asText().length()>180) throw new Failure("PROVIDER_INVALID_RESULT");
         }
     }
     record GeneratedQuiz(String prompt,List<String> options,int correctIndex,String hint,String explanation,String source) {}

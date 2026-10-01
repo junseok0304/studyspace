@@ -1,4 +1,4 @@
-/** Coordinates note-scoped learning views and their lazy generation. */
+/** Opens only the learning material selected for the current note. */
 export function mountLearningWorkspace({document = globalThis.document, byId, getEditor, generation, quiz, flashcards, beforeOpen = async () => {}}) {
   const tabs = [...document.querySelectorAll('#learning-tabs [data-learning-view]')];
   const views = {
@@ -26,15 +26,7 @@ export function mountLearningWorkspace({document = globalThis.document, byId, ge
     if (!noteId || !editor?.id || editor.id !== noteId) return null;
     const key = `${noteId}:${editor.version || 0}`;
     if (preparations.has(key)) return preparations.get(key);
-    const task = Promise.resolve().then(() => beforeOpen(noteId)).then(async () => {
-      if (getEditor()?.id !== noteId) return null;
-      const results = await Promise.allSettled([
-        (async () => { await generation.openSummary(); return generation.openInfographic(); })(),
-        quiz.ensureForNote(),
-        flashcards.ensureForNote()
-      ]);
-      return results;
-    }).finally(() => preparations.delete(key));
+    const task = Promise.resolve().then(() => beforeOpen(noteId)).finally(() => preparations.delete(key));
     preparations.set(key, task);
     return task;
   }
@@ -76,8 +68,6 @@ export function mountLearningWorkspace({document = globalThis.document, byId, ge
     if (event.detail?.id === 'learning-panel') show(event.detail.view || activeView, {dueOnly:event.detail.dueOnly});
   });
   document.addEventListener('studyspace:note-opened', () => {
-    const noteId = getEditor()?.id;
-    if (noteId) prepareForNote(noteId).catch(error => { if (getEditor()?.id === noteId) message.textContent = error.message || '노트 학습 자료를 준비하지 못했습니다.'; });
     if (panel.dataset.activeTool === 'learning-panel') {
       lastOpened = '';
       show(activeView, {force: true});
