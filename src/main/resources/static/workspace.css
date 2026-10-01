@@ -175,8 +175,6 @@ progress{ width: 100%; height: 7px; accent-color: #428df0; }
 .quiz-question-editor > label{ display: grid; gap: 7px; color: var(--muted); font-size: .86rem; font-weight: 700; }
 .quiz-question-editor textarea, .quiz-question-editor input[type="text"]{ width: 100%; box-sizing: border-box; }
 .quiz-option-editor{ grid-template-columns: auto minmax(0, 1fr) !important; align-items: center; }
-.quiz-option{ display: flex; align-items: flex-start; gap: 9px; padding: 9px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
-.quiz-option:has(input:checked){ background: #eaf3ff; }
 .quiz-explanation{ margin: 12px 0 0; padding: 12px; border-radius: 8px; background: #f3f6f9; font-size: 12px; line-height: 1.7; }
 .quiz-explanation.correct{ color: #167256; }
 .quiz-explanation.wrong{ color: #a6382d; }

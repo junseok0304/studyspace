@@ -128,14 +128,6 @@
   max-width: none;
   margin: 0;
 }
-.notesup-workspace .writing-panel:not(.view-mode) > .note-view-actions{
-  grid-column: 2;
-  grid-row: 1;
-  align-self: end;
-  justify-self: end;
-  margin: 0;
-  padding: 0;
-}
 .notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){
   grid-column: 1 / -1;
   grid-row: 2;
@@ -145,7 +137,6 @@
 }
 @media (max-width: 650px){
   .notesup-workspace .writing-panel:not(.view-mode){ grid-template-columns: minmax(0, 1fr); }
-  .notesup-workspace .writing-panel:not(.view-mode) > .note-view-actions{ grid-column: 1; grid-row: 2; justify-self: stretch; }
   .notesup-workspace .writing-panel:not(.view-mode) > label:has(> #note-body){ grid-row: 3; }
 }
 

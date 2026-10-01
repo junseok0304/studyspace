@@ -148,68 +148,6 @@
   margin-bottom: 5px;
   font-size: 11px;
 }
-.notesup-workspace .study-dashboard .today-class-row{
-  display: flex !important;
-  grid-template-columns: 82px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0 !important;
-  border-top: 1px solid #f0f2f5;
-  min-width: 0;
-  overflow: visible !important;
-  min-height: 0;
-}
-.notesup-workspace .study-dashboard .today-class-row:first-child{
-  border-top: 0;
-  padding-top: 10px !important;
-}
-.notesup-workspace .study-dashboard .today-class-row strong{
-  color: #8893a2;
-  font-size: 12px;
-  font-weight: 650;
-  grid-row: auto;
-  margin: 0;
-  overflow: visible !important;
-  line-height: 18px;
-  white-space: nowrap;
-  flex: 0 0 82px;
-  position: relative;
-  z-index: 1;
-  display: inline-block;
-  padding: 0;
-  vertical-align: middle;
-}
-.notesup-workspace .study-dashboard .today-class-row > span{
-  color: #9aa3ae;
-  font-size: 11px;
-  white-space: nowrap;
-  grid-column: auto;
-  margin: 0;
-  overflow: visible !important;
-  line-height: 18px;
-  text-align: right;
-  flex: 0 0 auto;
-  position: relative;
-  z-index: 1;
-  padding: 0;
-  vertical-align: middle;
-}
-.notesup-workspace .study-dashboard .today-class-link{
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  width: 100%;
-  min-height: 0;
-  margin: 0;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #4b5d7a;
-  line-height: 1.45;
-  text-align: left;
-  overflow-wrap: anywhere;
-}
 .notesup-workspace .study-dashboard .bar-chart{
   display: flex;
   grid-template-columns: repeat(7,minmax(0,1fr));
@@ -360,11 +298,6 @@
   color: #354052;
   font-size: 16px;
 }
-.notesup-workspace .dashboard-main-grid > .dashboard-card{
-  display: block;
-  grid-template-rows: auto minmax(0, 1fr);
-  align-content: start;
-}
 .notesup-workspace .rail-brand{
   display: flex;
   order: -2;
@@ -471,26 +404,4 @@
   color: #3555c6;
   background: #edf3ff;
   border-color: #d1ddf7;
-}
-.notesup-workspace .study-dashboard .study-stat-label{
-  display: block;
-  color: #77859b;
-  font-size: 12px;
-  line-height: 1.4;
-}
-.notesup-workspace .study-dashboard .today-classes{
-  display: block !important;
-  gap: 3px !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  grid-auto-rows: auto !important;
-  align-content: start !important;
-  margin-top: 0 !important;
-  overflow: visible !important;
-}
-.notesup-workspace .study-dashboard .today-class-row .today-class-link{
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 4px 8px;
-  min-height: 0;
 }
