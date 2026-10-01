@@ -1,5 +1,6 @@
 export function stripSummarySourceLabels(markdown) {
   return String(markdown || '')
+    .replace(/\$\\(leftarrow|rightarrow|Rightarrow|leftrightarrow)\$/g, (_, command) => ({leftarrow: '←', rightarrow: '→', Rightarrow: '⇒', leftrightarrow: '↔'})[command])
     .replace(/^\s{0,3}#{1,6}\s*(?:출처|참고\s*자료|sources?|references?)\s*\n(?:\s*[-*+]\s+[^\n]*\n?)*/gim, '')
     .replace(/^\s*(?:출처|참고\s*자료|sources?|references?)\s*[:：][^\n]*$/gim, '')
     .replace(/[ \t]*\(노트:\s*(?:[^()\n]|\([^()\n]*\))*\)[ \t]*/gi, '')

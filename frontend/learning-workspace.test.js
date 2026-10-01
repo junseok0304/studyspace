@@ -36,8 +36,10 @@ test('learning views switch directly and reuse the current note version', async 
 });
 
 test('summary view removes repeated note citations without touching prose', () => {
-  const content = '## 표준 출력\n\ncout은 표준 출력 스트림 객체입니다. (노트: 0902 2차시 (버전 1))\n\n참조(reference)는 별칭입니다. (Call-by-Reference)\n\n출처: 강의자료.pdf';
+  const content = '## 표준 출력\n\n호출 흐름은 A $\\rightarrow$ B입니다. cout은 표준 출력 스트림 객체입니다. (노트: 0902 2차시 (버전 1))\n\n참조(reference)는 별칭입니다. (Call-by-Reference)\n\n출처: 강의자료.pdf';
   const clean = stripSummarySourceLabels(content);
+  assert.match(clean, /A → B/);
+  assert.doesNotMatch(clean, /\\rightarrow/);
   assert.match(clean, /cout은 표준 출력 스트림 객체입니다\./);
   assert.match(clean, /참조\(reference\)는 별칭입니다\. \(Call-by-Reference\)/);
   assert.match(clean, /cout은 표준 출력 스트림 객체입니다\.\n\n참조/);
