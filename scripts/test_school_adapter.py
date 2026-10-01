@@ -83,6 +83,17 @@ class SchoolAdapterTests(unittest.TestCase):
         self.assertEqual(courses[1]['section'],'02')
         self.assertEqual(courses[0]['schedule'],'시간 미확인')
 
+    def test_current_historical_lms_cards_use_title_and_schedule(self):
+        fragment='''<div class="content-container"><p class="content-title">과정지도(IS00021-01)</p>
+                    <ul class="content-author"><li><span>이승진</span></li><li><span>월요일/18:25~19:15/6202&nbsp;</span></li></ul></div>
+                    <div class="content-container"><p class="content-title">리눅스시스템(IS00024-01)</p>
+                    <ul class="content-author"><li><span>박정식</span></li><li><span>화요일/09:00~11:50/6406&nbsp;</span></li></ul></div>'''
+        courses=school.parse_lms_course_fragment(fragment)
+        self.assertEqual([course['name'] for course in courses],['과정지도','리눅스시스템'])
+        self.assertEqual(courses[0]['code'],'LMS:IS00021')
+        self.assertEqual(courses[0]['section'],'01')
+        self.assertEqual(courses[1]['schedule'],'화요일/09:00~11:50/6406')
+
     def test_timeout_output_contains_only_reason_code(self):
         output=io.StringIO()
         with patch.object(school,'fetch',side_effect=requests.Timeout('sensitive value')),patch('sys.stdin',io.StringIO('{}')),patch('sys.stdout',output): school.main()

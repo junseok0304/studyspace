@@ -183,6 +183,28 @@ def parse_lms_course_fragment(response):
         courses.append({'code':f'LMS:{key[:120]}','section':section[:20], 'name':name[:120], 'schedule':schedule[:500]})
     if courses:
         return courses
+    # Historical semesters currently return content cards without the
+    # eclassRoom() link used by the main page. The title contains the course
+    # code and section, while the last author-list item contains the schedule.
+    title_pattern=(r'<p\b[^>]*class=["\'][^"\']*\bcontent-title\b[^"\']*["\'][^>]*>(.*?)</p>(.*?)'
+                   r'(?=<p\b[^>]*class=["\'][^"\']*\bcontent-title\b|</body\b|$)')
+    for match in re.finditer(title_pattern,response,re.I|re.S):
+        title=re.sub(r'<[^>]+>',' ',match.group(1))
+        title=re.sub(r'\s+',' ',html.unescape(title)).strip()
+        code_match=re.search(r'^(.*?)\(([A-Za-z0-9가-힣]+)-([0-9A-Za-z]+)\)\s*$',title)
+        name=(code_match.group(1).strip() if code_match else title) or f'학교 과목 {len(courses)+1}'
+        code=code_match.group(2) if code_match else f'HISTORICAL-{len(courses)+1}'
+        section=code_match.group(3) if code_match else '1'
+        spans=[]
+        for value in re.findall(r'<li\b[^>]*>.*?<span\b[^>]*>(.*?)</span>',match.group(2),re.I|re.S):
+            cleaned=re.sub(r'<[^>]+>',' ',value)
+            cleaned=re.sub(r'\s+',' ',html.unescape(cleaned)).strip()
+            if cleaned: spans.append(cleaned)
+        schedule=spans[-1] if spans else '시간 미확인'
+        courses.append({'code':f'LMS:{code[:120]}','section':section[:20],
+                        'name':name[:120],'schedule':schedule[:500]})
+    if courses:
+        return courses
     # Older and historical-semester fragments do not keep the key, title and
     # schedule in the same <li>. Match the stable key/title ordering used by
     # the reference client instead of treating the semester as unavailable.
