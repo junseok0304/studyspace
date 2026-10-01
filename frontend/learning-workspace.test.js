@@ -110,6 +110,9 @@ test('infographic JSON is rendered as a visual diagram with connected concept ca
   renderInfographicPages(document,container,{title:'정보보호개론',content,renderMarkdown:value=>{const node=document.createElement('div');node.textContent=value;return node;}});
   const svg=container.querySelector('.infographic-visual');
   assert.ok(svg);
+  const decoration=svg.querySelector('.infographic-background-decoration');
+  const decorationClipId=decoration.getAttribute('clip-path').slice(5,-1);
+  assert.equal(svg.querySelector(`#${decorationClipId} rect`).getAttribute('rx'),'24');
   assert.equal(svg.querySelectorAll('.infographic-node').length,3);
   assert.equal(svg.querySelectorAll('path[marker-end]').length,2);
   assert.match(svg.textContent,/사실에서 정보까지/);
