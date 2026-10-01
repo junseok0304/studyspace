@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      STUDYSPACE_PORT: 8091
+      STUDYSPACE_DB_URL: jdbc:h2:file:/app/runtime/studyspace;MODE=MySQL;AUTO_SERVER=TRUE
+      STUDYSPACE_DB_USERNAME: sa
+      STUDYSPACE_DB_PASSWORD: ${STUDYSPACE_DB_PASSWORD:-}
+      STUDYSPACE_DB_DRIVER: org.h2.Driver
+      STUDYSPACE_UPLOAD_DIR: /app/runtime/uploads
+      STUDYSPACE_RECORDING_DIR: /app/runtime/recordings
+      STUDYSPACE_COOKIE_SECURE: ${STUDYSPACE_COOKIE_SECURE:-true}
+      STUDYSPACE_REQUIRE_EMAIL_VERIFICATION: ${STUDYSPACE_REQUIRE_EMAIL_VERIFICATION:-false}
+      STUDYSPACE_KAKAO_ENABLED: ${STUDYSPACE_KAKAO_ENABLED:-false}
+      KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:-}
+      KAKAO_JAVASCRIPT_KEY: ${KAKAO_JAVASCRIPT_KEY:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
+      KAKAO_CLIENT_SECRET_REQUIRED: ${KAKAO_CLIENT_SECRET_REQUIRED:-true}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-https://studyspace.omong.kr/api/auth/kakao/callback}
+      STUDYSPACE_PUBLIC_BASE_URL: ${STUDYSPACE_PUBLIC_BASE_URL:-https://studyspace.omong.kr}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      STUDYSPACE_AI_MOCK_ENABLED: ${STUDYSPACE_AI_MOCK_ENABLED:-true}
+      STUDYSPACE_AI_MODEL: ${STUDYSPACE_AI_MODEL:-gemini-3.6-flash}
+      STUDYSPACE_PYTHON: python3
+    ports:
+      - "127.0.0.1:8091:8091"
+    volumes:
+      - studyspace-runtime:/app/runtime
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8091/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+volumes:
+  studyspace-runtime:
+    name: studyspace-runtime
