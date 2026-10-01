@@ -112,6 +112,7 @@ export function renderInfographicPages(document, container, {title, content, ren
     const rawRelation = cleanText(pageContent.relation);
     const semanticSubtitle = cleanCaption(cleanText(pageContent.subtitle).replace(new RegExp(`\\s*${escapeRegex(rawRelation)}$`), '').trim());
     if (semanticSubtitle) semanticParts.push(semanticSubtitle);
+    if (rawRelation) semanticParts.push(`> ${rawRelation}`);
     semanticParts.push(...pageContent.nodes.map(node => `### ${node.label}\n\n${node.detail}`));
     semantic.append(renderMarkdown(semanticParts.join('\n\n')));
     sheet.append(semantic);

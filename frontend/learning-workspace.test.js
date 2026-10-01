@@ -118,6 +118,7 @@ test('infographic JSON is rendered as a visual diagram with connected concept ca
   assert.equal(svg.querySelectorAll('.infographic-node').length,3);
   assert.equal(svg.querySelectorAll('path[marker-end]').length,2);
   assert.match(svg.textContent,/사실에서 정보까지/);
+  assert.match(container.querySelector('.infographic-semantic-content').textContent,/객관적 사실 → 기호로 표현/);
   assert.match(container.querySelector('.infographic-semantic-content').textContent,/데이터를 가공하고 해석/);
   assert.equal(container.querySelector('.infographic-page-number').textContent,'1 / 2');
   container.querySelector('.infographic-page-controls button:last-child').click();
