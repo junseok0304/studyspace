@@ -79,6 +79,13 @@
   .study.notesup-workspace[data-mobile-view="editor"] > #note-editor-card:not(.hidden){ display:block!important; }
   .study.notesup-workspace[data-mobile-view="tips"] > #tips-panel:not(.hidden){ display:block!important; }
 
+  .study.notesup-workspace .dashboard-status{
+    min-height:0;
+    margin:0 0 4px;
+  }
+  .study.notesup-workspace .dashboard-status:has(#dashboard-message:empty){ display:none; }
+  .study.notesup-workspace .dashboard-status #dashboard-message{ line-height:1.4; }
+
   .study.notesup-workspace > aside.course-rail,
   .study.notesup-workspace > #note-list-card,
   .study.notesup-workspace > #note-editor-card,
