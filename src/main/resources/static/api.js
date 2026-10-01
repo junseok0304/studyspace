@@ -20,7 +20,7 @@ export async function apiFetch(path, options = {}) {
     headers['X-XSRF-TOKEN'] = csrf.token;
   }
   const response = await connectedFetch(path, { method, headers, credentials: 'same-origin', body: payload });
-  if (response.status === 401) {
+  if (response.status === 401 && !options.allowUnauthorized) {
     location.assign('/');
     throw new Error('다시 로그인해 주세요.');
   }

@@ -68,7 +68,7 @@ query('#auth-form').addEventListener('submit', async (event) => {
   const payload = { email: query('#email').value, password: query('#password').value };
   if (state.mode === 'signup') payload.nickname = query('#nickname').value;
   try {
-    const result = await request(`/api/auth/${state.mode}`, { method: 'POST', body: JSON.stringify(payload) });
+    const result = await request(`/api/auth/${state.mode}`, { method: 'POST', body: JSON.stringify(payload), allowUnauthorized: true });
     if (state.mode === 'signup') {
       if (result.developmentVerificationUrl) console.info('개발용 이메일 인증 링크:', result.developmentVerificationUrl);
       setMode('login');

@@ -60,7 +60,7 @@ public class AuthService {
 
     public UserAccount authenticate(AuthModels.LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
-        checkRateLimit("login:"+email, 5, Duration.ofMinutes(15));
+        checkRateLimit("login:"+email, 8, Duration.ofMinutes(15));
         UserAccount user = users.findByEmail(email)
                 .orElseThrow(() -> new AuthException("이메일 또는 비밀번호가 올바르지 않습니다.", 401));
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {

@@ -75,7 +75,7 @@ class StudySpaceAuthTests {
 
     @Test
     void repeatedWrongLoginsAreRateLimited() throws Exception {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 8; i++) {
             mvc.perform(post("/api/auth/login").with(SecurityMockMvcRequestPostProcessors.csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"email\":\"limited@example.com\",\"password\":\"wrong-password\"}"))
