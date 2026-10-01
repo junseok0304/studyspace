@@ -46,6 +46,15 @@ test('summary view removes repeated note citations without touching prose', () =
   assert.doesNotMatch(clean, /노트:|강의자료\.pdf|^출처:/m);
 });
 
+test('summary view hides old inline code citations while keeping technical code', () => {
+  const content = '## 핵심\n\nPython의 `argparse`로 명령을 처리합니다. (`자료: 수업자료.pdf PDF 페이지 2`)\n\n- CSS 주석은 `/* ... */`입니다. (`노트: 8-31 1차시`)\n\n**원문 근거:** `자료: 수업자료.pdf PDF 페이지 2`';
+  const clean = stripSummarySourceLabels(content);
+  assert.match(clean, /`argparse`/);
+  assert.match(clean, /`\/\* \.\.\. \*\/`/);
+  assert.doesNotMatch(clean, /자료:|노트:|원문 근거/);
+  assert.match(clean, /Python의 `argparse`로 명령을 처리합니다\./);
+});
+
 test('learning waits for source loading and permits retry after failed generation', async () => {
   const dom=new JSDOM('<div id="learning-tabs"><button data-learning-view="quiz"></button></div><div id="learning-panel"></div><div id="learning-message"></div><div id="learning-infographic-view"></div><div id="learning-quiz-view"></div><div id="learning-flashcards-view"></div>');
   const doc=dom.window.document;
