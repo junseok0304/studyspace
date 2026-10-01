@@ -2,12 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-import { mountWorkspaceNavigation } from '../src/main/resources/static/workspace-nav.js';
+import { courseChangeTool, mountWorkspaceNavigation } from '../src/main/resources/static/workspace-nav.js';
+
+test('course changes keep the course-wide recording view when appropriate',()=>{
+  assert.equal(courseChangeTool('recording-panel'), 'recording-panel');
+  assert.equal(courseChangeTool('recording-panel',{noteId:'note-1'}), 'note');
+  assert.equal(courseChangeTool('recording-panel',{dashboardVisible:true}), 'note');
+  assert.equal(courseChangeTool('recording-panel',{dashboardVisible:true,restoreRecording:true}), 'recording-panel');
+  assert.equal(courseChangeTool('note',{restoreRecording:true}), 'recording-panel');
+  assert.equal(courseChangeTool('learning-panel'), 'note');
+});
 
 test('recording opens a focused workspace and navigation keeps controls mounted',()=>{
   const dom=new JSDOM(readFileSync(new URL('../src/main/resources/static/index.html',import.meta.url),'utf8'));
   const doc=dom.window.document;
   assert.equal(doc.getElementById('dashboard-semester'),null);
+  assert.equal(doc.querySelector('.today-dashboard-card .eyebrow').textContent,"TODAY'S CLASSES");
+  assert.equal(doc.querySelector('.today-dashboard-card h3').textContent,'오늘 수업');
   assert.equal(doc.querySelectorAll('#tips-panel .tips-grid article').length,6);
   assert.equal(doc.getElementById('tips-title').textContent,'나중에 다시 보기 좋은 노트 쓰기');
   assert.match(doc.querySelector('#tips-panel .tips-heading .muted').textContent,/수업 내용을 모두 받아 적을 필요는 없어요/);
@@ -93,6 +104,8 @@ test('recording opens a focused workspace and navigation keeps controls mounted'
   doc.getElementById('tips-tab').click();
   assert.equal(doc.getElementById('tips-panel').classList.contains('hidden'),false);
   assert.equal(doc.getElementById('dashboard').classList.contains('hidden'),true);
+  assert.equal(doc.getElementById('dashboard-button').getAttribute('aria-pressed'),'false');
+  assert.equal(doc.getElementById('tips-tab').getAttribute('aria-pressed'),'true');
   railToggle.click();
   doc.dispatchEvent(new dom.window.CustomEvent('studyspace:select-tool',{detail:{id:'recording-panel'}}));
   assert.equal(doc.getElementById('study').classList.contains('note-rail-collapsed'),true);
@@ -107,5 +120,18 @@ test('recording opens a focused workspace and navigation keeps controls mounted'
   doc.dispatchEvent(new dom.window.Event('studyspace:course-changing'));
   assert.equal(doc.getElementById('study').classList.contains('note-rail-collapsed'),false);
   assert.equal(railToggle.textContent,'목록 접기');
+  assert.equal(doc.querySelector('.workspace-context').hidden,false);
+  doc.getElementById('note-form').classList.add('hidden');
+  doc.dispatchEvent(new dom.window.Event('studyspace:course-changing'));
+  doc.dispatchEvent(new dom.window.CustomEvent('studyspace:select-tool',{detail:{id:'recording-panel'}}));
+  assert.equal(doc.getElementById('note-form').classList.contains('hidden'),false);
+  assert.equal(doc.getElementById('recording-panel').hidden,false);
+  assert.equal(doc.querySelector('.workspace-tabs button:nth-child(3)').getAttribute('aria-pressed'),'true');
+  assert.equal(doc.querySelector('.workspace-context').hidden,true);
+  doc.dispatchEvent(new dom.window.CustomEvent('studyspace:select-tool',{detail:{id:'note'}}));
+  doc.dispatchEvent(new dom.window.Event('studyspace:note-opened'));
+  assert.equal(doc.querySelector('.workspace-context').hidden,true);
+  doc.dispatchEvent(new dom.window.Event('studyspace:note-closed'));
+  assert.equal(doc.querySelector('.workspace-context').hidden,false);
   dom.window.close();
 });

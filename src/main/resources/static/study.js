@@ -3,7 +3,7 @@ import { removeDuplicateLeadingTitle } from './note-markdown.js';
 import { stripSummarySourceLabels } from './summary-view.js';
 import { DraftStore, NoteEditor } from './note-editor.js';
 import { renderInfographicPages } from './infographic-view.js';
-import { mountWorkspaceNavigation } from './workspace-nav.js';
+import { courseChangeTool, mountWorkspaceNavigation } from './workspace-nav.js';
 import { splitAiFrontmatter, withAiFrontmatter } from './note-metadata.js';
 import { byId } from './dom.js';
 import { mountRecording } from './recording.js';
@@ -298,14 +298,23 @@ export async function start(request, userId) {
     if (show) history.replaceState({studyspace: true}, '', `${location.pathname}${location.search}`);
     document.dispatchEvent(new CustomEvent('studyspace:view',{detail:{dashboard:show}}));
   }
-  async function selectCourse(row, noteId) {
+  async function selectCourse(row, noteId, {restoreRecording = false} = {}) {
     if (!row || !guard()) return false;
     const courseChanged = course?.id !== row.id;
+    const activeTool = byId('note-editor-card').dataset.activeTool || 'note';
+    const dashboardVisible = !byId('dashboard').classList.contains('hidden');
+    const nextTool = courseChangeTool(activeTool,{noteId,dashboardVisible,restoreRecording});
+    let deferredRecordingRoute = false;
     navigating = true;
     try {
     if (courseChanged) document.dispatchEvent(new CustomEvent('studyspace:course-changing',{detail:{courseId:row.id}}));
     editor.close(); course = row;
-    if (courseChanged) document.dispatchEvent(new CustomEvent('studyspace:select-tool',{detail:{id:'note'}}));
+    if (!noteId) {
+      document.dispatchEvent(new CustomEvent('studyspace:note-closed'));
+      byId('note-title').value = '';
+      updateNoteMeta(null);
+      updateGenerationNoteContext(null);
+    }
     byId('course-heading').textContent = row.name;
     byId('course-settings-name').value=row.name;
     byId('course-settings-archived').checked=!!row.archived;
@@ -313,6 +322,9 @@ export async function start(request, userId) {
     byId('note-import-file').value=''; byId('note-import-preview').classList.add('hidden'); byId('note-import-message').textContent=''; importPreview=null; importRequestId=null;
     byId('note-form').classList.add('hidden');
     showDashboard(false);
+    const session=recordingFeature.activeSession();
+    if (nextTool==='recording-panel' && session && session.courseId!==row.id) deferredRecordingRoute=true;
+    else document.dispatchEvent(new CustomEvent('studyspace:select-tool',{detail:{id:nextTool}}));
     renderCourses();
     const rows = await loadNotes();
     await loadTrash();
@@ -321,9 +333,12 @@ export async function start(request, userId) {
     // status line reserved for actionable feedback so the same instruction is
     // not repeated in two places.
     if (selected) edit(selected); else { tell(''); await recordingFeature.loadRecordings(row.id); }
-    persistWorkspaceState('note');
+    persistWorkspaceState(nextTool);
     return true;
-    } finally { navigating = false; }
+    } finally {
+      navigating = false;
+      if (deferredRecordingRoute) queueMicrotask(() => document.dispatchEvent(new CustomEvent('studyspace:select-tool',{detail:{id:'recording-panel'}})));
+    }
   }
   async function loadNotes() {
     const version = ++notesVersion;
@@ -497,8 +512,8 @@ export async function start(request, userId) {
     const saved = readWorkspaceState();
     const target = saved?.course && getCourses().find(item => item.id === saved.course);
     if (target) {
-      await selectCourse(target, saved.note || undefined);
-      if (saved.tool && saved.tool !== 'note' && editor.id) document.dispatchEvent(new CustomEvent('studyspace:select-tool', {detail:{id:saved.tool}}));
+      await selectCourse(target, saved.note || undefined, {restoreRecording:saved.tool==='recording-panel'});
+      if (saved.tool && saved.tool !== 'note' && (editor.id || saved.tool==='recording-panel')) document.dispatchEvent(new CustomEvent('studyspace:select-tool', {detail:{id:saved.tool}}));
     }
   } catch(e) { byId('dashboard-message').textContent = e.message; }
   return {canLeave:guard,clearDrafts:() => { editor.close(); editor.dirty = false; drafts.clear(true); }};

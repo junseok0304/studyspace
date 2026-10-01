@@ -1,3 +1,10 @@
+export function courseChangeTool(activeTool, {noteId, dashboardVisible = false, restoreRecording = false} = {}) {
+  if (noteId) return 'note';
+  if (restoreRecording) return 'recording-panel';
+  if (activeTool !== 'recording-panel') return 'note';
+  return dashboardVisible ? 'note' : 'recording-panel';
+}
+
 export function mountWorkspaceNavigation(doc = document) {
   const CustomEventType = doc.defaultView?.CustomEvent || CustomEvent;
   const icon = (name) => {
@@ -251,7 +258,7 @@ export function mountWorkspaceNavigation(doc = document) {
   };
   const updateContext = () => {
     context.textContent = '목록에서 열람할 노트를 선택해주세요';
-    context.hidden = noteOpen;
+    context.hidden = noteOpen || card.dataset.activeTool === 'recording-panel';
   };
 
   const buttons = tools.map(([id, label]) => {
@@ -293,7 +300,11 @@ export function mountWorkspaceNavigation(doc = document) {
     noteToggle.textContent = collapsed ? '›' : '목록 접기';
   };
   noteToggle.onclick = () => setNoteRailCollapsed(!study.classList.contains('note-rail-collapsed'));
-  doc.addEventListener('studyspace:course-changing', () => setNoteRailCollapsed(false));
+  doc.addEventListener('studyspace:course-changing', () => {
+    noteOpen = false;
+    updateContext();
+    setNoteRailCollapsed(false);
+  });
 
   function select(requestedId, view, options = {}) {
     const id = ['practice', 'practice-panel', 'generation-panel'].includes(requestedId) ? 'learning-panel' : requestedId;
@@ -308,6 +319,7 @@ export function mountWorkspaceNavigation(doc = document) {
     const note = id === 'note';
     const learning = id === 'learning-panel';
     editor.hidden = !note;
+    if (id === 'recording-panel') form.classList.remove('hidden');
     form.classList.toggle('recording-workspace', id === 'recording-panel');
     attachment.hidden = id !== 'attachment-panel';
     panels.forEach(panel => { panel.hidden = panel.id !== id; });
@@ -333,6 +345,10 @@ export function mountWorkspaceNavigation(doc = document) {
     // Keep the current note-scoped workspace open while its note changes.
     const activeTool = card.dataset.activeTool;
     select(activeTool === 'attachment-panel' || activeTool === 'recording-panel' || activeTool === 'learning-panel' ? activeTool : 'note');
+  });
+  doc.addEventListener('studyspace:note-closed', () => {
+    noteOpen = false;
+    updateContext();
   });
   doc.addEventListener('studyspace:select-tool', event => select(event.detail.id, event.detail.view, event.detail));
   doc.addEventListener('studyspace:view', event => {
