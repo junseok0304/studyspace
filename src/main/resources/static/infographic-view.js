@@ -158,7 +158,7 @@ function normalizeInfographicPages(content, fallbackTitle) {
       })).filter(node => node.label && node.detail);
       const distinctNodes = nodes.filter(node => node.detail !== node.label);
       return {
-        title: cleanText(page.title) || fallbackTitle || '핵심 개념',
+        title: cleanInfographicTitle(page.title) || fallbackTitle || '핵심 개념',
         subtitle, relation: cleanCaption(rawRelation),
         layout: ['flow', 'compare', 'cycle', 'hub'].includes(page.layout) ? page.layout : 'flow',
         nodes: distinctNodes.length >= 2 ? distinctNodes : nodes
@@ -176,7 +176,7 @@ function markdownPage(markdown, fallbackTitle, index) {
   const prose = lines.filter(line => !/^#{1,6}\s/.test(line) && !/^(?:[-*+]\s+|\d+[.)]\s+)/.test(line) && !/^---PAGE---$/.test(line) && cleanText(line) !== cleanText(fallbackTitle));
   const candidates = bullets.length ? bullets : prose;
   const chosen = [...new Set(candidates.map(cleanText).filter(Boolean))].slice(0, 4);
-  const pageTitle = cleanText(headings.find(Boolean) || (index ? `${fallbackTitle || '핵심 내용'} · ${index + 1}` : fallbackTitle || '핵심 내용'));
+  const pageTitle = cleanInfographicTitle(headings.find(Boolean) || (index ? `${fallbackTitle || '핵심 내용'} · ${index + 1}` : fallbackTitle || '핵심 내용'));
   const layout = /비교|차이|반면|대조/.test(markdown) ? 'compare' : /순환|반복|주기/.test(markdown) ? 'cycle' : /구성|요소|종류/.test(markdown) ? 'hub' : 'flow';
   const nodes = chosen.map((detail, nodeIndex) => ({label: inferLabel(detail, nodeIndex), detail: detail.slice(0, 180), icon: inferIcon(detail)}));
   const distinctNodes = nodes.filter(node => cleanText(node.detail) !== cleanText(node.label));
@@ -323,6 +323,9 @@ function cleanText(value) {
   return String(value || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ')
     .replace(/^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u, '').replace(/^\d+[.)]\s*/, '')
     .replace(/\*\*|__|\*|_|`|~~/g, '').trim();
+}
+function cleanInfographicTitle(value) {
+  return cleanText(value).replace(/\s*\((?:overview|summary)\)\s*$/i, '').trim();
 }
 function cleanCaption(value) {
   const text = cleanText(value);

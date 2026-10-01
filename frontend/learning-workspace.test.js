@@ -162,6 +162,21 @@ test('infographic strips legacy book emoji and numbering from page titles', () =
   dom.window.close();
 });
 
+test('infographic titles remove generic English labels after Korean headings', () => {
+  const dom = new JSDOM('<!doctype html><div id="stage"></div>');
+  const container = dom.window.document.getElementById('stage');
+  const content = JSON.stringify({pages:[{title:'핵심 요약 (Overview)',subtitle:'수업의 주요 내용을 정리합니다.',relation:'주요 내용을 순서대로 봅니다.',layout:'flow',nodes:[
+    {label:'개요',detail:'수업 도구와 과정을 간단히 살펴봅니다.',icon:'idea'},
+    {label:'환경',detail:'개발을 위한 기본 프로그램을 설치합니다.',icon:'gear'}
+  ]}]});
+  renderInfographicPages(dom.window.document,container,{title:'강의노트',content,renderMarkdown:value=>{
+    const node=dom.window.document.createElement('div');node.textContent=value;return node;
+  }});
+  assert.match(container.querySelector('.infographic-visual .title').textContent,/핵심 요약/);
+  assert.doesNotMatch(container.querySelector('.infographic-visual .title').textContent,/Overview/);
+  dom.window.close();
+});
+
 test('all infographic layouts keep cards and their full detail text inside the canvas', () => {
   const cases=[['flow',2],['flow',4],['compare',2],['cycle',2],['cycle',3],['cycle',4],['hub',2],['hub',3],['hub',4]];
   for (const [layout,count] of cases) {
