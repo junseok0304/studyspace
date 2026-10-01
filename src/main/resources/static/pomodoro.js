@@ -60,7 +60,7 @@ export function mountPomodoro(userId) {
   const controls=document.createElement('div');controls.className='pomodoro-actions';
   const toggle=document.createElement('button');toggle.type='button';toggle.className='primary';
   const reset=document.createElement('button');reset.type='button';reset.className='quiet-button';reset.textContent='초기화';
-  const minimize=document.createElement('button');minimize.type='button';minimize.className='pomodoro-minimize';
+  const minimize=document.createElement('button');minimize.type='button';minimize.className='pomodoro-minimize';minimize.textContent='접기';minimize.setAttribute('aria-label','타이머 접기');
   controls.append(toggle,reset,minimize);panel.append(modeRow,controls);root.append(panel);
   document.body.append(root);
 
@@ -131,6 +131,7 @@ export function mountPomodoro(userId) {
     }else{
       const minimized=root.classList.toggle('minimized');
       state.minimized=minimized;
+      if(minimized&&dashboardContext.some(panel=>!panel.classList.contains('hidden')))root.classList.add('dashboard-context-compact');
     }
     updateRingAction();save();
   };

@@ -40,13 +40,13 @@
 
 /* Keep the timer visible but out of the way on the dashboard and writing tips.
    Clicking the ring restores the user's expanded timer without pausing it. */
-.pomodoro.dashboard-context-compact:not(.minimized) { width:84px; padding:6px; background:rgba(255,255,255,.9); box-shadow:0 10px 26px rgba(42,67,91,.14); }
-.pomodoro.dashboard-context-compact:not(.minimized) .pomodoro-ring { width:72px; height:72px; }
-.pomodoro.dashboard-context-compact:not(.minimized) .pomodoro-clock { font-size:15px; }
+.pomodoro.dashboard-context-compact { right:8px; bottom:8px; width:56px; padding:4px; background:rgba(255,255,255,.92); box-shadow:0 8px 20px rgba(42,67,91,.12); }
+.pomodoro.dashboard-context-compact .pomodoro-ring { width:48px; height:48px; }
+.pomodoro.dashboard-context-compact .pomodoro-clock { font-size:10px; }
 .pomodoro.dashboard-context-compact:not(.minimized) .ring-track,
 .pomodoro.dashboard-context-compact:not(.minimized) .ring-progress { stroke-width:8; }
 .pomodoro.dashboard-context-compact:not(.minimized) .pomodoro-panel { display:none; }
-.pomodoro.dashboard-context-compact:not(.minimized):hover { background:rgba(255,255,255,.97); box-shadow:0 14px 32px rgba(42,67,91,.22); }
+.pomodoro.dashboard-context-compact:hover { background:rgba(255,255,255,.98); box-shadow:0 12px 24px rgba(42,67,91,.18); }
 
 .pomodoro.finished { animation: timer-finish .4s ease 2 alternate; }
 @keyframes timer-finish { to { transform: scale(1.07); box-shadow: 0 18px 48px rgba(255,95,86,.4); } }

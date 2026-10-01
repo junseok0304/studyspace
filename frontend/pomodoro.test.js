@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceCompletedPhase, remainingAt, ringProgressFor, timerState } from '../src/main/resources/static/pomodoro.js';
+import { JSDOM } from 'jsdom';
+import { advanceCompletedPhase, mountPomodoro, remainingAt, ringProgressFor, timerState } from '../src/main/resources/static/pomodoro.js';
 
 test('running timer derives remaining time from the absolute deadline',()=>{
   const state={...timerState(),running:true,endAt:1_600_000,remainingMs:1_500_000};
@@ -31,4 +32,60 @@ test('inner overtime ring reaches full exactly at each mode maximum',()=>{
   assert.equal(focus.progress,1);assert.equal(focus.overflow,1);
   assert.equal(rest.progress,1);assert.equal(rest.overflow,1);
   assert.ok(Math.abs(ringProgressFor(50*60*1000,'break').overflow-0.5)<1e-9);
+});
+
+test('timer controls expose an accessible name for collapsing the timer',()=>{
+  const dom=new JSDOM('<!doctype html><title>StudySpace</title><body></body>',{url:'http://localhost/'});
+  const previousDocument=globalThis.document,previousWindow=globalThis.window,previousLocalStorage=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),previousSetInterval=globalThis.setInterval;
+  globalThis.document=dom.window.document;
+  globalThis.window=dom.window;
+  globalThis.localStorage=dom.window.localStorage;
+  globalThis.setInterval=()=>0;
+  try{
+    mountPomodoro('a11y-test');
+    const minimize=dom.window.document.querySelector('.pomodoro-minimize');
+    assert.equal(minimize.textContent,'접기');
+    assert.equal(minimize.getAttribute('aria-label'),'타이머 접기');
+    const ring=dom.window.document.querySelector('.pomodoro-ring');
+    assert.equal(ring.getAttribute('aria-label'),'타이머 펼치기');
+    ring.click();
+    assert.equal(ring.getAttribute('aria-label'),'타이머 접기');
+  }finally{
+    globalThis.document=previousDocument;
+    globalThis.window=previousWindow;
+    if(previousLocalStorage)Object.defineProperty(globalThis,'localStorage',previousLocalStorage);
+    else delete globalThis.localStorage;
+    globalThis.setInterval=previousSetInterval;
+    dom.window.close();
+  }
+});
+
+test('collapsing an expanded timer on the dashboard restores its compact safe position',()=>{
+  const dom=new JSDOM('<!doctype html><title>StudySpace</title><body><main id="dashboard"></main></body>',{url:'http://localhost/'});
+  const previousDocument=globalThis.document,previousWindow=globalThis.window,previousLocalStorage=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),previousSetInterval=globalThis.setInterval;
+  globalThis.document=dom.window.document;
+  globalThis.window=dom.window;
+  globalThis.localStorage=dom.window.localStorage;
+  globalThis.setInterval=()=>0;
+  try{
+    mountPomodoro('dashboard-collapse-test');
+    const root=dom.window.document.querySelector('.pomodoro');
+    const ring=dom.window.document.querySelector('.pomodoro-ring');
+    const minimize=dom.window.document.querySelector('.pomodoro-minimize');
+    assert.ok(root.classList.contains('dashboard-context-compact'));
+    ring.click();
+    assert.ok(!root.classList.contains('minimized'));
+    assert.ok(!root.classList.contains('dashboard-context-compact'));
+    minimize.click();
+    assert.ok(root.classList.contains('minimized'));
+    assert.ok(root.classList.contains('dashboard-context-compact'));
+    assert.equal(ring.getAttribute('aria-label'),'타이머 펼치기');
+  }finally{
+    globalThis.document=previousDocument;
+    globalThis.window=previousWindow;
+    if(previousLocalStorage)Object.defineProperty(globalThis,'localStorage',previousLocalStorage);
+    else delete globalThis.localStorage;
+    globalThis.setInterval=previousSetInterval;
+    dom.window.close();
+  }
 });
