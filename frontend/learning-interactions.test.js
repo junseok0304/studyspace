@@ -53,6 +53,34 @@ test('flashcard study keeps its place and records each card only once', async ()
   } finally { view.close(); }
 });
 
+test('flashcard review retry reuses its request identity after an uncertain failure', async () => {
+  const view = workspace('<span id="learning-mode-badge"></span><p id="flashcard-message"></p><button id="create-flashcards"></button><select id="flashcard-count"></select><div id="flashcard-decks"></div><div id="flashcard-player"></div>');
+  const {byId} = view;
+  const requests = [];
+  const request = async (path, options = {}) => {
+    if (path === '/api/courses/course-1/flashcard-decks') return [{id: 'deck-1', noteId: 'note-1', sourceNoteVersion: 1, sourceAttachmentIds: [], title: '카드', cardCount: 1}];
+    if (path === '/api/flashcard-decks/deck-1') return {id: 'deck-1', noteId: 'note-1', cards: [{id: 'card-1', front: '질문', back: '정답'}]};
+    if (path === '/api/flashcards/card-1/reviews') {
+      requests.push(JSON.parse(options.body));
+      if (requests.length === 1) throw new Error('연결이 끊어졌습니다.');
+      return {rating: 'KNOWN'};
+    }
+    throw new Error(path);
+  };
+  try {
+    const flashcards = mountFlashcards({request, byId, getCourse: () => ({id: 'course-1'}), getEditor: () => ({id: 'note-1', version: 1}), setLocked: () => {}, emptyState: () => view.document.createElement('div'), getAttachmentIds: () => []});
+    await flashcards.openForNote();
+    byId('flashcard-player').querySelector('.flashcard-study-card').click();
+    await byId('flashcard-player').querySelector('.flashcard-review-actions button:last-child').onclick();
+    assert.match(byId('flashcard-message').textContent, /다시 눌러/);
+    assert.equal(byId('flashcard-player').querySelector('.flashcard-review-actions button:first-child').disabled, true);
+    await byId('flashcard-player').querySelector('.flashcard-review-actions button:last-child').onclick();
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0].requestId, requests[1].requestId);
+    assert.match(byId('flashcard-player').textContent, /카드를 모두 복습했어요/);
+  } finally { view.close(); }
+});
+
 test('quiz prevents finishing with unanswered questions and locks choices while grading', async () => {
   const view = workspace('<span id="learning-mode-badge"></span><p id="quiz-message"></p><button id="create-speed-quiz"></button><select id="quiz-count"><option value="2">2</option></select><div id="quiz-sets"></div><div id="quiz-player"></div><details id="quiz-history"></details>');
   const {byId} = view;

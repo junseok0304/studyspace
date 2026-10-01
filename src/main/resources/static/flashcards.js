@@ -42,6 +42,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     }
     let index = 0, flipped = false, reviewPending = false;
     const ratedIds = new Set();
+    const retryRatings = new Map();
     const render = () => {
       player.replaceChildren();
       if (index >= cards.length) {
@@ -82,21 +83,31 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       const actions = document.createElement('div'); actions.className = 'flashcard-review-actions';
       for (const [rating, label] of [['AGAIN', '다시 보기'], ['KNOWN', '알고 있음']]) {
         const button = document.createElement('button'); button.type = 'button';
-        button.className = rating === 'KNOWN' ? 'primary' : 'secondary'; button.textContent = label;
+        const retry = retryRatings.get(card.id);
+        button.className = rating === 'KNOWN' ? 'primary' : 'secondary';
+        button.textContent = retry?.rating === rating ? `${label} 재시도` : label;
+        button.disabled = Boolean(retry && retry.rating !== rating);
         button.onclick = async () => {
-          if (reviewPending || ratedIds.has(card.id)) return;
+          const retry = retryRatings.get(card.id);
+          if (reviewPending || ratedIds.has(card.id) || (retry && retry.rating !== rating)) return;
+          const requestId = retry?.requestId || crypto.randomUUID();
+          retryRatings.set(card.id, {rating, requestId});
           reviewPending = true;
           player.querySelectorAll('button').forEach(control => { control.disabled = true; });
           const answeredIndex = index;
           try {
-            await request(`/api/flashcards/${card.id}/reviews`, {method: 'POST', body: JSON.stringify({requestId: crypto.randomUUID(), rating})});
+            await request(`/api/flashcards/${card.id}/reviews`, {method: 'POST', body: JSON.stringify({requestId, rating})});
             if (sequence !== studySequence || getEditor()?.id !== noteId) return;
             ratedIds.add(card.id);
+            retryRatings.delete(card.id);
             index = answeredIndex + 1;
             while (index < cards.length && ratedIds.has(cards[index].id)) index++;
             flipped = false; render();
           } catch (error) {
-            if (sequence === studySequence && getEditor()?.id === noteId) { el('flashcard-message').textContent = error.message; render(); }
+            if (sequence === studySequence && getEditor()?.id === noteId) {
+              el('flashcard-message').textContent = `${error.message} 같은 평가를 다시 눌러 저장 상태를 확인해 주세요.`;
+              render();
+            }
           } finally { reviewPending = false; }
         };
         actions.append(button);
@@ -111,6 +122,8 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
   }
 
   async function manage(deck) {
+    studySequence++;
+    currentStudy = null;
     const player = el('flashcard-player');
     player.classList.remove('hidden'); player.replaceChildren();
     const heading = document.createElement('div'); heading.className = 'recording-row-head';
