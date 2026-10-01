@@ -212,13 +212,22 @@
 .profile .form-actions-secondary[hidden]{display:none!important}
 .profile .danger-zone{border-color:#f0dede;background:#fffdfd}
 .profile .danger-zone h2::after{background:#d58989}
-.profile .danger-zone details{margin-top:14px;padding:0 16px;border:1px solid #f2e4e4;border-radius:12px;background:#fff}
-.profile .danger-zone details[open]{padding-bottom:20px}
-.profile .danger-zone #delete-account-form{width:100%;min-width:0;grid-template-columns:minmax(0,1fr);gap:14px}
+.profile .danger-zone details{margin-top:16px;padding:0;border:1px solid #f2e4e4;border-radius:12px;background:#fff;overflow:hidden}
+.profile .danger-zone summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px;margin:0;padding:14px 16px;color:#8d4c4c;line-height:1.45;list-style:none}
+.profile .danger-zone summary::-webkit-details-marker{display:none}
+.profile .danger-zone summary::marker{content:''}
+.profile .danger-zone summary::after{content:'⌄';flex:0 0 auto;color:#a67676;font-size:17px;transition:transform .15s ease}
+.profile .danger-zone details[open] summary{border-bottom:1px solid #f5e8e8}
+.profile .danger-zone details[open] summary::after{transform:rotate(180deg)}
+.profile .danger-zone details[open] > .muted{max-width:480px;margin:14px 16px 12px}
+.profile .danger-zone details[open]{padding-bottom:18px}
+.profile .danger-zone #delete-account-form{box-sizing:border-box;width:min(100%,480px);min-width:0;grid-template-columns:minmax(0,1fr);gap:12px}
+.profile .danger-zone #delete-account-form{margin:0;padding:0 16px}
 .profile .danger-zone #delete-account-form label{min-width:0}
 .profile .danger-zone #delete-account-form input{box-sizing:border-box;width:100%;min-width:0}
 .profile .danger-zone #delete-account-form .form-actions{min-width:0;margin-top:2px}
-.profile .danger-zone #delete-account-form .danger-button{box-sizing:border-box;width:min(100%,280px);min-width:0;min-height:46px;padding:10px 16px;white-space:normal;line-height:1.4;overflow-wrap:anywhere}
+.profile .danger-zone #delete-account-form .danger-button{box-sizing:border-box;width:100%;max-width:480px;min-width:0;min-height:46px;padding:10px 16px;white-space:normal;line-height:1.4;overflow-wrap:anywhere}
+.profile .danger-zone #delete-account-message{margin:0 16px}
 .profile .schedule-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 2px}
 .profile .schedule-row br{display:none}
 .profile .schedule-row strong{font-size:14px}

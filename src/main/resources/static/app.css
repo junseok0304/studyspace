@@ -260,6 +260,15 @@ dialog::backdrop { background: #17283c55; }
 dialog h2 { font-size: 22px; }
 dialog p { font-size: 14px; line-height: 1.8; }
 dialog a { display: block; text-align: center; text-decoration: none; margin: 24px 0 10px; }
+#school-prompt:not([open]){ display:none; }
+#school-prompt[open]{ display:grid; gap:12px; width:min(430px,calc(100% - 32px)); padding:28px; }
+#school-prompt h2{ margin:0; }
+#school-prompt p{ margin:0 0 4px; }
+#school-prompt > a.primary,
+#school-prompt > form,
+#school-prompt > form button{ box-sizing:border-box; width:100%; margin:0; }
+#school-prompt > a.primary,
+#school-prompt > form button{ min-height:46px; }
 
 @media (max-width: 850px) {
   .shell:not(.workspace-shell) { max-width: 460px; display: block; width: calc(100% - 32px); padding: 32px 0; }
