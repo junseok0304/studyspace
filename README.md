@@ -30,6 +30,4 @@ npm test
 npm run build
 ```
 
-자세한 확인·배포 절차는 [개발 안내](docs/DEVELOPMENT.md), 확정된 제품 범위와 남은 작업은 [최종 PRD v6.0](docs/PRD-FINAL.md)을 참고하세요. 기존 `docs/PRD.md`는 Git에서 제외된 로컬 이력 문서입니다.
-
-현재 화면이 최종 기획입니다. Gemini 실연결 검증 결과와 남은 점검 범위는 [AI 검증 기록](docs/AI-VALIDATION.md)을 참고하세요. 기본 모의 설정에서는 학습 생성·자료 요약·PNG 분석이 외부 AI를 호출하지 않습니다. 실제 연결은 Git에 포함하지 않는 `.env`의 `GEMINI_API_KEY`, `STUDYSPACE_AI_MODEL`, `STUDYSPACE_AI_MOCK_ENABLED=false`로 설정한 뒤 `scripts/run-local.sh`로 실행합니다.
+기본 모의 설정에서는 학습 생성·자료 요약·PNG 분석이 외부 AI를 호출하지 않습니다. 실제 연결은 Git에 포함하지 않는 `.env`의 `GEMINI_API_KEY`, `STUDYSPACE_AI_MODEL`, `STUDYSPACE_AI_MOCK_ENABLED=false`로 설정한 뒤 `scripts/run-local.sh`로 실행합니다.
