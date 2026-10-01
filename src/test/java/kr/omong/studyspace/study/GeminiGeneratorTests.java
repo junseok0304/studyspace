@@ -63,6 +63,24 @@ class GeminiGeneratorTests {
             """,1));
     }
 
+    @Test void rejectsPositionalOrRepeatedStudyQuestions() {
+        String template="[{\"prompt\":\"%s\",\"options\":[\"실행 중인 프로그램\",\"파일\",\"장치\",\"문서\"],\"correctIndex\":0,\"hint\":\"실행 상태를 떠올려 보세요.\",\"explanation\":\"프로세스는 실행 중인 프로그램입니다.\",\"source\":\"강의노트\"}]";
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz(template.formatted("원문에서 2번째 핵심 문장은 무엇인가요?"),1));
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz(template.formatted("보기 중 2번은 무엇인가요?"),1));
+        String duplicate=template.formatted("프로세스란?").replaceFirst("\\]$", ","+template.formatted("프로세스란 !").substring(1));
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz(duplicate,2));
+        String repeatedOptions=template.formatted("프로세스란?").replace("\"파일\"","\"실행 중인 프로그램!\"");
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz(repeatedOptions,1));
+    }
+
+    @Test void rejectsFlashcardsThatRevealTheirAnswerOrRepeatTheQuestion() {
+        String template="[{\"front\":\"%s\",\"back\":\"프로세스는 실행 중인 프로그램입니다.\",\"explanation\":\"실행 상태가 핵심입니다.\",\"source\":\"강의노트\"}]";
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(template.formatted("‘프로세스는 실행 중인 프로그램입니다.’의 핵심은?"),1));
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(template.formatted("원문의 3번째 문장은 무엇인가요?"),1));
+        String duplicate=template.formatted("프로세스란?").replaceFirst("\\]$", ","+template.formatted("프로세스란 !").substring(1));
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(duplicate,2));
+    }
+
     @Test void providerErrorsHaveActionableMessagesWithoutSecrets() {
         assertTrue(new GeminiGenerator.Failure("PROVIDER_NOT_CONFIGURED").userMessage().contains("키"));
         assertTrue(new GeminiGenerator.Failure("PROVIDER_RATE_LIMITED").userMessage().contains("한도"));

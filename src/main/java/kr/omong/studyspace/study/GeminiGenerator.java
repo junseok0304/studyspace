@@ -14,6 +14,7 @@ import java.util.Base64;
 public class GeminiGenerator {
     private static final String EMPTY_TEMPLATE_RULE = "노트에 작성 안내나 비어 있는 템플릿 항목이 있으면 학습 사실로 취급하지 말고, 사용자가 실제로 작성한 내용만 결과에 반영하세요.";
     private static final String NOTE_METADATA_RULE = "노트 본문 앞의 YAML frontmatter는 AI 문맥 메타데이터입니다. course_name과 semester만 문맥 확인에 사용하고, ID·날짜·상태 필드는 학습 사실로 출력하지 마세요.";
+    private static final java.util.regex.Pattern ITEM_POSITION=java.util.regex.Pattern.compile("(?:보기|선택지|원문|문장|문항).{0,40}(?:[0-9]+\\s*번(?:째)?|[0-9]+\\s*번째|몇\\s*번(?:째)?)");
     private final String key;
     private final ObjectMapper json;
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -81,7 +82,12 @@ public class GeminiGenerator {
                 +"source에는 입력에 나타난 요점 정리 제목, 노트 제목·버전 또는 파일명과 PDF 페이지·슬라이드·HWP 구역 표기를 그대로 적으세요. "
                 +"문제 수는 정확히 "+count+"개이며 선택지는 서로 달라야 합니다. JSON 외의 설명은 출력하지 마세요.";
         Result result=requestStructured(model,instruction,source,"QUIZ");
-        return new QuizResult(parseQuiz(result.text(),count),result.promptTokens(),result.outputTokens());
+        try { return new QuizResult(parseQuiz(result.text(),count),result.promptTokens(),result.outputTokens()); }
+        catch(Failure invalid) {
+            if(!"PROVIDER_INVALID_RESULT".equals(invalid.code)) throw invalid;
+            Result retry=requestStructured(model,instruction+" 이전 응답이 문항 수·중복·선택지 또는 질문 품질 검사를 통과하지 못했습니다. 위치를 맞히는 문제 없이 서로 다른 개념을 다시 구성하세요.",source,"QUIZ");
+            return new QuizResult(parseQuiz(retry.text(),count),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
+        }
     }
 
     List<GeneratedQuiz> parseQuiz(String result,int count) {
@@ -89,19 +95,23 @@ public class GeminiGenerator {
             JsonNode array=json.readTree(result);
             if(!array.isArray() || array.size()!=count) throw new Failure("PROVIDER_INVALID_RESULT");
             var items=new ArrayList<GeneratedQuiz>();
+            var seenPrompts=new HashSet<String>();
             for(JsonNode item:array) {
                 JsonNode options=item.path("options");
                 if(!item.path("prompt").isTextual() || !options.isArray() || options.size()!=4
                         || !item.path("correctIndex").isIntegralNumber() || !item.path("correctIndex").canConvertToInt() || !item.path("explanation").isTextual()
                         || !item.path("source").isTextual()) throw new Failure("PROVIDER_INVALID_RESULT");
                 int answer=item.path("correctIndex").asInt();
+                String prompt=item.path("prompt").asText().strip();
                 var values=new ArrayList<String>();
                 for(JsonNode option:options) if(!option.isTextual() || option.asText().isBlank() || option.asText().length()>300) throw new Failure("PROVIDER_INVALID_RESULT"); else values.add(option.asText().strip());
                 String hint=item.path("hint").isTextual()?item.path("hint").asText().strip():"노트에서 관련 개념의 정의와 특징을 먼저 확인해 보세요.";
-                if(answer<0 || answer>3 || new HashSet<>(values).size()!=4 || item.path("prompt").asText().isBlank() || item.path("prompt").asText().length()>500
+                if(answer<0 || answer>3 || values.stream().map(GeminiGenerator::normalizedQuestion).distinct().count()!=4
+                        || prompt.isBlank() || prompt.length()>500 || refersToItemPosition(prompt)
+                        || !seenPrompts.add(normalizedQuestion(prompt))
                         || item.path("explanation").asText().isBlank() || item.path("explanation").asText().length()>1000
                         || hint.isBlank() || hint.length()>300 || item.path("source").asText().isBlank() || item.path("source").asText().length()>300) throw new Failure("PROVIDER_INVALID_RESULT");
-                items.add(new GeneratedQuiz(item.path("prompt").asText().strip(),values,answer,hint,item.path("explanation").asText().strip(),item.path("source").asText().strip()));
+                items.add(new GeneratedQuiz(prompt,values,answer,hint,item.path("explanation").asText().strip(),item.path("source").asText().strip()));
             }
             return items;
         } catch(Failure failure) { throw failure; }
@@ -118,7 +128,12 @@ public class GeminiGenerator {
                 +"source에는 입력에 나타난 요점 정리 제목, 노트 제목·버전 또는 파일명과 PDF 페이지·슬라이드·HWP 구역 표기를 그대로 적으세요. "
                 +"카드 수는 정확히 "+count+"개이고 JSON 외의 설명은 출력하지 마세요.";
         Result result=requestStructured(model,instruction,source,"FLASHCARD");
-        return new CardResult(parseFlashcards(result.text(),count),result.promptTokens(),result.outputTokens());
+        try { return new CardResult(parseFlashcards(result.text(),count),result.promptTokens(),result.outputTokens()); }
+        catch(Failure invalid) {
+            if(!"PROVIDER_INVALID_RESULT".equals(invalid.code)) throw invalid;
+            Result retry=requestStructured(model,instruction+" 이전 응답이 카드 수·중복 또는 질문 품질 검사를 통과하지 못했습니다. 질문에 답을 그대로 넣지 말고 독립적인 카드로 다시 구성하세요.",source,"FLASHCARD");
+            return new CardResult(parseFlashcards(retry.text(),count),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
+        }
     }
 
     List<GeneratedCard> parseFlashcards(String result,int count) {
@@ -126,15 +141,26 @@ public class GeminiGenerator {
             JsonNode array=json.readTree(result);
             if(!array.isArray() || array.size()!=count) throw new Failure("PROVIDER_INVALID_RESULT");
             var items=new ArrayList<GeneratedCard>();
+            var seenFronts=new HashSet<String>();
             for(JsonNode item:array) {
                 if(!item.path("front").isTextual() || !item.path("back").isTextual() || !item.path("explanation").isTextual() || !item.path("source").isTextual()) throw new Failure("PROVIDER_INVALID_RESULT");
                 String front=item.path("front").asText().strip(),back=item.path("back").asText().strip(),explanation=item.path("explanation").asText().strip(),sourceLabel=item.path("source").asText().strip();
-                if(front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300) throw new Failure("PROVIDER_INVALID_RESULT");
+                if(front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300
+                        || refersToItemPosition(front) || !seenFronts.add(normalizedQuestion(front))
+                        || (normalizedQuestion(back).length()>=12 && normalizedQuestion(front).contains(normalizedQuestion(back)))) throw new Failure("PROVIDER_INVALID_RESULT");
                 items.add(new GeneratedCard(front,back,explanation,sourceLabel));
             }
             return items;
         } catch(Failure failure) { throw failure; }
         catch(Exception failure) { throw new Failure("PROVIDER_INVALID_RESULT"); }
+    }
+
+    private static String normalizedQuestion(String value) {
+        return value.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
+    }
+
+    private static boolean refersToItemPosition(String prompt) {
+        return ITEM_POSITION.matcher(prompt).find();
     }
 
     private Result requestStructured(String model,String instruction,String source,String kind) {
