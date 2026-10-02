@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -58,6 +59,16 @@ public class AuthController {
     public AuthModels.AuthResponse me(Authentication authentication) {
         UserAccount user = authService.requireUser(Long.parseLong(authentication.getName()));
         return new AuthModels.AuthResponse(user.response());
+    }
+
+    @PutMapping("/me/nickname")
+    public AuthModels.AuthResponse updateNickname(Authentication authentication,
+                                                   @Valid @RequestBody AuthModels.NicknameUpdateRequest request) {
+        long userId = Long.parseLong(authentication.getName());
+        String nickname = request.nickname().trim();
+        if (nickname.isEmpty()) throw new AuthException("닉네임을 입력해 주세요.", 400);
+        if (!authService.updateNickname(userId, nickname)) throw new AuthException("사용자를 찾을 수 없습니다.", 401);
+        return new AuthModels.AuthResponse(authService.requireUser(userId).response());
     }
 
     @GetMapping("/verify-email")

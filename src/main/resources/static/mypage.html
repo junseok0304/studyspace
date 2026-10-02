@@ -31,8 +31,13 @@
     <div class="storage-summary"><div><strong id="storage-used">계산 중</strong><span id="storage-detail"></span></div><progress id="storage-progress" max="100" value="0" aria-label="저장공간 사용률"></progress></div>
     <a class="primary profile-download" href="/api/account/export" download>전체 데이터 ZIP 다운로드</a>
   </section>
-  <section class="card danger-zone" id="account-settings"><h2>계정 관리</h2>
-    <details><summary>회원탈퇴 진행</summary>
+  <section class="card" id="account-settings"><h2>계정 관리</h2>
+    <form id="nickname-form">
+      <label>닉네임<input id="account-nickname" maxlength="50" autocomplete="nickname" required></label>
+      <div class="form-actions"><button class="secondary" type="submit">닉네임 변경</button></div>
+    </form>
+    <p id="nickname-message" class="message" role="status" aria-live="polite"></p>
+    <div class="danger-zone"><details><summary>회원탈퇴 진행</summary>
       <p class="muted">계정과 학습 기록이 즉시 삭제됩니다. 필요한 자료를 먼저 내려받아 주세요.</p>
       <form id="delete-account-form">
         <label id="delete-password-label">현재 비밀번호<input id="delete-password" type="password" maxlength="72" autocomplete="current-password"></label>
@@ -41,5 +46,6 @@
       </form>
       <p id="delete-account-message" class="message" role="status"></p>
     </details>
+    </div>
   </section>
 </main><script type="module" src="/mypage.js"></script></body></html>

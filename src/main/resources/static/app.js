@@ -36,7 +36,9 @@ function showAccount(user) {
   import('/pomodoro.js').then(module=>module.mountPomodoro(user.id)).catch(()=>{});
   document.querySelector('.shell').classList.add('workspace-shell');
   query('#auth-card').classList.add('hidden');
-  query('#account-card').classList.remove('hidden');
+  // Render the dashboard immediately while its data and controls initialize.
+  // The account card is moved into the workspace rail by study.js afterward.
+  query('#study').classList.remove('hidden');
   query('#welcome').textContent = `${user.nickname}님, 환영합니다.`;
   query('#account-detail').textContent = `${user.email} · ${user.emailVerified ? '이메일 인증 완료' : '이메일 인증 필요'}`;
   const studyReady = import('/study.js').then(module => module.start(request,user.id)).then(session => { studySession = session; return session; });

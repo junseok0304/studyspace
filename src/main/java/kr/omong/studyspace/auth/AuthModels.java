@@ -22,6 +22,10 @@ public final class AuthModels {
             @NotBlank String password
     ) {}
 
+    public record NicknameUpdateRequest(
+            @NotBlank @Size(max = 50) String nickname
+    ) {}
+
     public record PasswordResetRequest(
             @NotBlank @Email @Size(max = 254) String email
     ) {}

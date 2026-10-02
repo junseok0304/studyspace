@@ -53,6 +53,10 @@ public class UserAccountRepository {
         return findByEmail(email).orElseThrow();
     }
 
+    public boolean updateNickname(long userId, String nickname) {
+        return jdbc.update("update users set nickname = ? where id = ?", nickname, userId) == 1;
+    }
+
     public void addProvider(long userId, String provider, String providerUserId, String providerEmail) {
         jdbc.update("insert into social_identities(user_id, provider, provider_user_id, provider_email) values (?, ?, ?, ?)",
                 userId, provider, providerUserId, providerEmail);

@@ -81,6 +81,11 @@ public class AuthService {
     }
 
     @Transactional
+    public boolean updateNickname(long userId, String nickname) {
+        return users.updateNickname(userId, nickname);
+    }
+
+    @Transactional
     public UserAccount loginWithKakao(KakaoClient.KakaoUser kakaoUser) {
         return users.findByProvider("KAKAO", kakaoUser.providerId())
                 .orElseGet(() -> {

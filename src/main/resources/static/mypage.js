@@ -11,12 +11,15 @@ function showSettings() {
 }
 window.addEventListener('hashchange',showSettings);
 showSettings();
-fetch('/api/auth/me').then(response=>response.ok?response.json():null).then(data=>data&&import('/pomodoro.js').then(module=>module.mountPomodoro(data.user.id))).catch(()=>{});
 let busy = false;
 const say = text => byId('profile-message').textContent = text;
 async function api(path,method='GET',payload) {
   return apiFetch(path,{method,body:payload});
 }
+api('/api/auth/me').then(data=>{
+  byId('account-nickname').value=data.user.nickname;
+  return import('/pomodoro.js').then(module=>module.mountPomodoro(data.user.id));
+}).catch(error=>say(error.message));
 function rows(target,courses) {
   target.replaceChildren();
   for(const course of courses) {
@@ -44,6 +47,11 @@ async function refresh() {
 byId('semester-form').onsubmit=event=>{event.preventDefault();run(async()=>{
   await api('/api/semesters','POST',{name:byId('semester-name').value});
   byId('semester-name').value=''; say('학기를 추가했습니다.');
+});};
+byId('nickname-form').onsubmit=event=>{event.preventDefault();run(async()=>{
+  const data=await api('/api/auth/me/nickname','PUT',{nickname:byId('account-nickname').value});
+  byId('account-nickname').value=data.user.nickname;
+  byId('nickname-message').textContent='닉네임을 변경했습니다.';
 });};
 async function run(action) {
   if(busy) return; busy=true;
