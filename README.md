@@ -65,6 +65,6 @@ flowchart TB
     Browser["브라우저<br/>HTML · CSS · JavaScript"] -->|HTTPS · JSON| App["StudySpace<br/>Spring Boot REST API"]
     App --> DB[("H2 또는 MySQL<br/>계정 · 노트 · 학습 기록")]
     App --> Files[("서버 저장소<br/>강의자료 · 녹음")]
-    App -->|설정된 경우| Gemini[Gemini API]
+    App -->|API KEY 연결| Gemini[Gemini API]
     App -->|시간표 동기화| LMS[성공회대학교 LMS 어댑터]
 ```
