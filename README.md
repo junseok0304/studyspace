@@ -1,4 +1,5 @@
-# StudySpace
+# 제 17회 IT 경진대회 출품작 : StudySpace
+## 202214043 윤준석
 
 <img width="3840" height="2160" alt="발표_01" src="https://github.com/user-attachments/assets/69d3f6c6-6086-4db2-a1a1-deda6d0fb52b" />
 <img width="3840" height="2160" alt="발표_18" src="https://github.com/user-attachments/assets/418087cd-de11-495a-9f56-571d46129102" />
