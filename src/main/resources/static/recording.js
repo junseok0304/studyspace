@@ -1,9 +1,12 @@
+import {recordingOutbox} from './recording-outbox.js';
+
 /** Recording UI, recorder lifecycle, waveform analysis, and course-level list. */
-export function mountRecording({request, byId, getCourse, getEditor, setLocked, emptyState}) {
+export function mountRecording({request, byId, getCourse, getEditor, setLocked, emptyState, userId = null}) {
   const el = byId;
   let version = 0;
   let activeRecording = null;
   let recordingTimer = null;
+  let heartbeatTimer = null;
   let rows = [];
   let noteRows = [];
   const waveformFailures = new Set();
@@ -19,16 +22,41 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       try {
         const form = new FormData();
         form.append('chunk', blob, `chunk-${sequence}.webm`);
-        return await request(`/api/recordings/${encodeURIComponent(id)}/chunks?sequence=${sequence}`, {method: 'POST', formData: form});
+        return await request(`/api/recordings/${encodeURIComponent(id)}/chunks?sequence=${sequence}`, {method: 'POST', formData: form, allowUnauthorized: true});
       } catch (error) {
         lastError = error;
+        if (error.status === 401) throw error;
         if (attempt < 2) {
           el('recording-message').textContent = `녹음 구간 ${sequence + 1} 저장을 재시도하고 있습니다… (${attempt + 2}/3)`;
-          await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
         }
       }
     }
     throw lastError;
+  }
+
+  async function uploadOutbox(recordingId) {
+    const chunks = await recordingOutbox.getChunks(recordingId);
+    for (const chunk of chunks) {
+      await uploadChunk(recordingId, chunk.sequence, chunk.blob);
+      await recordingOutbox.deleteChunk(recordingId, chunk.sequence);
+    }
+  }
+
+  function setAuthExpired(session) {
+    if (session.authExpired) return;
+    session.authExpired = true;
+    el('recording-message').textContent = '로그인이 만료됐습니다. 이 기기에 녹음 구간을 임시 보관하고 있습니다. 녹음을 멈춘 뒤 다시 로그인하면 저장된 구간을 복구할 수 있습니다.';
+    if (activeRecording === session) queueMicrotask(() => stopRecording(false));
+  }
+
+  function saveQueueError(session, error) {
+    session.lastError = error;
+    if (error?.status === 401) {
+      setAuthExpired(session);
+      return;
+    }
+    el('recording-message').textContent = `연결이 불안정해 저장하지 못한 녹음 구간을 이 기기에 임시 보관했습니다. 네트워크가 복구되면 다시 저장합니다. ${error.message}`;
   }
 
   function drawWaveform(canvas, peaks, cursor = null, viewStart = 0, viewEnd = 1) {
@@ -121,7 +149,9 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       title.textContent = recording.title;
       const duration = document.createElement('span');
       duration.className = 'fine-print';
-      duration.textContent = recording.status === 'READY' ? recordingTime(recording.durationSeconds) : '저장 중단됨';
+      duration.textContent = recording.status === 'READY' ? recordingTime(recording.durationSeconds)
+        : recording.status === 'RECORDING' ? `저장된 구간 ${recording.chunkCount}개 · 복구 가능`
+          : '저장 중단됨';
       const rename = document.createElement('button');
       rename.type = 'button'; rename.className = 'quiet-button'; rename.textContent = '이름 변경';
       rename.onclick = async () => {
@@ -174,13 +204,72 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
           }
         };
         head.append(noteSelect);
+      } else if (recording.status === 'RECORDING') {
+        const lastActivity = Date.parse(recording.lastActivityAt || recording.createdAt || 0);
+        const isThisSession = activeRecording?.id === recording.id;
+        const isStale = !isThisSession && Number.isFinite(lastActivity) && Date.now() - lastActivity > 45000;
+        if (isStale) {
+          const recover = document.createElement('button');
+          recover.type = 'button'; recover.className = 'quiet-button';
+          recover.textContent = '저장된 구간 복구';
+          recover.onclick = async () => {
+            recover.disabled = true;
+            try {
+              await recoverRecording(recording);
+              await loadRecordings(recording.courseId);
+            } catch (error) {
+              el('recording-message').textContent = `녹음 구간을 복구하지 못했습니다. ${error.message}`;
+              recover.disabled = false;
+            }
+          };
+          head.append(recover);
+          if (!recording.chunkCount) {
+            const removeIncomplete = document.createElement('button');
+            removeIncomplete.type = 'button'; removeIncomplete.className = 'quiet-button danger-text'; removeIncomplete.textContent = '미완성 녹음 삭제';
+            removeIncomplete.onclick = async () => {
+              if (!window.confirm('저장된 구간을 먼저 복구하지 않고 이 미완성 녹음을 삭제할까요?')) return;
+              removeIncomplete.disabled = true;
+              try {
+                const pending = await recordingOutbox.getChunks(recording.id);
+                if (pending.length) throw new Error('이 기기에 미전송 구간이 남아 있습니다. 먼저 저장된 구간 복구를 눌러 주세요.');
+                await request(`/api/recordings/${encodeURIComponent(recording.id)}`, {method: 'DELETE'});
+                await recordingOutbox.deleteRecording(recording.id);
+                await loadRecordings(recording.courseId);
+              } catch (error) {
+                el('recording-message').textContent = `미완성 녹음을 정리하지 못했습니다. ${error.message}`;
+                removeIncomplete.disabled = false;
+              }
+            };
+            head.append(removeIncomplete);
+          }
+        } else if (!isThisSession) {
+          const live = document.createElement('span'); live.className = 'fine-print'; live.textContent = '다른 화면에서 녹음 중';
+          head.append(live);
+        }
       }
-      head.append(remove);
+      if (recording.status !== 'RECORDING') head.append(remove);
       item.append(head);
       if (recording.status === 'READY') renderPlayer(item, recording, duration);
       return item;
     }));
     if (!recordings.length) list.replaceChildren(emptyState('이 과목에 녹음이 없습니다.', '녹음은 같은 과목의 모든 강의노트에서 확인할 수 있습니다.'));
+  }
+
+  async function recoverRecording(recording) {
+    const local = await recordingOutbox.getSession(recording.id);
+    if (local?.ownerUserId && userId && String(local.ownerUserId) !== String(userId)) {
+      throw new Error('다른 StudySpace 계정에서 만든 임시 녹음이라 이 계정으로 복구할 수 없습니다.');
+    }
+    await uploadOutbox(recording.id);
+    const estimate = Number(local?.elapsedSeconds) || Number(recording.durationSeconds)
+      || Math.min(3600, Math.max(0.1, recording.chunkCount * 4));
+    const finished = await request(`/api/recordings/${encodeURIComponent(recording.id)}/finish`, {
+      method: 'POST', body: JSON.stringify({durationSeconds: Math.min(3600, Math.max(0.1, estimate))})
+    });
+    await recordingOutbox.deleteRecording(recording.id);
+    el('recording-message').textContent = '서버와 이 기기에 저장된 녹음 구간을 복구했습니다.';
+    try { updateRecordingRow(await createWaveform(finished)); }
+    catch { waveformFailures.add(finished.id); updateRecordingRow(finished); }
   }
 
   function renderPlayer(item, recording, durationLabel) {
@@ -281,7 +370,7 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
     const recordingMessage = el('recording-message').textContent;
     if (!activeRecording || recordingMessage.startsWith('연결된 강의노트를')) el('recording-message').textContent = '';
     const requestVersion = ++version;
-    setLocked(el('start-recording'), !editor.id || !!activeRecording, !editor.id ? '노트를 먼저 저장하면 녹음할 수 있어요.' : (activeRecording ? '이미 녹음이 진행 중입니다.' : ''));
+    setLocked(el('start-recording'), !editor.id || !!activeRecording, !editor.id ? '노트를 먼저 저장하면 녹음할 수 있어요.' : (activeRecording?.stopped ? '이전 녹음 저장을 마친 뒤 새 녹음을 시작할 수 있어요.' : (activeRecording ? '이미 녹음이 진행 중입니다.' : '')));
     if (!courseId) { el('recordings').textContent = '과목을 선택하면 해당 과목의 녹음이 표시됩니다.'; return; }
     const currentNotes = await request(`/api/courses/${encodeURIComponent(courseId)}/notes`);
     if (requestVersion !== version) return;
@@ -311,9 +400,10 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
   function updateRecordingClock() {
     const elapsed = elapsedRecording();
     el('recording-timer').textContent = `${recordingTime(elapsed)} / 60:00`;
-    syncRailRecording(!!activeRecording, elapsed);
-    if (activeRecording && elapsed >= 3600) stopRecording(true);
-    else if (activeRecording) recordingTimer = setTimeout(updateRecordingClock, 250);
+    const recording = activeRecording && activeRecording.recorder.state !== 'inactive';
+    syncRailRecording(!!recording, elapsed);
+    if (recording && elapsed >= 3600) stopRecording(true);
+    else if (recording) recordingTimer = setTimeout(updateRecordingClock, 250);
   }
 
   async function startRecording() {
@@ -321,41 +411,90 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
     if (!editor.id || activeRecording || !course) return;
     const sourceNoteId = editor.id, sourceCourseId = course.id, sourceCourseName = course.name, sourceNoteTitle = editor.title;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { el('recording-message').textContent = '이 브라우저에서는 녹음을 지원하지 않습니다.'; return; }
-    const button = el('start-recording'); button.disabled = true; let stream;
+    const button = el('start-recording'); button.disabled = true; let stream, createdId = null, newSession = null;
     try {
+      await recordingOutbox.ready();
+      await recordingOutbox.persist();
       stream = await navigator.mediaDevices.getUserMedia({audio: true});
       const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg'].find(value => MediaRecorder.isTypeSupported(value)) || '';
       const recorder = mime ? new MediaRecorder(stream, {mimeType: mime}) : new MediaRecorder(stream);
       const actualMime = recorder.mimeType?.split(',')[0] || 'audio/webm';
       const created = await request(`/api/notes/${encodeURIComponent(sourceNoteId)}/recordings`, {method: 'POST', body: JSON.stringify({title: `강의 녹음 ${new Date().toLocaleString('ko-KR')}`, mimeType: actualMime})});
-      const session = {id: created.id, noteId: sourceNoteId, courseId: sourceCourseId, courseName: sourceCourseName, noteTitle: sourceNoteTitle, recorder, stream, sequence: 0, upload: Promise.resolve(), elapsed: 0, since: performance.now(), paused: false, stopping: false};
+      createdId = created.id;
+      const session = {id: created.id, noteId: sourceNoteId, courseId: sourceCourseId, courseName: sourceCourseName, noteTitle: sourceNoteTitle, title: created.title, mimeType: actualMime, ownerUserId: userId, recorder, stream, sequence: created.chunkCount || 0, captureQueue: Promise.resolve(), elapsed: 0, since: performance.now(), paused: false, stopping: false, stopped: false};
+      newSession = session;
+      try { await recordingOutbox.saveSession(session); }
+      catch (error) {
+        await request(`/api/recordings/${encodeURIComponent(created.id)}`, {method: 'DELETE'}).catch(() => {});
+        throw error;
+      }
       activeRecording = session;
       recorder.ondataavailable = event => {
-        if (event.data.size) { const sequence = session.sequence++; session.upload = session.upload.then(() => uploadChunk(session.id, sequence, event.data)); }
+        if (!event.data.size) return;
+        const sequence = session.sequence++;
+        session.captureQueue = session.captureQueue.then(async () => {
+          await recordingOutbox.saveChunk(session.id, sequence, event.data);
+          await recordingOutbox.saveSession({...session, elapsedSeconds: elapsedRecording()});
+          await uploadOutbox(session.id);
+        }).catch(error => {
+          saveQueueError(session, error);
+          if (error?.name === 'QuotaExceededError' || /저장소/.test(error.message)) {
+            el('recording-message').textContent = `기기 임시 저장공간이 부족해 녹음을 멈춥니다. 서버에 저장된 ${sequence}개 구간은 보존됩니다.`;
+            queueMicrotask(() => stopRecording(false));
+          }
+        });
       };
-      recorder.onerror = () => { el('recording-message').textContent = '녹음 장치 오류가 발생했습니다. 저장된 구간까지만 보존됩니다.'; };
+      recorder.onerror = () => { el('recording-message').textContent = '녹음 장치 오류가 발생했습니다. 저장된 구간을 정리해 보존하겠습니다.'; stopRecording(false); };
       recorder.start(4000);
       el('recording-message').textContent = '녹음 중입니다. 다른 학습 탭으로 이동해도 계속됩니다.';
+      el('recording-login')?.classList.add('hidden');
       el('recording-timer').classList.add('active'); syncRailRecording(true, 0);
-      button.classList.add('hidden'); el('pause-recording').textContent = '일시정지'; el('pause-recording').classList.remove('hidden'); el('stop-recording').classList.remove('hidden'); updateRecordingClock();
+      button.classList.add('hidden'); el('pause-recording').textContent = '일시정지'; el('pause-recording').classList.remove('hidden'); el('stop-recording').textContent = '종료하고 저장'; el('stop-recording').classList.remove('hidden');
+      heartbeatTimer = setInterval(async () => {
+        if (activeRecording !== session || session.stopped) return;
+        try {
+          await request(`/api/recordings/${encodeURIComponent(session.id)}/heartbeat`, {method: 'POST', allowUnauthorized: true});
+          await recordingOutbox.saveSession({...session, elapsedSeconds: elapsedRecording()});
+        } catch (error) {
+          if (error.status === 401) setAuthExpired(session);
+        }
+      }, 10000);
+      updateRecordingClock();
     } catch (error) {
       stream?.getTracks().forEach(track => track.stop());
+      if (newSession && activeRecording === newSession) activeRecording = null;
+      if (createdId) {
+        await recordingOutbox.deleteRecording(createdId).catch(() => {});
+        await request(`/api/recordings/${encodeURIComponent(createdId)}`, {method: 'DELETE'}).catch(() => {});
+      }
       el('recording-message').textContent = error.name === 'NotAllowedError' ? '마이크 권한이 없어 녹음을 시작하지 않았습니다.' : error.message;
       button.disabled = false;
+      if (error.status === 409) {
+        await loadRecordings(sourceCourseId, sourceNoteId).catch(() => {});
+        el('recording-message').textContent = '이전에 시작한 녹음이 남아 있습니다. 녹음 목록에서 저장된 구간을 복구한 뒤 새 녹음을 시작해 주세요.';
+      }
     }
   }
 
   async function stopRecording(limit = false) {
     const session = activeRecording;
     if (!session || session.stopping) return;
-    session.stopping = true; clearTimeout(recordingTimer);
-    if (!session.paused) session.elapsed += (performance.now() - session.since) / 1000;
-    const duration = Math.min(3600, session.elapsed);
-    const stopped = new Promise(resolve => session.recorder.addEventListener('stop', resolve, {once: true}));
-    session.recorder.stop(); await stopped; session.stream.getTracks().forEach(track => track.stop());
+    session.stopping = true; clearTimeout(recordingTimer); clearInterval(heartbeatTimer);
+    if (!session.stopped) {
+      if (!session.paused) session.elapsed += (performance.now() - session.since) / 1000;
+      session.duration = Math.min(3600, session.elapsed);
+      if (session.recorder.state !== 'inactive') {
+        const stopped = new Promise(resolve => session.recorder.addEventListener('stop', resolve, {once: true}));
+        session.recorder.stop(); await stopped;
+      }
+      session.stream.getTracks().forEach(track => track.stop());
+      session.stopped = true;
+    }
     try {
-      await session.upload;
-      const finished = await request(`/api/recordings/${session.id}/finish`, {method: 'POST', body: JSON.stringify({durationSeconds: Math.max(0.1, duration)})});
+      await session.captureQueue;
+      await uploadOutbox(session.id);
+      const finished = await request(`/api/recordings/${session.id}/finish`, {method: 'POST', body: JSON.stringify({durationSeconds: Math.max(0.1, session.duration || session.elapsed)}), allowUnauthorized: true});
+      await recordingOutbox.deleteRecording(session.id);
       activeRecording = null;
       let listRefreshError = null;
       try { await loadRecordings(session.courseId, session.noteId); } catch (error) { listRefreshError = error; }
@@ -365,11 +504,24 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       if (listRefreshError) el('recording-message').textContent = `녹음은 저장됐지만 목록을 새로고침하지 못했습니다. ${listRefreshError.message}`;
       else if (!waveformFailed) el('recording-message').textContent = limit ? '60분 녹음이 저장되었습니다. 아래에서 연결할 강의노트를 변경할 수 있습니다.' : '녹음을 저장했습니다. 아래에서 연결할 강의노트를 선택하거나 변경할 수 있습니다.';
     } catch (error) {
-      activeRecording = null;
-      el('recording-message').textContent = `녹음 저장을 마치지 못했습니다. ${error.message}`;
-      await loadRecordings(session.courseId, session.noteId).catch(() => {});
-    } finally {
-      syncRailRecording(false); el('recording-timer').classList.remove('active'); el('recording-timer').textContent = '00:00 / 60:00';
+      session.stopping = false;
+      saveQueueError(session, error);
+      el('recording-message').textContent = error.status === 401
+        ? '로그인이 만료됐습니다. 저장된 구간을 이 기기에 보관했습니다. 다시 로그인한 뒤 녹음 목록의 “저장된 구간 복구”를 선택하세요.'
+        : `녹음 구간은 이 기기에 임시 보관했습니다. 네트워크를 확인한 뒤 “저장 다시 시도”를 누르세요. ${error.message}`;
+      el('recording-login')?.classList.toggle('hidden', error.status !== 401);
+      syncRailRecording(false, session.duration || session.elapsed);
+      el('recording-timer').textContent = `${recordingTime(session.duration || session.elapsed)} / 60:00`;
+      el('pause-recording').classList.add('hidden');
+      el('stop-recording').textContent = error.status === 401 ? '로그인 후 녹음 복구' : '저장 다시 시도';
+      el('stop-recording').disabled = error.status === 401;
+      return;
+    }
+    syncRailRecording(false); el('recording-timer').classList.remove('active'); el('recording-timer').textContent = '00:00 / 60:00';
+    el('recording-login')?.classList.add('hidden');
+    el('stop-recording').disabled = false;
+    el('stop-recording').textContent = '종료하고 저장';
+    {
       el('start-recording').classList.remove('hidden');
       const editor = getEditor(); setLocked(el('start-recording'), !editor.id || !!activeRecording, '노트를 먼저 저장하면 녹음할 수 있어요.');
       el('pause-recording').textContent = '일시정지'; el('pause-recording').classList.add('hidden'); el('stop-recording').classList.add('hidden');
@@ -378,11 +530,12 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
 
   el('start-recording').onclick = startRecording;
   el('stop-recording').onclick = () => stopRecording(false);
+  if (el('recording-login')) el('recording-login').onclick = () => location.assign('/');
   el('pause-recording').onclick = () => {
     const session = activeRecording; if (!session) return;
     if (session.paused) { session.recorder.resume(); session.since = performance.now(); session.paused = false; el('pause-recording').textContent = '일시정지'; }
     else { session.recorder.pause(); session.elapsed += (performance.now() - session.since) / 1000; session.paused = true; el('pause-recording').textContent = '계속 녹음'; }
   };
 
-  return {loadRecordings, activeSession: () => activeRecording, isRecording: () => !!activeRecording};
+  return {loadRecordings, activeSession: () => activeRecording, isRecording: () => !!activeRecording && !activeRecording.stopped};
 }

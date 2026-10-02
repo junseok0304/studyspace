@@ -14,7 +14,11 @@ export async function apiFetch(path, options = {}) {
   }
   if (method !== 'GET') {
     const csrfResponse = await connectedFetch('/api/auth/csrf', { credentials: 'same-origin' });
-    if (!csrfResponse.ok) throw new Error('다시 로그인해 주세요.');
+    if (!csrfResponse.ok) {
+      const error = new Error('다시 로그인해 주세요.');
+      error.status = csrfResponse.status;
+      throw error;
+    }
     const csrf = await csrfResponse.json().catch(() => ({}));
     if (!csrf.token) throw new Error('보안 정보를 준비하지 못했습니다. 다시 시도해 주세요.');
     headers['X-XSRF-TOKEN'] = csrf.token;
@@ -27,7 +31,11 @@ export async function apiFetch(path, options = {}) {
   const text = await response.text();
   let data;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if (!response.ok) throw new Error(data?.error || data?.message || '요청을 처리하지 못했습니다.');
+  if (!response.ok) {
+    const error = new Error(data?.error || data?.message || '요청을 처리하지 못했습니다.');
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 

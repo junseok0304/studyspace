@@ -179,11 +179,15 @@ create table if not exists recordings (
     next_sequence integer not null default 0,
     waveform_json text,
     created_at timestamp not null default current_timestamp,
+    last_activity_at timestamp not null default current_timestamp,
     completed_at timestamp,
     constraint fk_recordings_note_link foreign key (note_id) references notes(id) on delete set null,
     foreign key (course_id) references courses(id) on delete cascade,
     foreign key (user_id) references users(id) on delete cascade
 );
+
+alter table recordings add column if not exists last_activity_at timestamp default current_timestamp;
+update recordings set last_activity_at=created_at where last_activity_at is null;
 
 alter table recordings add column if not exists course_id varchar(36);
 update recordings set course_id=(select course_id from notes where notes.id=recordings.note_id) where course_id is null;

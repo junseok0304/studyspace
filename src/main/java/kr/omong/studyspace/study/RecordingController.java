@@ -41,7 +41,7 @@ public class RecordingController {
                            @DecimalMin("0.1") @DecimalMax("3600.0") Double durationSeconds) {}
     public record Rename(@NotBlank @Size(max=100) String title) {}
     public record NoteLink(@NotBlank String noteId) {}
-    public record Recording(String id,String noteId,String noteTitle,String courseId,String title,String status,String mimeType,Double durationSeconds,long size,int chunkCount,List<Double> waveform,String createdAt,String completedAt) {}
+    public record Recording(String id,String noteId,String noteTitle,String courseId,String title,String status,String mimeType,Double durationSeconds,long size,int chunkCount,List<Double> waveform,String createdAt,String lastActivityAt,String completedAt) {}
 
     private long owner(Authentication auth) { return Long.parseLong(auth.getName()); }
     private void requireNote(String noteId,long user) { authSupport.requireNote(noteId,user); }
@@ -69,7 +69,7 @@ public class RecordingController {
         long user=owner(auth); requireNote(noteId,user);
         String courseId=db.queryForObject("select course_id from notes where id=? and user_id=?",String.class,noteId,user);
         Integer active=db.queryForObject("select count(*) from recordings where user_id=? and status='RECORDING'",Integer.class,user);
-        if(active!=null && active>0) throw new AuthException("이미 진행 중인 녹음이 있습니다.",409);
+        if(active!=null && active>0) throw new AuthException("이미 진행 중인 녹음이 있습니다. 녹음 목록에서 저장된 구간을 복구해 주세요.",409);
         String id=UUID.randomUUID().toString();
         db.update("insert into recordings(id,note_id,course_id,user_id,title,status,mime_type) values(?,null,?,?,?,'RECORDING',?)",id,courseId,user,input.title().strip(),input.mimeType());
         return find(id,user);
@@ -77,15 +77,24 @@ public class RecordingController {
 
     @PostMapping(value="/recordings/{id}/chunks",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String,Object> chunk(Authentication auth,@PathVariable String id,@RequestParam int sequence,@RequestPart("chunk") MultipartFile file) throws Exception {
-        long user=owner(auth); if(sequence<0 || sequence>7200) throw new AuthException("녹음 조각 순서가 올바르지 않습니다.",400);quota.requireAvailable(user,file==null?0:file.getSize());
+        long user=owner(auth); if(sequence<0 || sequence>7200) throw new AuthException("녹음 조각 순서가 올바르지 않습니다.",400);
         var rows=db.query("select next_sequence from recordings where id=? and user_id=? and status='RECORDING'",(row,index)->row.getInt("next_sequence"),id,user);
         if(rows.isEmpty()) throw new AuthException("진행 중인 녹음을 찾을 수 없습니다.",404);
         int expected=rows.getFirst();
+        if(sequence<expected) {
+            var saved=db.query("select size_bytes,sha256 from recording_chunks where recording_id=? and sequence_number=?",(row,index)->Map.of("size",row.getLong("size_bytes"),"sha256",row.getString("sha256")),id,sequence);
+            if(!saved.isEmpty() && storage.matchesChunk(file,(Long)saved.getFirst().get("size"),(String)saved.getFirst().get("sha256"))) {
+                db.update("update recordings set last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",id,user);
+                return Map.of("accepted",true,"duplicate",true,"nextSequence",expected);
+            }
+            throw new AuthException("이미 저장된 녹음 구간과 내용이 달라 저장을 중단했습니다.",409);
+        }
         if(sequence!=expected) throw new AuthException("녹음 조각 순서가 맞지 않습니다.",409);
+        quota.requireAvailable(user,file==null?0:file.getSize());
         var stored=storage.storeChunk(user,id,sequence,file);
         try { tx.executeWithoutResult(status -> {
             db.update("insert into recording_chunks(recording_id,sequence_number,size_bytes,sha256) values(?,?,?,?)",id,sequence,stored.size(),stored.sha256());
-            if(db.update("update recordings set next_sequence=next_sequence+1,size_bytes=size_bytes+? where id=? and user_id=? and status='RECORDING' and next_sequence=?",stored.size(),id,user,sequence)!=1)
+            if(db.update("update recordings set next_sequence=next_sequence+1,size_bytes=size_bytes+?,last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING' and next_sequence=?",stored.size(),id,user,sequence)!=1)
                 throw new AuthException("녹음 조각을 다시 전송해 주세요.",409);
         }); } catch(RuntimeException error) { storage.deleteChunk(user,id,sequence); throw error; }
         return Map.of("accepted",true,"nextSequence",sequence+1);
@@ -94,13 +103,23 @@ public class RecordingController {
     @PostMapping("/recordings/{id}/finish")
     public Recording finish(Authentication auth,@PathVariable String id,@Valid @RequestBody Finish input) throws Exception {
         long user=owner(auth);
-        var rows=db.query("select next_sequence,mime_type from recordings where id=? and user_id=? and status='RECORDING'",(row,index)->Map.of("chunks",row.getInt("next_sequence"),"mime",row.getString("mime_type")),id,user);
+        var rows=db.query("select next_sequence,mime_type,status from recordings where id=? and user_id=?",(row,index)->Map.of("chunks",row.getInt("next_sequence"),"mime",row.getString("mime_type"),"status",row.getString("status")),id,user);
         if(rows.isEmpty()) throw new AuthException("진행 중인 녹음을 찾을 수 없습니다.",404);
+        if("READY".equals(rows.getFirst().get("status"))) return find(id,user);
+        if(!"RECORDING".equals(rows.getFirst().get("status"))) throw new AuthException("녹음을 저장할 수 없는 상태입니다.",409);
         int chunks=(Integer)rows.getFirst().get("chunks"); if(chunks<1) throw new AuthException("저장된 녹음 내용이 없습니다.",409);
         String mime=(String)rows.getFirst().get("mime"); String extension=mime.contains("mp4")?"m4a":mime.contains("ogg")?"ogg":"webm";
         var file=storage.assemble(user,id,chunks,extension);
-        db.update("update recordings set status='READY',storage_key=?,duration_seconds=?,size_bytes=?,waveform_json=null,completed_at=current_timestamp where id=? and user_id=? and status='RECORDING'",file.storageKey(),input.durationSeconds(),file.size(),id,user);
+        db.update("update recordings set status='READY',storage_key=?,duration_seconds=?,size_bytes=?,waveform_json=null,completed_at=current_timestamp,last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",file.storageKey(),input.durationSeconds(),file.size(),id,user);
         return find(id,user);
+    }
+
+    @PostMapping("/recordings/{id}/heartbeat")
+    public Map<String,Boolean> heartbeat(Authentication auth,@PathVariable String id) {
+        long user=owner(auth);
+        if(db.update("update recordings set last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",id,user)!=1)
+            throw new AuthException("진행 중인 녹음을 찾을 수 없습니다.",404);
+        return Map.of("active",true);
     }
 
     @PostMapping("/recordings/{id}/waveform")
@@ -165,6 +184,6 @@ public class RecordingController {
         List<Double> waveform=List.of(); String raw=row.getString("waveform_json");
         if(raw!=null) try { waveform=json.readValue(raw,new TypeReference<>(){}); } catch(Exception ignored) {}
         Double duration=row.getObject("duration_seconds")==null?null:row.getDouble("duration_seconds"); var completed=row.getTimestamp("completed_at");
-        return new Recording(row.getString("id"),row.getString("note_id"),row.getString("linked_note_title"),row.getString("course_id"),row.getString("title"),row.getString("status"),row.getString("mime_type"),duration,row.getLong("size_bytes"),row.getInt("next_sequence"),waveform,row.getTimestamp("created_at").toInstant().toString(),completed==null?null:completed.toInstant().toString());
+        return new Recording(row.getString("id"),row.getString("note_id"),row.getString("linked_note_title"),row.getString("course_id"),row.getString("title"),row.getString("status"),row.getString("mime_type"),duration,row.getLong("size_bytes"),row.getInt("next_sequence"),waveform,row.getTimestamp("created_at").toInstant().toString(),row.getTimestamp("last_activity_at").toInstant().toString(),completed==null?null:completed.toInstant().toString());
     }
 }

@@ -82,13 +82,24 @@ class RecordingTests {
                         .content("{\"title\":\"한 시간 녹음\",\"mimeType\":\"audio/webm\"}"))
                 .andExpect(status().isCreated());
         String id=db.queryForObject("select id from recordings where user_id=?",String.class,ownerId);
-        mvc.perform(multipart("/api/recordings/"+id+"/chunks").file(new MockMultipartFile("chunk","chunk.webm","audio/webm","audio".getBytes()))
+        byte[] chunkBytes="audio".getBytes();
+        mvc.perform(multipart("/api/recordings/"+id+"/chunks").file(new MockMultipartFile("chunk","chunk.webm","audio/webm",chunkBytes))
                         .param("sequence","0").with(owner).with(csrf()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.nextSequence").value(1));
+        mvc.perform(multipart("/api/recordings/"+id+"/chunks").file(new MockMultipartFile("chunk","chunk.webm","audio/webm",chunkBytes))
+                        .param("sequence","0").with(owner).with(csrf()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.duplicate").value(true)).andExpect(jsonPath("$.nextSequence").value(1));
+        mvc.perform(multipart("/api/recordings/"+id+"/chunks").file(new MockMultipartFile("chunk","chunk.webm","audio/webm","different".getBytes()))
+                        .param("sequence","0").with(owner).with(csrf()))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/recordings/"+id+"/heartbeat").with(owner).with(csrf()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(true));
         mvc.perform(post("/api/recordings/"+id+"/finish").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"durationSeconds\":3600.1}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/api/recordings/"+id+"/finish").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"durationSeconds\":3600}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY")).andExpect(jsonPath("$.durationSeconds").value(3600));
+        mvc.perform(post("/api/recordings/"+id+"/finish").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"durationSeconds\":3600}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("READY"));
         mvc.perform(post("/api/recordings/"+id+"/waveform").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"peaks\":[0.1,0.9,0.2]}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.waveform.length()").value(3));
         mvc.perform(patch("/api/recordings/"+id+"/note").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"noteId\":\"recording-limit-note-2\"}"))

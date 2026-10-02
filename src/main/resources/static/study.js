@@ -113,7 +113,7 @@ export async function start(request, userId) {
     flashcardsFeature?.loadFlashcardDecks(course?.id).catch(() => {});
     document.dispatchEvent(new CustomEvent('studyspace:learning-refresh'));
   }});
-  recordingFeature = mountRecording({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState});
+  recordingFeature = mountRecording({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState, userId});
   const getAttachmentIds = () => attachmentsFeature?.selectedAttachmentIds() || [];
   const updateSourceSummary = () => attachmentsFeature?.updateSourceSummary();
   quizFeature = mountQuiz({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState, getAttachmentIds, loadDashboard, updateSourceSummary, matchesAiMode});

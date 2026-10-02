@@ -28,6 +28,20 @@ public class RecordingStorage {
     public record Chunk(long size,String sha256) {}
     public record FinalFile(String storageKey,long size) {}
 
+    public boolean matchesChunk(MultipartFile file,long expectedSize,String expectedHash) throws Exception {
+        if(file==null || file.isEmpty() || file.getSize()!=expectedSize || expectedSize>MAX_CHUNK_BYTES) return false;
+        var digest=MessageDigest.getInstance("SHA-256");
+        try(InputStream input=file.getInputStream()) {
+            byte[] buffer=new byte[8192]; int read; long size=0;
+            while((read=input.read(buffer))!=-1) {
+                size+=read;
+                if(size>MAX_CHUNK_BYTES) return false;
+                digest.update(buffer,0,read);
+            }
+            return size==expectedSize && hex(digest.digest()).equals(expectedHash);
+        }
+    }
+
     public Chunk storeChunk(long userId,String recordingId,int sequence,MultipartFile file) throws Exception {
         if(file==null || file.isEmpty()) throw new AuthException("녹음 조각이 비어 있습니다.",400);
         if(file.getSize()>MAX_CHUNK_BYTES) throw new AuthException("녹음 조각이 너무 큽니다.",413);

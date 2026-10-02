@@ -22,3 +22,25 @@ test('generation requests explain when the local server is unreachable', async (
     else globalThis.location = originalLocation;
   }
 });
+
+test('recording uploads can handle an expired session without navigating away from local audio buffers', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalLocation = globalThis.location;
+  let navigated = false;
+  globalThis.location = {assign: () => { navigated = true; }};
+  globalThis.fetch = async path => path === '/api/auth/csrf'
+    ? {ok: true, status: 200, json: async () => ({token: 'test-token'})}
+    : {ok: false, status: 401, text: async () => JSON.stringify({error: '로그인이 필요합니다.'})};
+  try {
+    await assert.rejects(apiFetch('/api/recordings/id/chunks?sequence=0', {method: 'POST', formData: new FormData(), allowUnauthorized: true}), error => {
+      assert.equal(error.status, 401);
+      assert.match(error.message, /로그인이 필요합니다/);
+      return true;
+    });
+    assert.equal(navigated, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalLocation === undefined) delete globalThis.location;
+    else globalThis.location = originalLocation;
+  }
+});
