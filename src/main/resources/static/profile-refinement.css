@@ -208,7 +208,7 @@
 .profile .storage-summary progress::-webkit-progress-value{min-width:7px;border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
 .profile .storage-summary progress::-moz-progress-bar{min-width:7px;border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
 .profile .account-resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
-.profile .account-resource-grid .storage-summary{box-sizing:border-box;min-width:0;height:100%;padding:22px;border-color:#e1e7f0;border-radius:15px;background:linear-gradient(120deg,#f5f7fc,#fbfcfe)}
+.profile .account-resource-grid .storage-summary{box-sizing:border-box;min-width:0;height:auto;margin:0;align-self:stretch;padding:22px;border-color:#e1e7f0;border-radius:15px;background:linear-gradient(120deg,#f5f7fc,#fbfcfe)}
 .profile .ai-usage-summary{box-sizing:border-box;min-width:0;padding:20px 22px;border:1px solid #e1e7f0;border-radius:15px;background:linear-gradient(120deg,#f5f7fc,#fbfcfe)}
 .profile .ai-usage-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .profile .ai-usage-heading p{margin:0;color:#61708b;font-size:13px;font-weight:700}
