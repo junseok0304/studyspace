@@ -43,6 +43,22 @@ async function refresh() {
   renderSemesters(semesters);
   const size=value=>value>=1073741824?`${(value/1073741824).toFixed(1)}GB`:value>=1048576?`${(value/1048576).toFixed(1)}MB`:`${Math.ceil(value/1024)}KB`;
   byId('storage-used').textContent=`${size(storage.usedBytes)} 사용 중`;byId('storage-detail').textContent=`전체 ${size(storage.limitBytes)} · ${size(storage.remainingBytes)} 남음`;byId('storage-progress').value=storage.usedPercent;
+  refreshAiUsage();
+}
+async function refreshAiUsage() {
+  try {
+    const usage=await api('/api/account/ai-usage');
+    byId('ai-remaining').textContent=usage.remaining;
+    byId('ai-usage-progress').max=usage.limit;
+    byId('ai-usage-progress').value=usage.used;
+    byId('ai-usage-detail').textContent=`오늘 ${usage.used}/${usage.limit}회 사용`;
+    const reset=new Intl.DateTimeFormat('ko-KR',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'}).format(new Date(usage.resetsAt));
+    byId('ai-reset-time').textContent=`매일 ${reset} 초기화`;
+  } catch(error) {
+    byId('ai-remaining').textContent='—';
+    byId('ai-usage-detail').textContent=error.message || '사용량을 불러오지 못했습니다.';
+    byId('ai-reset-time').textContent='';
+  }
 }
 byId('semester-form').onsubmit=event=>{event.preventDefault();run(async()=>{
   await api('/api/semesters','POST',{name:byId('semester-name').value});

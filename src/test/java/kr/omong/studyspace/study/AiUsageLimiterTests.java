@@ -41,4 +41,21 @@ class AiUsageLimiterTests {
         assertEquals(1, db.queryForObject("select request_count from ai_usage_daily where user_id=? and usage_date=?",
                 Integer.class, userId, today.plusDays(1)));
     }
+
+    @Test
+    void reportsRemainingDailyUsageAndKoreaMidnightReset() {
+        String email = "ai-usage-view-" + UUID.randomUUID() + "@example.com";
+        db.update("insert into users(email,password_hash,nickname) values(?,?,?)",
+                email, "test-hash", "AI usage view test");
+        userId = db.queryForObject("select id from users where email=?", Long.class, email);
+        LocalDate today = LocalDate.of(2026, 10, 2);
+        for (int i = 0; i < 7; i++) limiter.requireAvailable(userId, today);
+
+        var usage = limiter.usage(userId, today);
+
+        assertEquals(7, usage.used());
+        assertEquals(30, usage.limit());
+        assertEquals(23, usage.remaining());
+        assertEquals(today.plusDays(1).atStartOfDay(java.time.ZoneId.of("Asia/Seoul")).toInstant(), usage.resetsAt());
+    }
 }

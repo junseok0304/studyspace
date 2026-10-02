@@ -28,7 +28,15 @@
     <h3>가져온 과목</h3><div id="saved-courses"></div>
   </section>
   <section class="card" id="data-settings"><h2>저장공간·데이터</h2><p class="muted">노트와 첨부·녹음 파일을 한 번에 내려받습니다.</p>
-    <div class="storage-summary"><div><strong id="storage-used">계산 중</strong><span id="storage-detail"></span></div><progress id="storage-progress" max="100" value="0" aria-label="저장공간 사용률"></progress></div>
+    <div class="account-resource-grid">
+      <div class="storage-summary"><div><strong id="storage-used">계산 중</strong><span id="storage-detail"></span></div><progress id="storage-progress" max="100" value="0" aria-label="저장공간 사용률"></progress></div>
+      <section class="ai-usage-summary" aria-labelledby="ai-usage-title">
+        <div class="ai-usage-heading"><p id="ai-usage-title">오늘의 AI 사용량</p><span>일일 한도 30회</span></div>
+        <div class="ai-usage-count"><strong id="ai-remaining">—</strong><span>회 남음</span></div>
+        <progress id="ai-usage-progress" max="30" value="0" aria-label="오늘 사용한 AI 요청"></progress>
+        <div class="ai-usage-foot"><span id="ai-usage-detail">사용량을 불러오는 중</span><span id="ai-reset-time"></span></div>
+      </section>
+    </div>
     <a class="primary profile-download" href="/api/account/export" download>전체 데이터 ZIP 다운로드</a>
   </section>
   <section class="card" id="account-settings"><h2>계정 관리</h2>

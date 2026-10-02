@@ -8,6 +8,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.Instant;
 
 /** Reserves one account-level AI operation for the current Korea calendar day. */
 @Component
@@ -19,6 +20,8 @@ public class AiUsageLimiter {
     private final JdbcTemplate db;
     private final TransactionTemplate tx;
 
+    public record DailyUsage(int used, int limit, int remaining, Instant resetsAt) {}
+
     public AiUsageLimiter(JdbcTemplate db, org.springframework.transaction.PlatformTransactionManager manager) {
         this.db = db;
         this.tx = new TransactionTemplate(manager);
@@ -26,6 +29,18 @@ public class AiUsageLimiter {
 
     public void requireAvailable(long userId) {
         requireAvailable(userId, LocalDate.now(BUSINESS_ZONE));
+    }
+
+    public DailyUsage usage(long userId) {
+        return usage(userId, LocalDate.now(BUSINESS_ZONE));
+    }
+
+    DailyUsage usage(long userId, LocalDate date) {
+        var counts = db.queryForList("select request_count from ai_usage_daily where user_id=? and usage_date=?",
+                Integer.class, userId, date);
+        int used = counts.isEmpty() ? 0 : Math.max(0, counts.get(0));
+        return new DailyUsage(used, DAILY_LIMIT, Math.max(0, DAILY_LIMIT - used),
+                date.plusDays(1).atStartOfDay(BUSINESS_ZONE).toInstant());
     }
 
     void requireAvailable(long userId, LocalDate date) {

@@ -207,6 +207,21 @@
 .profile .storage-summary progress::-webkit-progress-bar{border-radius:99px;background:#e8edf6}
 .profile .storage-summary progress::-webkit-progress-value{min-width:7px;border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
 .profile .storage-summary progress::-moz-progress-bar{min-width:7px;border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
+.profile .account-resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
+.profile .account-resource-grid .storage-summary{box-sizing:border-box;min-width:0;height:100%;padding:22px;border-color:#e1e7f0;border-radius:15px;background:linear-gradient(120deg,#f5f7fc,#fbfcfe)}
+.profile .ai-usage-summary{box-sizing:border-box;min-width:0;padding:20px 22px;border:1px solid #e1e7f0;border-radius:15px;background:linear-gradient(120deg,#f5f7fc,#fbfcfe)}
+.profile .ai-usage-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.profile .ai-usage-heading p{margin:0;color:#61708b;font-size:13px;font-weight:700}
+.profile .ai-usage-heading > span{flex:none;padding:4px 9px;border-radius:999px;background:#eaf0ff;color:#5c70a5;font-size:11px;font-weight:700}
+.profile .ai-usage-count{display:flex;align-items:baseline;gap:7px;margin-top:9px;color:#374765}
+.profile .ai-usage-count strong{font-size:32px;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.profile .ai-usage-count span{color:#65738a;font-size:13px;font-weight:650}
+.profile .ai-usage-summary progress{display:block;box-sizing:border-box;width:100%;height:7px;margin:13px 0 10px;appearance:none;-webkit-appearance:none;overflow:hidden;border:0;border-radius:99px;background:#e8edf6;accent-color:#647dbf}
+.profile .ai-usage-summary progress::-webkit-progress-bar{border-radius:99px;background:#e8edf6}
+.profile .ai-usage-summary progress::-webkit-progress-value{border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb);transition:width .2s ease}
+.profile .ai-usage-summary progress::-moz-progress-bar{border-radius:99px;background:linear-gradient(90deg,#8ea1d4,#5d76bb)}
+.profile .ai-usage-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;color:#8792a3;font-size:11px;line-height:1.5}
+.profile .ai-usage-foot span{font-size:11px}
 .profile .profile-download{margin-top:16px}
 .profile #disconnect[hidden],
 .profile .form-actions-secondary[hidden]{display:none!important}
@@ -275,4 +290,5 @@
   .profile .schedule-row span{text-align:left}
   .profile .delete-account-content{gap:14px;padding:16px}
   .profile .danger-zone #delete-account-form .danger-button{min-width:0}
+  .profile .account-resource-grid{grid-template-columns:minmax(0,1fr)}
 }
