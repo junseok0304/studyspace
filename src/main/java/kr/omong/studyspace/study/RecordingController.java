@@ -20,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -78,26 +80,39 @@ public class RecordingController {
     @PostMapping(value="/recordings/{id}/chunks",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String,Object> chunk(Authentication auth,@PathVariable String id,@RequestParam int sequence,@RequestPart("chunk") MultipartFile file) throws Exception {
         long user=owner(auth); if(sequence<0 || sequence>7200) throw new AuthException("녹음 조각 순서가 올바르지 않습니다.",400);
-        var rows=db.query("select next_sequence from recordings where id=? and user_id=? and status='RECORDING'",(row,index)->row.getInt("next_sequence"),id,user);
-        if(rows.isEmpty()) throw new AuthException("진행 중인 녹음을 찾을 수 없습니다.",404);
-        int expected=rows.getFirst();
-        if(sequence<expected) {
-            var saved=db.query("select size_bytes,sha256 from recording_chunks where recording_id=? and sequence_number=?",(row,index)->Map.of("size",row.getLong("size_bytes"),"sha256",row.getString("sha256")),id,sequence);
-            if(!saved.isEmpty() && storage.matchesChunk(file,(Long)saved.getFirst().get("size"),(String)saved.getFirst().get("sha256"))) {
-                db.update("update recordings set last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",id,user);
-                return Map.of("accepted",true,"duplicate",true,"nextSequence",expected);
+        return tx.execute(status -> {
+            var rows=db.query("select next_sequence from recordings where id=? and user_id=? and status='RECORDING' for update",(row,index)->row.getInt("next_sequence"),id,user);
+            if(rows.isEmpty()) throw new AuthException("진행 중인 녹음을 찾을 수 없습니다.",404);
+            int expected=rows.getFirst();
+            if(sequence<expected) {
+                var saved=db.query("select size_bytes,sha256 from recording_chunks where recording_id=? and sequence_number=?",(row,index)->Map.of("size",row.getLong("size_bytes"),"sha256",row.getString("sha256")),id,sequence);
+                if(!saved.isEmpty() && matchesChunk(file,(Long)saved.getFirst().get("size"),(String)saved.getFirst().get("sha256"))) {
+                    db.update("update recordings set last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",id,user);
+                    return Map.of("accepted",true,"duplicate",true,"nextSequence",expected);
+                }
+                throw new AuthException("이미 저장된 녹음 구간과 내용이 달라 저장을 중단했습니다.",409);
             }
-            throw new AuthException("이미 저장된 녹음 구간과 내용이 달라 저장을 중단했습니다.",409);
-        }
-        if(sequence!=expected) throw new AuthException("녹음 조각 순서가 맞지 않습니다.",409);
-        quota.requireAvailable(user,file==null?0:file.getSize());
-        var stored=storage.storeChunk(user,id,sequence,file);
-        try { tx.executeWithoutResult(status -> {
-            db.update("insert into recording_chunks(recording_id,sequence_number,size_bytes,sha256) values(?,?,?,?)",id,sequence,stored.size(),stored.sha256());
-            if(db.update("update recordings set next_sequence=next_sequence+1,size_bytes=size_bytes+?,last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING' and next_sequence=?",stored.size(),id,user,sequence)!=1)
-                throw new AuthException("녹음 조각을 다시 전송해 주세요.",409);
-        }); } catch(RuntimeException error) { storage.deleteChunk(user,id,sequence); throw error; }
-        return Map.of("accepted",true,"nextSequence",sequence+1);
+            if(sequence!=expected) throw new AuthException("녹음 조각 순서가 맞지 않습니다.",409);
+            quota.requireAvailable(user,file==null?0:file.getSize());
+
+            RecordingStorage.Chunk stored=null;
+            try {
+                stored=storage.storeChunk(user,id,sequence,file);
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override public void afterCompletion(int completionStatus) {
+                        if(completionStatus!=STATUS_COMMITTED) try { storage.deleteChunk(user,id,sequence); } catch(Exception ignored) {}
+                    }
+                });
+                db.update("insert into recording_chunks(recording_id,sequence_number,size_bytes,sha256) values(?,?,?,?)",id,sequence,stored.size(),stored.sha256());
+                if(db.update("update recordings set next_sequence=next_sequence+1,size_bytes=size_bytes+?,last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING' and next_sequence=?",stored.size(),id,user,sequence)!=1)
+                    throw new AuthException("녹음 조각을 다시 전송해 주세요.",409);
+                return Map.of("accepted",true,"nextSequence",sequence+1);
+            } catch(Exception error) {
+                if(stored!=null) try { storage.deleteChunk(user,id,sequence); } catch(Exception cleanupError) { error.addSuppressed(cleanupError); }
+                if(error instanceof RuntimeException runtime) throw runtime;
+                throw new IllegalStateException("녹음 조각을 저장하지 못했습니다.",error);
+            }
+        });
     }
 
     @PostMapping("/recordings/{id}/finish")
@@ -196,6 +211,10 @@ public class RecordingController {
     }
 
     private Recording find(String id,long user) { return db.queryForObject("select r.*,n.title as linked_note_title from recordings r left join notes n on n.id=r.note_id where r.id=? and r.user_id=?",(row,index)->map(row),id,user); }
+    private boolean matchesChunk(MultipartFile file,long size,String sha256) {
+        try { return storage.matchesChunk(file,size,sha256); }
+        catch(Exception error) { throw new IllegalStateException("저장된 녹음 조각을 확인하지 못했습니다.",error); }
+    }
     private Recording map(ResultSet row) throws SQLException {
         List<Double> waveform=List.of(); String raw=row.getString("waveform_json");
         if(raw!=null) try { waveform=json.readValue(raw,new TypeReference<>(){}); } catch(Exception ignored) {}

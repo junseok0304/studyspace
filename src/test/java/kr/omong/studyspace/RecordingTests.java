@@ -12,6 +12,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import kr.omong.studyspace.study.RecordingStorage;
 
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -110,5 +113,46 @@ class RecordingTests {
         mvc.perform(patch("/api/recordings/"+id+"/note").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"noteId\":\"recording-limit-other-note\"}"))
                 .andExpect(status().isConflict());
         storage.delete(ownerId,id);
+    }
+
+    @Test void concurrentRetryOfSameChunkStoresOneFileAndReturnsDuplicate() throws Exception {
+        String suffix=UUID.randomUUID().toString();
+        String email="recording-race-"+suffix+"@example.com";
+        String courseId=UUID.randomUUID().toString(), noteId=UUID.randomUUID().toString();
+        db.update("insert into users(email,password_hash,nickname) values(?, 'test', '학생')",email);
+        long ownerId=db.queryForObject("select id from users where email=?",Long.class,email);
+        db.update("insert into courses(id,user_id,semester,name) values(?,?,'2026-2','강의')",courseId,ownerId);
+        db.update("insert into notes(id,course_id,user_id,title,body,version) values(?,?,?,'1주차','내용',1)",noteId,courseId,ownerId);
+        var owner=user(Long.toString(ownerId));
+        mvc.perform(post("/api/notes/"+noteId+"/recordings").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"동시 재시도\",\"mimeType\":\"audio/webm\"}"))
+                .andExpect(status().isCreated());
+        String id=db.queryForObject("select id from recordings where user_id=?",String.class,ownerId);
+
+        var pool=Executors.newFixedThreadPool(2);
+        var start=new CountDownLatch(1);
+        try {
+            var requests=java.util.stream.IntStream.range(0,2).mapToObj(index -> pool.submit(() -> {
+                start.await();
+                return mvc.perform(multipart("/api/recordings/"+id+"/chunks")
+                                .file(new MockMultipartFile("chunk","chunk.webm","audio/webm","same-content".getBytes()))
+                                .param("sequence","0").with(user(Long.toString(ownerId))).with(csrf()))
+                        .andReturn().getResponse();
+            })).toList();
+            start.countDown();
+            var responses=new java.util.ArrayList<org.springframework.mock.web.MockHttpServletResponse>();
+            for(var request:requests) responses.add(request.get(10,TimeUnit.SECONDS));
+            org.junit.jupiter.api.Assertions.assertEquals(2,responses.stream().filter(response -> response.getStatus()==200).count());
+            var responseBodies=new java.util.ArrayList<String>();
+            for(var response:responses) responseBodies.add(response.getContentAsString());
+            org.junit.jupiter.api.Assertions.assertEquals(1,responseBodies.stream().filter(body -> body.contains("\"duplicate\":true")).count());
+            org.junit.jupiter.api.Assertions.assertEquals(1,db.queryForObject("select count(*) from recording_chunks where recording_id=?",Integer.class,id));
+            org.junit.jupiter.api.Assertions.assertEquals(1,db.queryForObject("select next_sequence from recordings where id=?",Integer.class,id));
+            org.junit.jupiter.api.Assertions.assertEquals("same-content",new String(storage.resource(ownerId+"/"+id+"/000000.part").getContentAsByteArray()));
+        } finally {
+            pool.shutdownNow();
+            storage.delete(ownerId,id);
+            db.update("delete from recordings where id=?",id);
+        }
     }
 }
