@@ -8,11 +8,15 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
+import java.util.Properties;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -124,12 +128,20 @@ class StudySpaceAuthTests {
                 .andExpect(jsonPath("$.message").value("가입된 이메일이라면 비밀번호 재설정 안내를 보냈습니다."))
                 .andExpect(jsonPath("$.developmentResetUrl").doesNotExist());
 
+        org.mockito.Mockito.when(mailSender.createMimeMessage())
+                .thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
         var result = mvc.perform(post("/api/auth/password-reset/request").with(SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"" + email + "\"}"))
                 .andExpect(status().isOk()).andReturn();
-        ArgumentCaptor<SimpleMailMessage> messageCaptor=ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> messageCaptor=ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(messageCaptor.capture());
-        String resetUrl=java.util.Arrays.stream(messageCaptor.getValue().getText().split("\\R"))
+        MimeMessage sentMessage = messageCaptor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("[StudySpace] 비밀번호 재설정", sentMessage.getSubject());
+        String[] bodies = extractTextParts(sentMessage.getContent());
+        String textBody = bodies[0];
+        String htmlBody = bodies[1];
+        org.junit.jupiter.api.Assertions.assertTrue(htmlBody.contains("비밀번호 재설정하기"));
+        String resetUrl=java.util.Arrays.stream(textBody.split("\\R"))
                 .filter(line->line.contains("/reset-password.html?token=")).findFirst().orElseThrow();
         String token = URI.create(resetUrl).getQuery().substring("token=".length());
         String confirm = "{\"token\":\"" + token + "\",\"password\":\"new-password-456\"}";
@@ -144,5 +156,26 @@ class StudySpaceAuthTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"new-password-456\"}"))
                 .andExpect(status().isOk());
+    }
+
+    private String[] extractTextParts(Object content) throws Exception {
+        StringBuilder plain = new StringBuilder();
+        StringBuilder html = new StringBuilder();
+        StringBuilder types = new StringBuilder();
+        appendTextParts(content, plain, html, types);
+        org.junit.jupiter.api.Assertions.assertFalse(plain.isEmpty());
+        org.junit.jupiter.api.Assertions.assertFalse(html.isEmpty(), types.toString());
+        return new String[]{plain.toString(), html.toString()};
+    }
+
+    private void appendTextParts(Object content, StringBuilder plain, StringBuilder html, StringBuilder types) throws Exception {
+        if (content instanceof Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) appendTextParts(multipart.getBodyPart(i), plain, html, types);
+        } else if (content instanceof BodyPart part) {
+            types.append(part.getContentType()).append(';');
+            if (part.isMimeType("text/plain")) plain.append(part.getContent());
+            else if (part.isMimeType("text/html")) html.append(part.getContent());
+            else appendTextParts(part.getContent(), plain, html, types);
+        }
     }
 }

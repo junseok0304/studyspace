@@ -5,6 +5,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -18,6 +20,7 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private final UserAccountRepository users;
     private final PasswordEncoder passwordEncoder;
     private final boolean requireEmailVerification;
@@ -120,6 +123,7 @@ public class AuthService {
             } catch (RuntimeException deliveryFailure) {
                 // Keep the response indistinguishable for known and unknown accounts.
                 // A fresh request can issue a new token if the mail provider is restored.
+                log.warn("Password reset email delivery failed: {}", deliveryFailure.getClass().getSimpleName());
             }
         }
         return new AuthModels.PasswordResetResponse(
