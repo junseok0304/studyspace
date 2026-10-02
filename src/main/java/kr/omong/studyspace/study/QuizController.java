@@ -27,11 +27,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 public class QuizController {
-    private final JdbcTemplate db; private final TransactionTemplate tx; private final GeminiGenerator gemini; private final UsageRecorder usage; private final String model; private final boolean mockEnabled; private final AuthSupport authSupport;
+    private final JdbcTemplate db; private final TransactionTemplate tx; private final GeminiGenerator gemini; private final UsageRecorder usage; private final String model; private final boolean mockEnabled; private final AuthSupport authSupport; private final AiUsageLimiter aiUsageLimiter;
     public QuizController(JdbcTemplate db,TransactionTemplate tx,GeminiGenerator gemini,UsageRecorder usage,
                           @Value("${studyspace.ai.model:gemini-3.6-flash}") String model,
-                          @Value("${studyspace.ai.mock-enabled:true}") boolean mockEnabled,AuthSupport authSupport) {
-        this.db=db; this.tx=tx; this.gemini=gemini; this.usage=usage; this.model=model; this.mockEnabled=mockEnabled;this.authSupport=authSupport;
+                          @Value("${studyspace.ai.mock-enabled:true}") boolean mockEnabled,AuthSupport authSupport,
+                          AiUsageLimiter aiUsageLimiter) {
+        this.db=db; this.tx=tx; this.gemini=gemini; this.usage=usage; this.model=model; this.mockEnabled=mockEnabled;this.authSupport=authSupport; this.aiUsageLimiter=aiUsageLimiter;
     }
 
     public record CreateQuiz(@NotNull @Pattern(regexp="[a-fA-F0-9-]{36}") String requestId,@Min(3) @Max(10) int questionCount,
@@ -53,7 +54,7 @@ public class QuizController {
         if(!mockEnabled && !Boolean.TRUE.equals(db.queryForObject("select email_verified from users where id=?",Boolean.class,user))) throw new AuthException("이메일 인증 후 AI 생성을 이용할 수 있습니다.",403);
         var notes=db.query("select n.course_id,n.title,n.body,n.version from notes n where n.id=? and n.user_id=? and not exists(select 1 from note_trash t where t.note_id=n.id and t.user_id=n.user_id)",
                 (row,index)->new Note(row.getString("course_id"),row.getString("title"),row.getString("body"),row.getLong("version")),noteId,user);
-        if(notes.isEmpty()) throw new AuthException("노트를 찾을 수 없습니다.",404); Note note=notes.getFirst(); List<AttachmentSource> attachments=requireAttachments(input.attachmentIds(),noteId,user); ReviewSource review=input.artifactId()==null?null:requireReviewSource(input.artifactId(),note.courseId(),user); String id=UUID.randomUUID().toString();
+        if(notes.isEmpty()) throw new AuthException("노트를 찾을 수 없습니다.",404); Note note=notes.getFirst(); List<AttachmentSource> attachments=requireAttachments(input.attachmentIds(),noteId,user); ReviewSource review=input.artifactId()==null?null:requireReviewSource(input.artifactId(),note.courseId(),user); aiUsageLimiter.requireAvailable(user); String id=UUID.randomUUID().toString();
         List<String> previousPrompts=previousPrompts(noteId,user);
         List<String> previousAnswers=previousAnswers(noteId,user);
         boolean mock=mockEnabled; List<GeminiGenerator.GeneratedQuiz> generatedResult=List.of();

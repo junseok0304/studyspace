@@ -381,3 +381,11 @@ create table if not exists usage_records (
     created_at timestamp not null default current_timestamp,
     foreign key (user_id) references users(id) on delete cascade
 );
+
+create table if not exists ai_usage_daily (
+    user_id bigint not null,
+    usage_date date not null,
+    request_count integer not null default 0,
+    primary key (user_id, usage_date),
+    foreign key (user_id) references users(id) on delete cascade
+);

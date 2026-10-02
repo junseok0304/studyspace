@@ -10,7 +10,7 @@ class AttachmentAnalysisWorkerTests {
         var gemini=mock(GeminiGenerator.class);
         var executor=mock(org.springframework.core.task.TaskExecutor.class);
         var worker=new AttachmentAnalysisWorker(db,mock(AttachmentStorage.class),executor,gemini,
-                mock(UsageRecorder.class),"gemini-test",true);
+                mock(UsageRecorder.class),"gemini-test",true,mock(AiUsageLimiter.class));
         worker.startSummary("attachment",1);
         verifyNoInteractions(db,executor,gemini);
     }
@@ -20,7 +20,7 @@ class AttachmentAnalysisWorkerTests {
         var executor=mock(org.springframework.core.task.TaskExecutor.class);
         when(db.update(anyString(),eq("attachment"),eq(1L))).thenReturn(1,0);
         var worker=new AttachmentAnalysisWorker(db,mock(AttachmentStorage.class),executor,mock(GeminiGenerator.class),
-                mock(UsageRecorder.class),"gemini-test",false);
+                mock(UsageRecorder.class),"gemini-test",false,mock(AiUsageLimiter.class));
         worker.startSummary("attachment",1);
         worker.startSummary("attachment",1);
         verify(executor,times(1)).execute(any(Runnable.class));

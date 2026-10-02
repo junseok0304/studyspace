@@ -35,17 +35,20 @@ public class GenerationController {
     private final String model;
     private final boolean mockEnabled;
     private final ObjectMapper json;
+    private final AiUsageLimiter aiUsageLimiter;
     private final java.util.concurrent.ConcurrentHashMap<Long,Object> admissionLocks = new java.util.concurrent.ConcurrentHashMap<>();
 
     public GenerationController(JdbcTemplate db, GenerationWorker worker,TransactionTemplate tx,
                                 @Value("${studyspace.ai.model:gemini-3.6-flash}") String model,
-                                @Value("${studyspace.ai.mock-enabled:true}") boolean mockEnabled,ObjectMapper json) {
+                                @Value("${studyspace.ai.mock-enabled:true}") boolean mockEnabled,ObjectMapper json,
+                                AiUsageLimiter aiUsageLimiter) {
         this.db=db;
         this.worker=worker;
         this.tx=tx;
         this.model=model;
         this.mockEnabled=mockEnabled;
         this.json=json;
+        this.aiUsageLimiter=aiUsageLimiter;
     }
 
     public record CreateGeneration(
@@ -126,8 +129,9 @@ public class GenerationController {
         NoteVersion note=requireNote(noteId,user);
         requireRegenerationSource(input.regenerateFromJobId(),noteId,input.kind(),user);
         if (!mockEnabled && !Boolean.TRUE.equals(db.queryForObject("select email_verified from users where id=?",Boolean.class,user))) throw new AuthException("이메일 인증 후 AI 생성을 이용할 수 있습니다.",403);
-        requireWithinLimits(user);
         List<AttachmentSource> sources=requireAttachments(input.attachmentIds(),noteId,user);
+        requireWithinLimits(user);
+        aiUsageLimiter.requireAvailable(user);
         String id=UUID.randomUUID().toString();
         try {
             tx.executeWithoutResult(status -> {
@@ -157,9 +161,10 @@ public class GenerationController {
         var originals=db.query("select note_id,kind,source_note_version,source_title,source_body,model from generation_jobs where id=? and user_id=? and status in ('FAILED','CANCELED')",
                 (row,index) -> new RetrySource(row.getString("note_id"),row.getString("kind"),row.getLong("source_note_version"),row.getString("source_title"),row.getString("source_body"),row.getString("model")),id,user);
         if(originals.isEmpty()) throw new AuthException("다시 시도할 수 있는 생성 작업을 찾을 수 없습니다.",404);
-        requireWithinLimits(user);
         RetrySource source=originals.getFirst();
         NoteVersion current=requireNote(source.noteId(),user);
+        requireWithinLimits(user);
+        aiUsageLimiter.requireAvailable(user);
         String retryId=UUID.randomUUID().toString();
         String title=source.title()==null ? current.title() : source.title();
         String body=source.body()==null ? current.body() : source.body();
@@ -254,9 +259,7 @@ public class GenerationController {
     }    private void requireWithinLimits(long user) {
         Integer running=db.queryForObject("select count(*) from generation_jobs where user_id=? and status='RUNNING'",Integer.class,user);
         Integer pending=db.queryForObject("select count(*) from generation_jobs where user_id=? and status='PENDING'",Integer.class,user);
-        Integer daily=db.queryForObject("select count(*) from generation_jobs where user_id=? and created_at >= current_date",Integer.class,user);
         if((running==null?0:running)+(pending==null?0:pending)>=3) throw new AuthException("동시에 최대 3건까지 생성할 수 있습니다. 진행 중인 작업이 완료되면 다시 시도해 주세요.",429);
-        if(daily!=null && daily>=30) throw new AuthException("오늘의 생성 한도(30회)에 도달했습니다.",429);
     }
     private List<String> locations(String text) {
         if(text==null || text.isBlank()) return List.of();

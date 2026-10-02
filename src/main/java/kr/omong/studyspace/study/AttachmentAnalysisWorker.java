@@ -19,12 +19,15 @@ public class AttachmentAnalysisWorker {
     private final UsageRecorder usage;
     private final String model;
     private final boolean mockEnabled;
+    private final AiUsageLimiter aiUsageLimiter;
 
     public AttachmentAnalysisWorker(JdbcTemplate db,AttachmentStorage storage,@Qualifier("generationExecutor") TaskExecutor executor,
                                     GeminiGenerator gemini,UsageRecorder usage,@Value("${studyspace.ai.model:gemini-3.6-flash}") String model,
-                                    @Value("${studyspace.ai.mock-enabled:true}") boolean mockEnabled) {
+                                    @Value("${studyspace.ai.mock-enabled:true}") boolean mockEnabled,
+                                    AiUsageLimiter aiUsageLimiter) {
         this.db=db; this.storage=storage; this.executor=executor; this.gemini=gemini; this.usage=usage; this.model=model;
         this.mockEnabled=mockEnabled;
+        this.aiUsageLimiter=aiUsageLimiter;
     }
 
     public void start(String id,long userId) {
@@ -58,6 +61,12 @@ public class AttachmentAnalysisWorker {
                     db.update("update attachments set analysis_status='AWAITING_AI',analysis_error_code='PROVIDER_DISABLED' where id=? and user_id=?",id,userId);
                     return;
                 }
+                try {
+                    aiUsageLimiter.requireAvailable(userId);
+                } catch (kr.omong.studyspace.auth.AuthException limit) {
+                    db.update("update attachments set analysis_status='FAILED',analysis_error_code='AI_DAILY_LIMIT',analyzed_at=current_timestamp where id=? and user_id=? and analysis_status='ANALYZING'",id,userId);
+                    return;
+                }
                 byte[] image=input.readAllBytes();
                 GeminiGenerator.Result result=gemini.analyzeImage(model,source.mediaType(),image);
                 text=result.text();
@@ -82,6 +91,12 @@ public class AttachmentAnalysisWorker {
         var rows=db.query("select original_name,extracted_text from attachments where id=? and user_id=? and analysis_status='TEXT_READY' and summary_status='ANALYZING'",(row,index)->new SummarySource(row.getString("original_name"),row.getString("extracted_text")),id,userId);
         if(rows.isEmpty()) return;
         try {
+            try {
+                aiUsageLimiter.requireAvailable(userId);
+            } catch (kr.omong.studyspace.auth.AuthException limit) {
+                db.update("update attachments set summary_status='FAILED',summary_error_code='AI_DAILY_LIMIT' where id=? and user_id=? and summary_status='ANALYZING'",id,userId);
+                return;
+            }
             SummarySource source=rows.getFirst();
             GeminiGenerator.Result result=gemini.summarizeAttachment(model,source.name(),source.text());
             String text=result.text().strip();
