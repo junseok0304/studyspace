@@ -43,3 +43,6 @@
 @media(max-width:650px) { .pomodoro { right: 12px; bottom: 12px; width: 208px; } .pomodoro.minimized { width: 116px; } }
 .pomodoro-ring.draggable { cursor: grab; touch-action: none; user-select: none; }
 .pomodoro-ring.draggable:active { cursor: grabbing; }
+
+/* 대시보드 접힘 시 안전 위치 보존 */
+.pomodoro.dashboard-context-compact { width: 84px; padding: 6px; }

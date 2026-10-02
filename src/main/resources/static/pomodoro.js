@@ -35,9 +35,10 @@ export function mountPomodoro(userId) {
   const focusLeft = Number.isFinite(state.focusLeft) ? state.focusLeft : (state.phase==='focus' ? remainingAt(state) : FOCUS);
   const breakLeft = Number.isFinite(state.breakLeft) ? state.breakLeft : (state.phase==='break' ? remainingAt(state) : BREAK);
   state = {...state, focusMs, breakMs, focusLeft, breakLeft};
-  const startMinimized = state.minimized === true;
+  const startMinimized = state.minimized !== false;
+  const onDashboard = () => !!document.getElementById('dashboard');
 
-  const root=document.createElement('aside');root.id='pomodoro';root.className='pomodoro'+(startMinimized?' minimized':'');root.setAttribute('aria-label','집중 타이머');
+  const root=document.createElement('aside');root.id='pomodoro';root.className='pomodoro'+(startMinimized?' minimized':'')+(startMinimized&&onDashboard()?' dashboard-context-compact':'');root.setAttribute('aria-label','집중 타이머');
 
   const RING_R=49, CIRC=2*Math.PI*RING_R, OVERFLOW_R=43, OVERFLOW_CIRC=2*Math.PI*OVERFLOW_R;
   const ringWrap=document.createElement('button');ringWrap.type='button';ringWrap.className='pomodoro-ring';ringWrap.setAttribute('aria-label',startMinimized?'타이머 펼치기':'타이머 접기');
@@ -126,6 +127,7 @@ export function mountPomodoro(userId) {
   const updateRingAction=()=>ringWrap.setAttribute('aria-label',root.classList.contains('minimized')?'타이머 펼치기':'타이머 접기');
   const togglePanel=()=>{
     const minimized=root.classList.toggle('minimized');
+    root.classList.toggle('dashboard-context-compact', minimized&&onDashboard());
     state.minimized=minimized;
     updateRingAction();save();
   };
