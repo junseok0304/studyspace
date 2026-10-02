@@ -37,14 +37,18 @@
       <div class="form-actions"><button class="secondary" type="submit">닉네임 변경</button></div>
     </form>
     <p id="nickname-message" class="message" role="status" aria-live="polite"></p>
-    <div class="danger-zone"><details><summary>회원탈퇴 진행</summary>
-      <p class="muted">계정과 학습 기록이 즉시 삭제됩니다. 필요한 자료를 먼저 내려받아 주세요.</p>
-      <form id="delete-account-form">
-        <label id="delete-password-label">현재 비밀번호<input id="delete-password" type="password" maxlength="72" autocomplete="current-password"></label>
-        <label>확인을 위해 ‘회원탈퇴’ 입력<input id="delete-confirmation" maxlength="10" autocomplete="off" required></label>
-        <div class="form-actions"><button class="danger-button" type="submit">계정과 모든 데이터 삭제</button></div>
-      </form>
-      <p id="delete-account-message" class="message" role="status"></p>
+    <div class="danger-zone"><details class="delete-account-details"><summary>
+      <span class="delete-account-summary"><strong>회원탈퇴</strong><span>계정과 학습 데이터를 삭제합니다</span></span>
+    </summary>
+      <div class="delete-account-content">
+        <p class="muted">탈퇴하면 계정, 과목, 노트, 녹음 등 모든 학습 데이터가 삭제되며 되돌릴 수 없습니다. 필요한 자료를 먼저 다운로드해 주세요.</p>
+        <form id="delete-account-form">
+          <label id="delete-password-label">현재 비밀번호<input id="delete-password" type="password" maxlength="72" autocomplete="current-password"></label>
+          <label>확인을 위해 ‘회원탈퇴’를 입력해 주세요<input id="delete-confirmation" maxlength="10" autocomplete="off" required></label>
+          <div class="form-actions"><button class="danger-button" type="submit">계정과 모든 데이터 삭제</button></div>
+        </form>
+        <p id="delete-account-message" class="message" role="status" aria-live="polite"></p>
+      </div>
     </details>
     </div>
   </section>

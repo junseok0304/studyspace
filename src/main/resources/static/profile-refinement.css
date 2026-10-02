@@ -227,6 +227,22 @@
 .profile .danger-zone #delete-account-form .form-actions{min-width:0;margin-top:2px}
 .profile .danger-zone #delete-account-form .danger-button{box-sizing:border-box;width:100%;max-width:none;min-width:0;min-height:46px;padding:10px 16px;white-space:normal;line-height:1.4;overflow-wrap:anywhere}
 .profile .danger-zone #delete-account-message{margin:0 16px}
+.profile #account-settings > .danger-zone{margin-top:20px;border:1px solid #efdddd;border-radius:12px;background:#fffdfd;overflow:hidden}
+.profile .danger-zone .delete-account-details{margin:0;border:0;border-radius:0;background:transparent}
+.profile .danger-zone .delete-account-details summary{min-height:64px;padding:12px 18px;color:#7f4242}
+.profile .delete-account-summary{display:grid;gap:2px;min-width:0}
+.profile .delete-account-summary strong{font-size:14px;font-weight:750}
+.profile .delete-account-summary span{color:#8d7777;font-size:12px;font-weight:450}
+.profile .danger-zone .delete-account-details[open] summary{border-bottom:1px solid #f0e4e4}
+.profile .danger-zone .delete-account-details[open]{padding-bottom:0}
+.profile .delete-account-content{display:grid;gap:16px;padding:18px}
+.profile .delete-account-content > .muted{max-width:680px;margin:0;color:#806c6c}
+.profile .danger-zone #delete-account-form{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;width:min(100%,560px);max-width:none;margin:0;padding:0}
+.profile .danger-zone #delete-account-form label{display:grid;gap:6px;margin:0;color:#535d6e;font-weight:650}
+.profile .danger-zone #delete-account-form input{box-sizing:border-box;width:100%;min-width:0;min-height:44px;margin:0}
+.profile .danger-zone #delete-account-form .form-actions{justify-content:flex-start;min-width:0;margin:2px 0 0}
+.profile .danger-zone #delete-account-form .danger-button{width:auto;max-width:100%;min-width:248px;min-height:46px;padding:10px 18px;white-space:normal;line-height:1.4;overflow-wrap:anywhere}
+.profile .danger-zone #delete-account-message{width:min(100%,560px);margin:0}
 .profile .schedule-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 2px}
 .profile .schedule-row br{display:none}
 .profile .schedule-row strong{font-size:14px}
@@ -249,7 +265,7 @@
   .profile-nav::before{display:none}
   .profile-nav a{flex:0 0 auto;min-height:40px}
   .profile > .card{margin-bottom:14px;padding:24px}
-  .profile .danger-zone #delete-account-form .danger-button{width:100%;max-width:360px}
+  .profile .danger-zone #delete-account-form .danger-button{width:100%;max-width:none}
 }
 @media(max-width:560px){
   .profile{width:calc(100% - 28px);padding-top:18px}
@@ -257,4 +273,6 @@
   .profile > .card{padding:20px 17px;border-radius:14px}
   .profile .schedule-row{align-items:flex-start;flex-direction:column;gap:3px}
   .profile .schedule-row span{text-align:left}
+  .profile .delete-account-content{gap:14px;padding:16px}
+  .profile .danger-zone #delete-account-form .danger-button{min-width:0}
 }
