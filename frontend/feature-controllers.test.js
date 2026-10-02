@@ -46,6 +46,7 @@ test('feature controllers keep their request, state, and rendering paths connect
     if (path.endsWith('/notes') && options.method !== 'POST') return [{id: 'note-1', title: '강의노트'}];
     if (path.endsWith('/recordings') && options.method !== 'POST') return [{id: 'recording-1', title: '녹음', status: 'READY', durationSeconds: 18, noteId: null, courseId: 'course-1'}];
     if (path.endsWith('/recording-1/note')) return {id: 'recording-1', noteId: 'note-1', noteTitle: '강의노트'};
+    if (path.endsWith('/recording-1/waveform/rebuild')) return {id: 'recording-1', title: '녹음', status: 'READY', durationSeconds: 2100, waveform: [], noteId: null, courseId: 'course-1'};
     if (path === '/api/courses/course-1/quiz-sets' && (!options.method || options.method === 'GET')) return [
       {id: 'quiz-1', noteId: 'note-1', title: '스피드 퀴즈 · HTTP 요청 흐름 확인', questionCount: 1, completedAttempts: 0, sourceNoteVersion: 3, sourceAttachmentIds:['attachment-1'], mockResult: true, activeAttemptId: null},
       {id: 'quiz-other', noteId: 'note-2', title: '다른 노트 퀴즈', questionCount: 3, completedAttempts: 0, sourceNoteVersion: 1, mockResult: true, activeAttemptId: null}
@@ -88,6 +89,10 @@ test('feature controllers keep their request, state, and rendering paths connect
     noteSelect.value = 'note-1';
     await noteSelect.onchange();
     assert.equal(calls.some(call => call.path.endsWith('/recording-1/note') && call.options.method === 'PATCH'), true);
+    const waveformButton = [...byId('recordings').querySelectorAll('button')].find(button => button.textContent === '파형 만들기');
+    await waveformButton?.onclick();
+    assert.equal(calls.some(call => call.path.endsWith('/recording-1/waveform/rebuild') && call.options.method === 'POST'), true);
+    assert.equal(byId('recordings').querySelector('.waveform-empty-message') !== null, true);
 
     const quiz = mountQuiz({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState, getAttachmentIds: () => ['attachment-1'], loadDashboard: async () => {}, updateSourceSummary: () => {}});
     await quiz.loadQuizSets(course.id);

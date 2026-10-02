@@ -32,8 +32,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 public class RecordingController {
-    private final JdbcTemplate db; private final RecordingStorage storage; private final ObjectMapper json; private final TransactionTemplate tx;private final StorageQuotaService quota;private final AuthSupport authSupport;
-    public RecordingController(JdbcTemplate db,RecordingStorage storage,ObjectMapper json,TransactionTemplate tx,StorageQuotaService quota,AuthSupport authSupport) { this.db=db; this.storage=storage; this.json=json; this.tx=tx;this.quota=quota;this.authSupport=authSupport; }
+    private final JdbcTemplate db; private final RecordingStorage storage; private final ObjectMapper json; private final TransactionTemplate tx;private final StorageQuotaService quota;private final AuthSupport authSupport;private final RecordingMediaProcessor mediaProcessor;
+    public RecordingController(JdbcTemplate db,RecordingStorage storage,ObjectMapper json,TransactionTemplate tx,StorageQuotaService quota,AuthSupport authSupport,RecordingMediaProcessor mediaProcessor) { this.db=db; this.storage=storage; this.json=json; this.tx=tx;this.quota=quota;this.authSupport=authSupport;this.mediaProcessor=mediaProcessor; }
 
     public record Create(@NotBlank @Size(max=100) String title,@NotNull @Pattern(regexp="audio/(webm|ogg|mp4)(;.*)?") String mimeType) {}
     public record Finish(@DecimalMin("0.1") @DecimalMax("3600.0") double durationSeconds) {}
@@ -110,7 +110,11 @@ public class RecordingController {
         int chunks=(Integer)rows.getFirst().get("chunks"); if(chunks<1) throw new AuthException("저장된 녹음 내용이 없습니다.",409);
         String mime=(String)rows.getFirst().get("mime"); String extension=mime.contains("mp4")?"m4a":mime.contains("ogg")?"ogg":"webm";
         var file=storage.assemble(user,id,chunks,extension);
-        db.update("update recordings set status='READY',storage_key=?,duration_seconds=?,size_bytes=?,waveform_json=null,completed_at=current_timestamp,last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",file.storageKey(),input.durationSeconds(),file.size(),id,user);
+        RecordingMediaProcessor.Processed processed;
+        try { processed=mediaProcessor.process(storage.file(file.storageKey()),mime,input.durationSeconds()); }
+        catch(Exception ignored) { processed=new RecordingMediaProcessor.Processed(input.durationSeconds(),List.of()); }
+        long size=java.nio.file.Files.size(storage.file(file.storageKey()));
+        db.update("update recordings set status='READY',storage_key=?,duration_seconds=?,size_bytes=?,waveform_json=?,completed_at=current_timestamp,last_activity_at=current_timestamp where id=? and user_id=? and status='RECORDING'",file.storageKey(),processed.durationSeconds(),size,processed.peaks().isEmpty()?null:json.writeValueAsString(processed.peaks()),id,user);
         return find(id,user);
     }
 
@@ -130,6 +134,18 @@ public class RecordingController {
                 : db.update("update recordings set waveform_json=?,duration_seconds=? where id=? and user_id=? and status='READY'",json.writeValueAsString(input.peaks()),input.durationSeconds(),id,user);
         if(updated!=1)
             throw new AuthException("파형을 저장할 녹음을 찾을 수 없습니다.",404);
+        return find(id,user);
+    }
+
+    @PostMapping("/recordings/{id}/waveform/rebuild")
+    public Recording rebuildWaveform(Authentication auth,@PathVariable String id) throws Exception {
+        long user=owner(auth);
+        var rows=db.query("select storage_key,mime_type,duration_seconds from recordings where id=? and user_id=? and status='READY'",(row,index)->Map.of("key",row.getString("storage_key"),"mime",row.getString("mime_type"),"duration",row.getObject("duration_seconds")==null?0d:row.getDouble("duration_seconds")),id,user);
+        if(rows.isEmpty()) throw new AuthException("파형을 만들 녹음을 찾을 수 없습니다.",404);
+        var row=rows.getFirst();
+        var processed=mediaProcessor.process(storage.file((String)row.get("key")),(String)row.get("mime"),(Double)row.get("duration"));
+        if(processed.peaks().isEmpty()) throw new AuthException("이 녹음에서 파형 데이터를 만들지 못했습니다. 녹음 파일은 보존되어 있습니다.",422);
+        db.update("update recordings set waveform_json=?,duration_seconds=?,size_bytes=? where id=? and user_id=? and status='READY'",json.writeValueAsString(processed.peaks()),processed.durationSeconds(),java.nio.file.Files.size(storage.file((String)row.get("key"))),id,user);
         return find(id,user);
     }
 

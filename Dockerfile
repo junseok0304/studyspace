@@ -6,7 +6,7 @@ RUN gradle clean bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl python3 python3-requests \
+    && apt-get install -y --no-install-recommends curl ffmpeg python3 python3-requests \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system studyspace \
     && useradd --system --gid studyspace --home-dir /app studyspace

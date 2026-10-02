@@ -82,6 +82,12 @@ public class RecordingStorage {
         return new FileSystemResource(path);
     }
 
+    Path file(String storageKey) {
+        Path path=resolve(storageKey);
+        if(!Files.isRegularFile(path)) throw new AuthException("녹음 파일을 찾을 수 없습니다.",410);
+        return path;
+    }
+
     public void delete(long userId,String recordingId) throws Exception {
         Path directory=directory(userId,recordingId);
         if(!Files.exists(directory)) return;

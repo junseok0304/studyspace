@@ -18,7 +18,8 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
 
   async function uploadChunk(id, sequence, blob) {
     let lastError;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    const maxAttempts = 5;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const form = new FormData();
         form.append('chunk', blob, `chunk-${sequence}.webm`);
@@ -26,9 +27,13 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       } catch (error) {
         lastError = error;
         if (error.status === 401) throw error;
-        if (attempt < 2) {
-          el('recording-message').textContent = `녹음 구간 ${sequence + 1} 저장을 재시도하고 있습니다… (${attempt + 2}/3)`;
-          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        const retryable = !error.status || [408, 425, 429].includes(error.status) || error.status >= 500;
+        if (attempt < maxAttempts - 1 && retryable) {
+          const delay = Math.min(8000, 750 * (2 ** attempt));
+          el('recording-message').textContent = `녹음 구간 ${sequence + 1} 저장을 재시도하고 있습니다… (${attempt + 2}/${maxAttempts})`;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          throw error;
         }
       }
     }
@@ -96,36 +101,7 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
   }
 
   async function createWaveform(recording) {
-    const response = await fetch(`/api/recordings/${encodeURIComponent(recording.id)}/content`, {credentials: 'same-origin', cache: 'no-store'});
-    if (!response.ok) throw new Error(`오디오를 불러오지 못했습니다 (${response.status}).`);
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) throw new Error('이 브라우저는 파형 분석을 지원하지 않습니다.');
-    const context = new AudioContextClass();
-    try {
-      if (context.state === 'suspended') await context.resume();
-      const audioData = await response.arrayBuffer();
-      const buffer = await new Promise((resolve, reject) => {
-        let settled = false;
-        const done = (callback, value) => { if (!settled) { settled = true; callback(value); } };
-        try {
-          const result = context.decodeAudioData(audioData.slice(0), value => done(resolve, value), error => done(reject, error));
-          if (result && typeof result.then === 'function') result.then(value => done(resolve, value), error => done(reject, error));
-        } catch (error) { done(reject, error); }
-      });
-      const channel = buffer.getChannelData(0);
-      const count = Math.min(1200, Math.max(200, Math.ceil(buffer.duration * 4)));
-      const block = Math.max(1, Math.floor(channel.length / count));
-      const peaks = [];
-      for (let index = 0; index < count; index++) {
-        let peak = 0;
-        const end = Math.min(channel.length, (index + 1) * block);
-        for (let sample = index * block; sample < end; sample++) peak = Math.max(peak, Math.abs(channel[sample]));
-        peaks.push(Number(peak.toFixed(4)));
-      }
-      return await request(`/api/recordings/${encodeURIComponent(recording.id)}/waveform`, {method: 'POST', body: JSON.stringify({peaks, durationSeconds: Math.min(3600, buffer.duration)})});
-    } finally {
-      if (context.state !== 'closed') await context.close().catch(() => {});
-    }
+    return await request(`/api/recordings/${encodeURIComponent(recording.id)}/waveform/rebuild`, {method: 'POST', body: '{}'});
   }
 
   function updateRecordingRow(updated) {
@@ -268,7 +244,7 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
     });
     await recordingOutbox.deleteRecording(recording.id);
     el('recording-message').textContent = '서버와 이 기기에 저장된 녹음 구간을 복구했습니다.';
-    try { updateRecordingRow(await createWaveform(finished)); }
+    try { updateRecordingRow(finished.waveform?.length ? finished : await createWaveform(finished)); }
     catch { waveformFailures.add(finished.id); updateRecordingRow(finished); }
   }
 
@@ -276,11 +252,9 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
     let playableDuration = Number(recording.durationSeconds) || 0;
     let redrawWaveform = () => {};
     const syncPlayableDuration = audio => {
-      if (Number.isFinite(audio.duration) && audio.duration > 0) {
-        playableDuration = audio.duration;
-        durationLabel.textContent = recordingTime(playableDuration);
-        redrawWaveform();
-      }
+      // Keep the server duration; the browser may initially report only one WebM fragment.
+      durationLabel.textContent = recordingTime(playableDuration);
+      redrawWaveform();
     };
     const player = document.createElement('div'); player.className = 'recording-player';
     const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata';
@@ -438,6 +412,11 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
           await uploadOutbox(session.id);
         }).catch(error => {
           saveQueueError(session, error);
+          const retryable = !error.status || [408, 425, 429].includes(error.status) || error.status >= 500;
+          if (error.status && !retryable && error.status !== 401) {
+            el('recording-message').textContent = `서버가 녹음 구간을 받지 못해 녹음을 멈췄습니다. 이 기기에 저장된 구간은 보존되어 있습니다. ${error.message}`;
+            queueMicrotask(() => stopRecording(false));
+          }
           if (error?.name === 'QuotaExceededError' || /저장소/.test(error.message)) {
             el('recording-message').textContent = `기기 임시 저장공간이 부족해 녹음을 멈춥니다. 서버에 저장된 ${sequence}개 구간은 보존됩니다.`;
             queueMicrotask(() => stopRecording(false));
@@ -499,7 +478,7 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       let listRefreshError = null;
       try { await loadRecordings(session.courseId, session.noteId); } catch (error) { listRefreshError = error; }
       let waveformFailed = false;
-      try { updateRecordingRow(await createWaveform(finished)); }
+      try { updateRecordingRow(finished.waveform?.length ? finished : await createWaveform(finished)); }
       catch (error) { waveformFailed = true; waveformFailures.add(finished.id); updateRecordingRow(finished); el('recording-message').textContent = `녹음은 저장됐지만 파형을 바로 만들지 못했습니다. 목록에서 다시 시도할 수 있어요. ${error.message}`; }
       if (listRefreshError) el('recording-message').textContent = `녹음은 저장됐지만 목록을 새로고침하지 못했습니다. ${listRefreshError.message}`;
       else if (!waveformFailed) el('recording-message').textContent = limit ? '60분 녹음이 저장되었습니다. 아래에서 연결할 강의노트를 변경할 수 있습니다.' : '녹음을 저장했습니다. 아래에서 연결할 강의노트를 선택하거나 변경할 수 있습니다.';
