@@ -21,6 +21,7 @@ import java.util.Properties;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.verify;
 import org.mockito.ArgumentCaptor;
@@ -31,6 +32,15 @@ class StudySpaceAuthTests {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @MockitoBean JavaMailSender mailSender;
+
+    @Test
+    void unauthenticatedProfilePageRedirectsToLoginButApiKeepsUnauthorizedStatus() throws Exception {
+        mvc.perform(get("/mypage.html"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?sessionExpired=true"));
+        mvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
 
     @Test
     void signupLoginMeAndLogout() throws Exception {

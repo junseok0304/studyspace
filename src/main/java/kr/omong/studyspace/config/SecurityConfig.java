@@ -17,7 +17,6 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.http.HttpStatus;
@@ -71,9 +70,13 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID", "XSRF-TOKEN")
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler()))
                 .exceptionHandling(exceptions -> exceptions
-                        .defaultAuthenticationEntryPointFor(
-                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                request -> request.getRequestURI().startsWith("/api/")));
+                        .authenticationEntryPoint((request, response, exception) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.sendError(HttpStatus.UNAUTHORIZED.value());
+                            } else {
+                                response.sendRedirect(request.getContextPath() + "/?sessionExpired=true");
+                            }
+                        }));
         return http.build();
     }
 

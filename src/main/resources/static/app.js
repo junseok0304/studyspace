@@ -95,6 +95,7 @@ query('#logout-button').addEventListener('click', async () => {
 loadSession().catch(error => message(error.message || '로그인 정보를 불러오지 못했습니다. 새로고침해 주세요.'));
 if (new URLSearchParams(location.search).get('registered') === 'true') message('가입되었습니다. 이메일로 로그인해 주세요.', true);
 if (new URLSearchParams(location.search).get('accountDeleted') === 'true') message('계정과 학습 데이터를 삭제했습니다.', true);
+if (new URLSearchParams(location.search).get('sessionExpired') === 'true') message('로그인이 만료되었습니다. 다시 로그인해 주세요.');
 
 const kakaoResult = new URLSearchParams(location.search).get('kakao');
 if (kakaoResult === 'success') message('카카오 로그인에 성공했습니다.', true);
