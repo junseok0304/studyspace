@@ -234,7 +234,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
       await loadFlashcardDecks(getCourse()?.id);
       if (getEditor().id !== noteId) return deck;
       byId('learning-mode-badge').textContent = deck.mockResult ? '모의 결과 저장됨' : 'AI 생성 결과 저장됨';
-      el('flashcard-message').textContent = `${count}장 플래시카드를 저장했습니다.`;
+      el('flashcard-message').textContent = `${deck.cardCount ?? count}장 플래시카드를 저장했습니다.`;
       if (studyAfter) study(deck);
       return deck;
     } catch (error) { if (getEditor().id === noteId) el('flashcard-message').textContent = error.message; return null; }

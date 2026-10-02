@@ -109,7 +109,7 @@ public class GenerationWorker {
         if(passages.isEmpty()) passages=List.of(input.title()+" 노트에 작성된 내용을 확인해 주세요.");
         String excerpt=String.join("\n\n",passages.stream().limit(8).map(value->"- "+value).toList());
         String sourcePreview=sourcePreview(sources);
-        if("INFOGRAPHIC".equals(input.kind())) return mockInfographic(input.title(),passages);
+        if("INFOGRAPHIC".equals(input.kind())) return mockInfographic(input.title(),input.body(),sources);
         if("MIND_MAP".equals(input.kind())) {
             var children=new java.util.ArrayList<MindNode>();
             for(String part:passages){String value=MockStudyContent.clip(part,72);children.add(new MindNode(value,List.of()));if(children.size()==8)break;}
@@ -170,21 +170,18 @@ public class GenerationWorker {
         return result;
     }
 
-    private String mockInfographic(String title,List<String> passages) {
+    private String mockInfographic(String title,String body,List<Source> sources) {
+        var materials=new java.util.ArrayList<String>();
+        materials.add(body);
+        for(Source source:sources) materials.add(source.text());
         var pages=new java.util.ArrayList<Map<String,Object>>();
-        passages=representative(passages,24);
-        int pageCount=Math.min(6,Math.max(1,(passages.size()+3)/4));
-        for(int page=0;page<pageCount;page++) {
-            int from=page*4,to=Math.min(passages.size(),from+4);
+        for(MockStudyContent.InfographicPage page:MockStudyContent.infographicPages(title,materials.toArray(String[]::new))) {
             var nodes=new java.util.ArrayList<Map<String,String>>();
-            for(int index=from;index<to;index++) {
-                String detail=MockStudyContent.clip(passages.get(index),180);
-                String label=detail.length()>28?detail.substring(0,28).stripTrailing()+"…":detail;
-                nodes.add(Map.of("label",label,"detail",detail));
+            for(MockStudyContent.InfographicNode node:page.nodes()) {
+                nodes.add(Map.of("label",node.label(),"detail",node.detail()));
             }
-            while(nodes.size()<2) nodes.add(Map.of("label","핵심 개념","detail",MockStudyContent.clip(passages.isEmpty()?title:passages.getFirst(),180)));
-            pages.add(Map.of("title",page==0?title:passages.get(from).substring(0,Math.min(38,passages.get(from).length())),
-                    "subtitle","","relation","","layout","group","nodes",nodes));
+            pages.add(Map.of("title",page.title(),"subtitle",page.subtitle(),"relation",page.relation(),
+                    "layout",page.layout(),"nodes",nodes));
         }
         try { return json.writeValueAsString(Map.of("pages",pages)); }
         catch(Exception failure) { throw new IllegalStateException("인포그래픽 미리보기를 만들지 못했습니다.",failure); }

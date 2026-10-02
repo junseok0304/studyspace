@@ -26,7 +26,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 public class FlashcardController {
-    private static final List<String> MOCK_CARD_TYPES=List.of("DEFINITION","MECHANISM","APPLICATION","CAUSE_EFFECT","COMPARISON","PROCESS");
     private final JdbcTemplate db; private final TransactionTemplate tx; private final GeminiGenerator gemini; private final UsageRecorder usage; private final String model; private final boolean mockEnabled; private final AuthSupport authSupport; private final AiUsageLimiter aiUsageLimiter;
     public FlashcardController(JdbcTemplate db,TransactionTemplate tx,GeminiGenerator gemini,UsageRecorder usage,
                                @Value("${studyspace.ai.model:gemini-3.6-flash}") String model,
@@ -50,13 +49,23 @@ public class FlashcardController {
         var notes=db.query("select n.course_id,n.title,n.body,n.version from notes n where n.id=? and n.user_id=? and not exists(select 1 from note_trash t where t.note_id=n.id and t.user_id=n.user_id)",(row,index)->new Note(row.getString("course_id"),row.getString("title"),row.getString("body"),row.getLong("version")),noteId,user);
         if(notes.isEmpty())throw new AuthException("노트를 찾을 수 없습니다.",404);Note note=notes.getFirst();List<AttachmentSource> attachments=requireAttachments(input.attachmentIds(),noteId,user);ReviewSource review=input.artifactId()==null?null:requireReviewSource(input.artifactId(),note.courseId(),user);aiUsageLimiter.requireAvailable(user);String id=UUID.randomUUID().toString();
         boolean mock=mockEnabled; List<GeminiGenerator.GeneratedCard> generatedResult=List.of();
+        List<MockStudyContent.CardCandidate> mockCards=List.of();
+        if(mock) {
+            mockCards=MockStudyContent.chooseCardCandidates(
+                    MockStudyContent.cardCandidates(mockMaterial(note,attachments,review)), input.cardCount());
+            if(mockCards.isEmpty()) {
+                mockCards=List.of(new MockStudyContent.CardCandidate(note.title(),
+                        note.title()+" 노트의 핵심 내용을 원문에서 다시 확인하세요.","DEFINITION",""));
+            }
+        }
         if(!mock) {
             try { GeminiGenerator.CardResult result=gemini.generateFlashcards(model,source(note,attachments,review),input.cardCount()); generatedResult=result.cards(); usage.record(user,"FLASHCARD",model,result.promptTokens(),result.outputTokens()); }
             catch(GeminiGenerator.Failure failure) { throw new AuthException(failure.userMessage(),503); }
         }
         final List<GeminiGenerator.GeneratedCard> generated=generatedResult;
+        final List<MockStudyContent.CardCandidate> selectedMockCards=mockCards;
         String sourceAttachmentIds=String.join(",",attachments.stream().map(AttachmentSource::id).sorted().toList());
-        try{tx.executeWithoutResult(status->{db.update("insert into flashcard_decks(id,request_id,user_id,course_id,note_id,title,source_note_version,source_attachment_ids,mock_result) values(?,?,?,?,?,?,?,?,?)",id,input.requestId(),user,note.courseId(),noteId,"플래시카드 · "+note.title(),note.version(),sourceAttachmentIds,mock);if(mock)for(int i=0;i<input.cardCount();i++)insertCard(id,i,note,attachments,review);else for(int i=0;i<generated.size();i++)insertGeneratedCard(id,i,generated.get(i));});}
+        try{tx.executeWithoutResult(status->{db.update("insert into flashcard_decks(id,request_id,user_id,course_id,note_id,title,source_note_version,source_attachment_ids,mock_result) values(?,?,?,?,?,?,?,?,?)",id,input.requestId(),user,note.courseId(),noteId,"플래시카드 · "+note.title(),note.version(),sourceAttachmentIds,mock);if(mock)for(int i=0;i<selectedMockCards.size();i++)insertCard(id,i,note,attachments,review,selectedMockCards.get(i));else for(int i=0;i<generated.size();i++)insertGeneratedCard(id,i,generated.get(i));});}
         catch(DuplicateKeyException duplicate){var existing=byRequest(input.requestId(),user);if(existing.isEmpty())throw new AuthException("덱 생성 요청을 다시 시도해 주세요.",409);return deck(existing.getFirst(),user,true);}return deck(id,user,true);
     }
     @GetMapping("/courses/{courseId}/flashcard-decks")
@@ -99,21 +108,16 @@ public class FlashcardController {
         return switch(repetition) { case 1 -> 1; case 2 -> 3; case 3 -> 7; case 4 -> 14; case 5 -> 30; default -> 60; };
     }
 
-    private void insertCard(String deck,int order,Note note,List<AttachmentSource> attachments,ReviewSource review) {
-        String basis=review==null
-                ?String.join("\n",java.util.stream.Stream.concat(java.util.stream.Stream.of(note.body()),attachments.stream().map(AttachmentSource::text)).toList())
-                :review.content();
-        List<String> passages=MockStudyContent.cardPassages(basis);
-        if(passages.isEmpty()) passages=List.of(note.title()+" 노트의 핵심 내용을 설명해 보세요.");
-        String claim=passages.get(order%passages.size());
-        String type=mockCardType(claim,order);
-        String subject=MockStudyContent.subject(claim);
+    private void insertCard(String deck,int order,Note note,List<AttachmentSource> attachments,ReviewSource review,
+                            MockStudyContent.CardCandidate candidate) {
+        String type=candidate.type();
+        String subject=candidate.topic();
         String front=mockFront(type,subject);
-        String back=MockStudyContent.clip(claim,360);
+        String back=MockStudyContent.clip(candidate.statement(),360);
         String sourceLabel=review==null
                 ?"노트 `"+note.title()+"` 버전 "+note.version()+(attachments.isEmpty()?"":" · 첨부자료 포함")
                 :"요점 정리 `"+review.title()+"` · 노트 `"+note.title()+"`";
-        String explanation="자료의 근거를 "+mockTypeLabel(type)+" 관점에서 다시 확인하세요. 원문 핵심: "+back;
+        String explanation=mockExplanation(type);
         db.update("insert into flashcards(id,deck_id,card_order,front_text,back_text,explanation,source_label,card_type) values(?,?,?,?,?,?,?,?)",
                 UUID.randomUUID().toString(),deck,order,front,back,explanation,sourceLabel,type);
     }
@@ -125,6 +129,12 @@ public class FlashcardController {
         for(AttachmentSource attachment:attachments) source.append("\n\n[사실 확인용 자료] ").append(attachment.name()).append("\n").append(attachment.text());
         return source.toString();
     }
+    private String mockMaterial(Note note,List<AttachmentSource> attachments,ReviewSource review){
+        if(review!=null) return review.content();
+        var material=new StringBuilder(note.body()==null?"":note.body());
+        for(AttachmentSource attachment:attachments) material.append("\n").append(attachment.text());
+        return material.toString();
+    }
     private ReviewSource requireReviewSource(String id,String courseId,long user){var rows=db.query("select a.id,a.title,a.content from learning_artifacts a join notes n on n.id=a.note_id and n.user_id=a.user_id where a.id=? and a.user_id=? and n.course_id=? and a.kind in ('SUMMARY','AI_NOTE')",(row,index)->new ReviewSource(row.getString("id"),row.getString("title"),row.getString("content")),id,user,courseId);if(rows.isEmpty())throw new AuthException("현재 과목의 요점 정리 또는 AI 노트만 카드 원본으로 선택할 수 있습니다.",400);return rows.getFirst();}
     private List<AttachmentSource> requireAttachments(List<String> ids,String noteId,long user){if(ids==null||ids.isEmpty())return List.of();if(new HashSet<>(ids).size()!=ids.size())throw new AuthException("같은 자료를 중복 선택할 수 없습니다.",400);var result=new ArrayList<AttachmentSource>();for(String id:ids){var rows=db.query("select id,original_name,extracted_text from attachments where id=? and note_id=? and user_id=? and analysis_status='TEXT_READY' and extracted_text is not null",(row,index)->new AttachmentSource(row.getString("id"),row.getString("original_name"),row.getString("extracted_text")),id,noteId,user);if(rows.isEmpty())throw new AuthException("분석이 완료된 현재 노트의 자료만 포함할 수 있습니다.",400);result.add(rows.getFirst());}return result;}
     private Deck deck(String id,long user,boolean includeCards){var rows=db.query("select d.*,(select count(*) from flashcards c where c.deck_id=d.id) card_count from flashcard_decks d where d.id=? and d.user_id=?",(row,index)->new DeckBase(row.getString("id"),row.getString("course_id"),row.getString("note_id"),row.getString("title"),row.getLong("source_note_version"),row.getString("source_attachment_ids"),row.getBoolean("mock_result"),row.getInt("card_count"),row.getTimestamp("created_at").toInstant().toString()),id,user);if(rows.isEmpty())throw new AuthException("플래시카드 덱을 찾을 수 없습니다.",404);var base=rows.getFirst();List<Card> cards=includeCards?db.query("select c.*,(select r.rating from flashcard_reviews r where r.card_id=c.id and r.user_id=? order by r.reviewed_at desc limit 1) last_rating,(select r.next_review_at from flashcard_reviews r where r.card_id=c.id and r.user_id=? order by r.reviewed_at desc limit 1) next_review from flashcards c where c.deck_id=? order by c.card_order",(row,index)->new Card(row.getString("id"),row.getInt("card_order"),cardType(row.getString("card_type")),row.getString("front_text"),row.getString("back_text"),row.getString("explanation"),row.getString("source_label"),row.getString("last_rating"),row.getTimestamp("next_review")==null?null:row.getTimestamp("next_review").toInstant().toString()),user,user,id):List.of();List<String> sources=base.sourceIds()==null||base.sourceIds().isBlank()?List.of():java.util.Arrays.stream(base.sourceIds().split(",")).filter(value->!value.isBlank()).sorted().toList();return new Deck(base.id(),base.courseId(),base.noteId(),base.title(),base.version(),sources,base.mock(),base.count(),base.created(),cards);}
@@ -132,28 +142,26 @@ public class FlashcardController {
     private void requireDeck(String id,long user){Integer count=db.queryForObject("select count(*) from flashcard_decks where id=? and user_id=?",Integer.class,id,user);if(count==null||count!=1)throw new AuthException("플래시카드 덱을 찾을 수 없습니다.",404);}
     private String requireCard(String id,long user){var decks=db.queryForList("select d.id from flashcards c join flashcard_decks d on d.id=c.deck_id where c.id=? and d.user_id=?",String.class,id,user);if(decks.isEmpty())throw new AuthException("카드를 찾을 수 없습니다.",404);return decks.getFirst();}
     private static String cardType(String value){return value==null||value.isBlank()?"CUSTOM":value;}
-    private static String mockCardType(String claim,int order){
-        String lower=claim.toLowerCase();
-        if(lower.matches(".*(반면|차이|비교|구분|대조).*")) return "COMPARISON";
-        if(lower.matches(".*(때문|원인|결과|따라서|영향|유발).*")) return "CAUSE_EFFECT";
-        if(lower.matches(".*(과정|단계|순서|먼저|다음|절차).*")) return "PROCESS";
-        if(lower.matches(".*(방법|사용|적용|상황|경우|조건).*")) return "APPLICATION";
-        if(lower.matches(".*(작동|동작|흐름|구성|수행|처리).*")) return "MECHANISM";
-        return MOCK_CARD_TYPES.get(order%MOCK_CARD_TYPES.size());
-    }
     private static String mockFront(String type,String subject){
         String concept=subject==null||subject.isBlank()?"이 개념":subject;
         return switch(type){
-            case "MECHANISM" -> concept+"이 작동하는 방식이나 핵심 역할은 무엇인가요?";
-            case "COMPARISON" -> concept+"과 관련 개념을 구분할 때 핵심 차이는 무엇인가요?";
+            case "MECHANISM" -> concept+"은 어떤 구성 요소와 흐름으로 작동하나요?";
+            case "COMPARISON" -> concept+"과 함께 언급된 개념의 차이를 어떤 기준으로 구분하나요?";
             case "CAUSE_EFFECT" -> concept+"의 원인과 결과 또는 영향은 어떻게 연결되나요?";
-            case "APPLICATION" -> concept+"의 원리를 실제 상황에 적용할 때 기억할 기준은 무엇인가요?";
-            case "PROCESS" -> concept+"과 관련해 기억해야 할 절차나 순서는 무엇인가요?";
-            default -> concept+"의 의미와 핵심 특징을 한 문장으로 설명하면 무엇인가요?";
+            case "APPLICATION" -> concept+"을 실제 상황에 적용할 조건과 판단 기준은 무엇인가요?";
+            case "PROCESS" -> concept+"이 진행되는 순서를 단계별로 설명하세요.";
+            default -> concept+"의 의미를 설명하고, 자료에 나온 핵심 특징을 덧붙이세요.";
         };
     }
-    private static String mockTypeLabel(String type){
-        return switch(type){case "DEFINITION"->"정의";case "MECHANISM"->"작동 원리";case "COMPARISON"->"비교";case "CAUSE_EFFECT"->"원인·결과";case "APPLICATION"->"적용";case "PROCESS"->"절차";default->"핵심 내용";};
+    private static String mockExplanation(String type){
+        return switch(type){
+            case "MECHANISM" -> "구성 요소가 어떤 순서로 상호작용하는지 설명하면 단순 암기와 구분할 수 있습니다.";
+            case "COMPARISON" -> "두 개념이 쓰이는 조건과 결과를 같은 기준으로 비교해야 혼동을 줄일 수 있습니다.";
+            case "CAUSE_EFFECT" -> "원인과 결과의 방향을 뒤집지 않도록 조건과 영향을 함께 확인하세요.";
+            case "APPLICATION" -> "실제 사례에 적용할 때 필요한 전제와 판단 기준을 먼저 확인하세요.";
+            case "PROCESS" -> "각 단계의 목적과 다음 단계로 넘어가는 조건을 함께 설명하세요.";
+            default -> "정의만 외우지 말고 이 개념이 적용되는 조건과 핵심 특징을 함께 떠올려 보세요.";
+        };
     }
     private record Note(String courseId,String title,String body,long version){}
     private record AttachmentSource(String id,String name,String text){}
