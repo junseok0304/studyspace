@@ -74,7 +74,8 @@ public class SecurityConfig {
                             if (request.getRequestURI().startsWith("/api/")) {
                                 response.sendError(HttpStatus.UNAUTHORIZED.value());
                             } else {
-                                response.sendRedirect(request.getContextPath() + "/?sessionExpired=true");
+                                response.setStatus(HttpStatus.FOUND.value());
+                                response.setHeader("Location", request.getContextPath() + "/?sessionExpired=true");
                             }
                         }));
         return http.build();
