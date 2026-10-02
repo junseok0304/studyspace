@@ -20,7 +20,7 @@ services:
       KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-https://studyspace.omong.kr/api/auth/kakao/callback}
       STUDYSPACE_PUBLIC_BASE_URL: ${STUDYSPACE_PUBLIC_BASE_URL:-https://studyspace.omong.kr}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      STUDYSPACE_AI_MOCK_ENABLED: ${STUDYSPACE_AI_MOCK_ENABLED:-true}
+      STUDYSPACE_AI_MOCK_ENABLED: ${STUDYSPACE_AI_MOCK_ENABLED:-false}
       STUDYSPACE_AI_MODEL: ${STUDYSPACE_AI_MODEL:-gemini-3.6-flash}
       STUDYSPACE_PYTHON: python3
     ports:
