@@ -59,7 +59,8 @@ public class FlashcardController {
             }
         }
         if(!mock) {
-            try { GeminiGenerator.CardResult result=gemini.generateFlashcards(model,source(note,attachments,review),input.cardCount()); generatedResult=result.cards(); usage.record(user,"FLASHCARD",model,result.promptTokens(),result.outputTokens()); }
+            List<GeminiGenerator.ExistingFlashcard> existingCards=db.query("select c.front_text,c.back_text from flashcards c join flashcard_decks d on d.id=c.deck_id where d.note_id=? and d.user_id=? order by d.created_at desc,c.card_order",(row,index)->new GeminiGenerator.ExistingFlashcard(row.getString("front_text"),row.getString("back_text")),noteId,user);
+            try { GeminiGenerator.CardResult result=gemini.generateFlashcards(model,source(note,attachments,review),input.cardCount(),existingCards); generatedResult=result.cards(); usage.record(user,"FLASHCARD",model,result.promptTokens(),result.outputTokens()); }
             catch(GeminiGenerator.Failure failure) { throw new AuthException(failure.userMessage(),503); }
         }
         final List<GeminiGenerator.GeneratedCard> generated=generatedResult;

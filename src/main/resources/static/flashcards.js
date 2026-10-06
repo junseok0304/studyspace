@@ -224,7 +224,7 @@ export function mountFlashcards({request, byId, getCourse, getEditor, setLocked,
     generatingNotes.add(noteId);
     const button = el('create-flashcards'); button.disabled = true;
     el('flashcard-message').textContent = '현재 노트와 자료로 플래시카드를 생성하고 있습니다.';
-    const count = Number(el('flashcard-count')?.value) || 14;
+    const count = Number(el('flashcard-count')?.value) || 5;
     try {
       const deck = await request(`/api/notes/${encodeURIComponent(editor.id)}/flashcard-decks`, {
         method: 'POST',

@@ -97,6 +97,9 @@ class GeminiGeneratorTests {
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(repeatedAnswer,2));
         String answerInFront="[{\"type\":\"DEFINITION\",\"front\":\"프로세스는 실행 중인 프로그램입니다.의 의미는?\",\"back\":\"프로세스는 실행 중인 프로그램입니다.\",\"explanation\":\"실행 상태를 뜻합니다.\",\"source\":\"강의노트\"}]";
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(answerInFront,1));
+        var existing=java.util.List.of(new GeminiGenerator.ExistingFlashcard("TCP란 무엇인가요?","TCP는 연결 지향적이며 신뢰성 있는 전송을 제공합니다."));
+        String repeatExisting="[{\"type\":\"DEFINITION\",\"front\":\"TCP의 주요 특징은 무엇인가요?\",\"back\":\"TCP는 연결 지향적이며 신뢰성 있는 전송을 제공합니다.\",\"explanation\":\"연결을 설정하고 데이터를 신뢰성 있게 전달합니다.\",\"source\":\"강의노트\"}]";
+        assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(repeatExisting,1,existing));
     }
 
     @Test void providerErrorsHaveActionableMessagesWithoutSecrets() {

@@ -132,6 +132,10 @@ public class GeminiGenerator {
     }
 
     CardResult generateFlashcards(String model,String source,int count) {
+        return generateFlashcards(model,source,count,List.of());
+    }
+
+    CardResult generateFlashcards(String model,String source,int count,List<ExistingFlashcard> existingCards) {
         String instruction="제공된 학습자료만 근거로 고품질 암기용 플래시카드를 JSON 배열로 작성하세요. 선택한 요점 정리가 포함되어 있으면 그 정리를 우선 카드 범위로 삼고 노트와 첨부자료는 사실 확인에만 사용하세요. "
                 +"노트 템플릿의 비어 있는 항목과 작성 안내 문구는 카드 내용에서 제외하세요. "
                 +"먼저 자료에서 독립적으로 회상할 수 있는 개념·관계·절차 후보를 추출하고, 각 후보를 한 가지 학습 목표에만 배정한 뒤 카드를 작성하세요. 카드 수를 맞추기 위해 같은 문장을 쪼개거나 표현만 바꿔 반복하지 마세요. "
@@ -145,20 +149,33 @@ public class GeminiGenerator {
                 +"카드 수는 정확히 "+count+"개이고 JSON 외의 설명은 출력하지 마세요.";
         String conciseInstruction=instruction+" 출력 크기를 줄이세요: 앞면은 120자 이내, 뒷면은 핵심 답을 담은 1~2문장(600자 이내), 해설은 답을 반복하지 않는 한 문장(300자 이내), 출처는 120자 이내로 작성하세요."
                 +" 카드 수와 유형별 다양성, 각 카드의 독립적인 학습 목표는 유지하고 JSON 이외의 내용은 출력하지 마세요.";
+        String exclusionInstruction=excludedCardsInstruction(existingCards);
+        String excludedConciseInstruction=conciseInstruction+exclusionInstruction;
         Result result;
         boolean retried=false;
-        try { result=requestStructured(model,instruction,source,"FLASHCARD",8192); }
+        try { result=requestStructured(model,instruction+exclusionInstruction,source,"FLASHCARD",8192); }
         catch(Failure failure) {
             if(!retryableFlashcardFailure(failure)) throw failure;
             retried=true;
-            result=requestStructured(model,conciseInstruction+" 이전 응답이 완성되지 않았습니다. 잘리지 않도록 모든 카드를 끝까지 작성하고 JSON 배열을 닫으세요.",source,"FLASHCARD",8192);
+            result=requestStructured(model,excludedConciseInstruction+" 이전 응답이 완성되지 않았습니다. 잘리지 않도록 모든 카드를 끝까지 작성하고 JSON 배열을 닫으세요.",source,"FLASHCARD",8192);
         }
-        try { return new CardResult(parseFlashcards(result.text(),count),result.promptTokens(),result.outputTokens()); }
+        try { return new CardResult(parseFlashcards(result.text(),count,existingCards),result.promptTokens(),result.outputTokens()); }
         catch(Failure invalid) {
             if(!"PROVIDER_INVALID_RESULT".equals(invalid.code) || retried) throw invalid;
-            Result retry=requestStructured(model,conciseInstruction+" 이전 응답은 카드 수·중복 또는 질문 품질 검증에 실패했습니다. 같은 근거를 반복하지 말고 실패 조건을 바로잡아 완성된 카드를 반환하세요.",source,"FLASHCARD",8192);
-            return new CardResult(parseFlashcards(retry.text(),count),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
+            Result retry=requestStructured(model,excludedConciseInstruction+" 이전 응답은 카드 수·중복, 기존 카드 반복 또는 질문 품질 검증에 실패했습니다. 같은 근거를 반복하지 말고 실패 조건을 바로잡아 완성된 카드를 반환하세요.",source,"FLASHCARD",8192);
+            return new CardResult(parseFlashcards(retry.text(),count,existingCards),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
         }
+    }
+
+    private static String excludedCardsInstruction(List<ExistingFlashcard> cards) {
+        if(cards==null||cards.isEmpty()) return "";
+        var excluded=new StringBuilder(" 이미 저장된 플래시카드는 다시 만들지 마세요. 아래 질문이나 답변과 같은 사실·개념을 표현만 바꾸어 묻는 카드도 제외하고, 원자료의 다른 개념·세부 내용에서 새 학습 목표를 찾으세요. 기존 카드 목록:\n");
+        for(ExistingFlashcard card:cards) {
+            String row="- 질문: "+clip(card.front(),160)+" / 답: "+clip(card.back(),240)+"\n";
+            if(excluded.length()+row.length()>18000) break;
+            excluded.append(row);
+        }
+        return excluded.toString();
     }
 
     static boolean retryableFlashcardFailure(Failure failure) {
@@ -166,6 +183,10 @@ public class GeminiGenerator {
     }
 
     List<GeneratedCard> parseFlashcards(String result,int count) {
+        return parseFlashcards(result,count,List.of());
+    }
+
+    List<GeneratedCard> parseFlashcards(String result,int count,List<ExistingFlashcard> existingCards) {
         try {
             JsonNode array=json.readTree(result);
             if(!array.isArray() || array.size()!=count) throw new Failure("PROVIDER_INVALID_RESULT");
@@ -178,7 +199,7 @@ public class GeminiGenerator {
                 String type=item.path("type").asText().strip(),front=item.path("front").asText().strip(),back=item.path("back").asText().strip(),explanation=item.path("explanation").asText().strip(),sourceLabel=item.path("source").asText().strip();
                 if(!FLASHCARD_TYPES.contains(type) || front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300
                         || refersToItemPosition(front) || !looksLikeQuestion(front) || sameQuestion(front,seenFronts)
-                        || tooSimilar(front,back) || sameAnswer(back,seenBacks) || redundantExplanation(back,explanation)) throw new Failure("PROVIDER_INVALID_RESULT");
+                        || tooSimilar(front,back) || sameAnswer(back,seenBacks) || repeatsExistingCard(front,back,existingCards) || redundantExplanation(back,explanation)) throw new Failure("PROVIDER_INVALID_RESULT");
                 seenFronts.add(front); seenBacks.add(back); seenTypes.add(type);
                 items.add(new GeneratedCard(type,front,back,explanation,sourceLabel));
             }
@@ -187,6 +208,16 @@ public class GeminiGenerator {
             return items;
         } catch(Failure failure) { throw failure; }
         catch(Exception failure) { throw new Failure("PROVIDER_INVALID_RESULT"); }
+    }
+
+    private static boolean repeatsExistingCard(String front,String back,List<ExistingFlashcard> existingCards) {
+        return existingCards!=null&&existingCards.stream().anyMatch(card->tooSimilar(front,card.front())||tooSimilar(back,card.back()));
+    }
+
+    private static String clip(String value,int max) {
+        if(value==null) return "";
+        String clean=value.strip();
+        return clean.length()<=max?clean:clean.substring(0,max);
     }
 
     private static String normalizedQuestion(String value) {
@@ -353,6 +384,7 @@ public class GeminiGenerator {
     }
     record GeneratedQuiz(String prompt,List<String> options,int correctIndex,String hint,String explanation,String source) {}
     record GeneratedCard(String type,String front,String back,String explanation,String source) {}
+    record ExistingFlashcard(String front,String back) {}
     record Result(String text,long promptTokens,long outputTokens) {}
     record QuizResult(List<GeneratedQuiz> questions,long promptTokens,long outputTokens) {}
     record CardResult(List<GeneratedCard> cards,long promptTokens,long outputTokens) {}
