@@ -147,16 +147,16 @@ public class GeminiGenerator {
                 +" 카드 수와 유형별 다양성, 각 카드의 독립적인 학습 목표는 유지하고 JSON 이외의 내용은 출력하지 마세요.";
         Result result;
         boolean retriedForLength=false;
-        try { result=requestStructured(model,instruction,source,"FLASHCARD",16384); }
+        try { result=requestStructured(model,instruction,source,"FLASHCARD",8192); }
         catch(Failure failure) {
             if(!"PROVIDER_MAX_TOKENS".equals(failure.code)) throw failure;
             retriedForLength=true;
-            result=requestStructured(model,conciseInstruction,source,"FLASHCARD",16384);
+            result=requestStructured(model,conciseInstruction,source,"FLASHCARD",8192);
         }
         try { return new CardResult(parseFlashcards(result.text(),count),result.promptTokens(),result.outputTokens()); }
         catch(Failure invalid) {
             if(!"PROVIDER_INVALID_RESULT".equals(invalid.code) || retriedForLength) throw invalid;
-            Result retry=requestStructured(model,conciseInstruction+" 이전 응답은 카드 수·중복 또는 질문 품질 검증에 실패했습니다. 같은 근거를 반복하지 말고 실패 조건을 바로잡아 완성된 카드를 반환하세요.",source,"FLASHCARD",16384);
+            Result retry=requestStructured(model,conciseInstruction+" 이전 응답은 카드 수·중복 또는 질문 품질 검증에 실패했습니다. 같은 근거를 반복하지 말고 실패 조건을 바로잡아 완성된 카드를 반환하세요.",source,"FLASHCARD",8192);
             return new CardResult(parseFlashcards(retry.text(),count),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
         }
     }
