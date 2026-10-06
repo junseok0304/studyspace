@@ -48,6 +48,10 @@ class RecordingTests {
         mvc.perform(get("/api/courses/recording-course/recordings").with(owner)).andExpect(status().isOk()).andExpect(jsonPath("$[0].courseId").value("recording-course"));
         mvc.perform(get("/api/courses/recording-other-course/recordings").with(owner)).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
         mvc.perform(get("/api/notes/recording-other-note/recordings").with(owner)).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mvc.perform(get("/api/recordings/active").with(owner)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()",org.hamcrest.Matchers.is(1)))
+                .andExpect(jsonPath("$[0].courseName").value("강의"));
+        mvc.perform(get("/api/recordings/active").with(user("999999"))).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
         String id=db.queryForObject("select id from recordings where user_id=?",String.class,ownerId);
         mvc.perform(patch("/api/recordings/"+id+"/note").with(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"noteId\":\"recording-note-2\"}"))
                 .andExpect(status().isConflict());

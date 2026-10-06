@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
+import 'fake-indexeddb/auto';
 import {mountRecording} from '../src/main/resources/static/recording.js';
 import {mountGeneration} from '../src/main/resources/static/generation.js';
 import {mountQuiz} from '../src/main/resources/static/quiz.js';
@@ -28,6 +29,8 @@ test('feature controllers keep their request, state, and rendering paths connect
   const previousWindow = globalThis.window;
   const previousOption = globalThis.Option;
   const previousFormData = globalThis.FormData;
+  const previousNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const previousMediaRecorder = globalThis.MediaRecorder;
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
   globalThis.Option = dom.window.Option;
@@ -40,9 +43,15 @@ test('feature controllers keep their request, state, and rendering paths connect
   const course = {id: 'course-1', name: '과목'};
   const calls = [];
   let uploadedFile = false;
+  let blockNewRecording = false;
+  let activeRecordings = [];
   let summaryContent = `## 원문 미리보기\n\nHTTP 요청은 클라이언트가 서버에 요청을 보내고 응답을 받는 과정입니다.\n\n## 실제 생성 전 확인\n\n노트 확인`;
   const request = async (path, options = {}) => {
     calls.push({path, options});
+    if (path === '/api/recordings/active') return activeRecordings;
+    if (path === '/api/notes/note-1/recordings' && options.method === 'POST' && blockNewRecording) {
+      throw Object.assign(new Error('이미 진행 중인 녹음이 있습니다.'), {status: 409});
+    }
     if (path.endsWith('/notes') && options.method !== 'POST') return [{id: 'note-1', title: '강의노트'}];
     if (path.endsWith('/recordings') && options.method !== 'POST') return [{id: 'recording-1', title: '녹음', status: 'READY', durationSeconds: 18, noteId: null, courseId: 'course-1'}];
     if (path.endsWith('/recording-1/note')) return {id: 'recording-1', noteId: 'note-1', noteTitle: '강의노트'};
@@ -93,6 +102,20 @@ test('feature controllers keep their request, state, and rendering paths connect
     await waveformButton?.onclick();
     assert.equal(calls.some(call => call.path.endsWith('/recording-1/waveform/rebuild') && call.options.method === 'POST'), true);
     assert.equal(byId('recordings').querySelector('.waveform-empty-message') !== null, true);
+
+    Object.defineProperty(globalThis, 'navigator', {configurable: true, value: dom.window.navigator});
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {configurable: true, value: {getUserMedia: async () => ({getTracks: () => [{stop() {}}]})}});
+    globalThis.MediaRecorder = class {
+      static isTypeSupported() { return true; }
+      constructor() { this.mimeType = 'audio/webm;codecs=opus'; }
+    };
+    activeRecordings = [{id: 'prior-recording', title: '이전 녹음', status: 'RECORDING', courseId: 'course-other', courseName: '이전 과목', chunkCount: 2, createdAt: new Date(Date.now() - 60000).toISOString(), lastActivityAt: new Date(Date.now() - 60000).toISOString()}];
+    blockNewRecording = true;
+    await byId('start-recording').onclick();
+    assert.match(byId('recording-message').textContent, /저장된 구간 복구/);
+    assert.equal([...byId('recordings').querySelectorAll('strong')].some(node => node.textContent === '이전 녹음'), true);
+    assert.equal([...byId('recordings').querySelectorAll('button')].some(button => button.textContent === '저장된 구간 복구'), true);
+    assert.equal(byId('recordings').textContent.includes('이전 과목 · 진행 중인 녹음'), true);
 
     const quiz = mountQuiz({request, byId, getCourse: () => course, getEditor: () => editor, setLocked, emptyState, getAttachmentIds: () => ['attachment-1'], loadDashboard: async () => {}, updateSourceSummary: () => {}});
     await quiz.loadQuizSets(course.id);
@@ -196,6 +219,10 @@ test('feature controllers keep their request, state, and rendering paths connect
     globalThis.window = previousWindow;
     globalThis.Option = previousOption;
     globalThis.FormData = previousFormData;
+    if (previousNavigator) Object.defineProperty(globalThis, 'navigator', previousNavigator);
+    else delete globalThis.navigator;
+    if (previousMediaRecorder === undefined) delete globalThis.MediaRecorder;
+    else globalThis.MediaRecorder = previousMediaRecorder;
     dom.window.close();
   }
 });

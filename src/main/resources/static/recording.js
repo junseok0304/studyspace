@@ -121,6 +121,12 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       head.className = 'recording-row-head';
       const identity = document.createElement('div');
       identity.className = 'recording-row-identity';
+      if (recording.status === 'RECORDING' && recording.courseId !== getCourse()?.id) {
+        const scope = document.createElement('span');
+        scope.className = 'fine-print';
+        scope.textContent = `${recording.courseName || '다른 과목'} · 진행 중인 녹음`;
+        identity.append(scope);
+      }
       const title = document.createElement('strong');
       title.textContent = recording.title;
       const duration = document.createElement('span');
@@ -449,8 +455,24 @@ export function mountRecording({request, byId, getCourse, getEditor, setLocked, 
       el('recording-message').textContent = error.name === 'NotAllowedError' ? '마이크 권한이 없어 녹음을 시작하지 않았습니다.' : error.message;
       button.disabled = false;
       if (error.status === 409) {
-        await loadRecordings(sourceCourseId, sourceNoteId).catch(() => {});
-        el('recording-message').textContent = '이전에 시작한 녹음이 남아 있습니다. 녹음 목록에서 저장된 구간을 복구한 뒤 새 녹음을 시작해 주세요.';
+        let active = [];
+        try {
+          const courseRecordings = await loadRecordings(sourceCourseId, sourceNoteId) || [];
+          active = await request('/api/recordings/active');
+          const visibleIds = new Set(courseRecordings.map(recording => recording.id));
+          const fromOtherCourses = active.filter(recording => recording.courseId !== sourceCourseId && !visibleIds.has(recording.id));
+          if (fromOtherCourses.length) renderRecordings([...fromOtherCourses, ...courseRecordings], noteRows);
+        } catch {}
+        const blocker = active[0];
+        if (blocker) {
+          const lastActivity = Date.parse(blocker.lastActivityAt || blocker.createdAt || 0);
+          const isStale = Number.isFinite(lastActivity) && Date.now() - lastActivity > 45000;
+          el('recording-message').textContent = isStale
+            ? `이전 녹음(${blocker.courseName || '다른 과목'})의 저장 구간을 목록에 표시했습니다. “저장된 구간 복구”를 누른 뒤 새 녹음을 시작해 주세요.`
+            : `“${blocker.courseName || '다른 화면'}”에서 녹음이 진행 중입니다. 해당 화면에서 녹음을 종료하거나 저장한 뒤 다시 시작해 주세요.`;
+        } else {
+          el('recording-message').textContent = '이전에 시작한 녹음이 남아 있습니다. 녹음 목록을 새로고침한 뒤 복구하거나 정리해 주세요.';
+        }
       }
     }
   }

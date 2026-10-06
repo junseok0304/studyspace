@@ -43,7 +43,7 @@ public class RecordingController {
                            @DecimalMin("0.1") @DecimalMax("3600.0") Double durationSeconds) {}
     public record Rename(@NotBlank @Size(max=100) String title) {}
     public record NoteLink(@NotBlank String noteId) {}
-    public record Recording(String id,String noteId,String noteTitle,String courseId,String title,String status,String mimeType,Double durationSeconds,long size,int chunkCount,List<Double> waveform,String createdAt,String lastActivityAt,String completedAt) {}
+    public record Recording(String id,String noteId,String noteTitle,String courseId,String courseName,String title,String status,String mimeType,Double durationSeconds,long size,int chunkCount,List<Double> waveform,String createdAt,String lastActivityAt,String completedAt) {}
 
     private long owner(Authentication auth) { return Long.parseLong(auth.getName()); }
     private void requireNote(String noteId,long user) { authSupport.requireNote(noteId,user); }
@@ -62,7 +62,13 @@ public class RecordingController {
     }
 
     private List<Recording> listForCourse(String courseId,long user) {
-        return db.query("select r.*,n.title as linked_note_title from recordings r left join notes n on n.id=r.note_id where r.course_id=? and r.user_id=? order by r.created_at desc",(row,index)->map(row),courseId,user);
+        return db.query("select r.*,n.title as linked_note_title,c.name as linked_course_name from recordings r left join notes n on n.id=r.note_id join courses c on c.id=r.course_id where r.course_id=? and r.user_id=? order by r.created_at desc",(row,index)->map(row),courseId,user);
+    }
+
+    @GetMapping("/recordings/active")
+    public List<Recording> active(Authentication auth) {
+        long user=owner(auth);
+        return db.query("select r.*,n.title as linked_note_title,c.name as linked_course_name from recordings r left join notes n on n.id=r.note_id join courses c on c.id=r.course_id where r.user_id=? and r.status='RECORDING' order by r.last_activity_at desc",(row,index)->map(row),user);
     }
 
     @PostMapping("/notes/{noteId}/recordings")
@@ -210,7 +216,7 @@ public class RecordingController {
         storage.delete(user,id); db.update("delete from recordings where id=? and user_id=?",id,user); return Map.of("deleted",true);
     }
 
-    private Recording find(String id,long user) { return db.queryForObject("select r.*,n.title as linked_note_title from recordings r left join notes n on n.id=r.note_id where r.id=? and r.user_id=?",(row,index)->map(row),id,user); }
+    private Recording find(String id,long user) { return db.queryForObject("select r.*,n.title as linked_note_title,c.name as linked_course_name from recordings r left join notes n on n.id=r.note_id join courses c on c.id=r.course_id where r.id=? and r.user_id=?",(row,index)->map(row),id,user); }
     private boolean matchesChunk(MultipartFile file,long size,String sha256) {
         try { return storage.matchesChunk(file,size,sha256); }
         catch(Exception error) { throw new IllegalStateException("저장된 녹음 조각을 확인하지 못했습니다.",error); }
@@ -219,6 +225,6 @@ public class RecordingController {
         List<Double> waveform=List.of(); String raw=row.getString("waveform_json");
         if(raw!=null) try { waveform=json.readValue(raw,new TypeReference<>(){}); } catch(Exception ignored) {}
         Double duration=row.getObject("duration_seconds")==null?null:row.getDouble("duration_seconds"); var completed=row.getTimestamp("completed_at");
-        return new Recording(row.getString("id"),row.getString("note_id"),row.getString("linked_note_title"),row.getString("course_id"),row.getString("title"),row.getString("status"),row.getString("mime_type"),duration,row.getLong("size_bytes"),row.getInt("next_sequence"),waveform,row.getTimestamp("created_at").toInstant().toString(),row.getTimestamp("last_activity_at").toInstant().toString(),completed==null?null:completed.toInstant().toString());
+        return new Recording(row.getString("id"),row.getString("note_id"),row.getString("linked_note_title"),row.getString("course_id"),row.getString("linked_course_name"),row.getString("title"),row.getString("status"),row.getString("mime_type"),duration,row.getLong("size_bytes"),row.getInt("next_sequence"),waveform,row.getTimestamp("created_at").toInstant().toString(),row.getTimestamp("last_activity_at").toInstant().toString(),completed==null?null:completed.toInstant().toString());
     }
 }
