@@ -21,6 +21,10 @@ class GeminiGeneratorTests {
     @Test void rejectsTruncatedBlockedAndInvalidOutputs() {
         assertEquals("PROVIDER_MAX_TOKENS",assertThrows(GeminiGenerator.Failure.class,
                 ()->generator.parse("{\"candidates\":[{\"finishReason\":\"MAX_TOKENS\"}]}","FLASHCARD")).code);
+        assertTrue(GeminiGenerator.retryableFlashcardFailure(new GeminiGenerator.Failure("PROVIDER_MAX_TOKENS")));
+        assertTrue(GeminiGenerator.retryableFlashcardFailure(new GeminiGenerator.Failure("PROVIDER_INCOMPLETE")));
+        assertTrue(GeminiGenerator.retryableFlashcardFailure(new GeminiGenerator.Failure("PROVIDER_INVALID_RESULT")));
+        assertFalse(GeminiGenerator.retryableFlashcardFailure(new GeminiGenerator.Failure("PROVIDER_RATE_LIMITED")));
         for(String body:new String[]{"{}","{\"candidates\":[{\"finishReason\":\"STOP\"}]}","not json"})
             assertThrows(GeminiGenerator.Failure.class,()->generator.parse(body,"SUMMARY"));
     }
