@@ -143,11 +143,20 @@ public class GeminiGenerator {
                 +"각 원소는 type, front, back, explanation, source 필드만 가져야 하며 앞면은 질문, 뒷면은 정확한 답이어야 합니다. "
                 +"source에는 입력에 나타난 요점 정리 제목, 노트 제목·버전 또는 파일명과 PDF 페이지·슬라이드·HWP 구역 표기를 그대로 적으세요. "
                 +"카드 수는 정확히 "+count+"개이고 JSON 외의 설명은 출력하지 마세요.";
-        Result result=requestStructured(model,instruction,source,"FLASHCARD");
+        String conciseInstruction=instruction+" 출력 크기를 줄이세요: 앞면은 120자 이내, 뒷면은 핵심 답을 담은 1~2문장(600자 이내), 해설은 답을 반복하지 않는 한 문장(300자 이내), 출처는 120자 이내로 작성하세요."
+                +" 카드 수와 유형별 다양성, 각 카드의 독립적인 학습 목표는 유지하고 JSON 이외의 내용은 출력하지 마세요.";
+        Result result;
+        boolean retriedForLength=false;
+        try { result=requestStructured(model,instruction,source,"FLASHCARD",16384); }
+        catch(Failure failure) {
+            if(!"PROVIDER_MAX_TOKENS".equals(failure.code)) throw failure;
+            retriedForLength=true;
+            result=requestStructured(model,conciseInstruction,source,"FLASHCARD",16384);
+        }
         try { return new CardResult(parseFlashcards(result.text(),count),result.promptTokens(),result.outputTokens()); }
         catch(Failure invalid) {
-            if(!"PROVIDER_INVALID_RESULT".equals(invalid.code)) throw invalid;
-            Result retry=requestStructured(model,instruction+" 이전 응답이 카드 수·중복 또는 질문 품질 검사를 통과하지 못했습니다. 질문에 답을 그대로 넣지 말고 독립적인 카드로 다시 구성하세요.",source,"FLASHCARD");
+            if(!"PROVIDER_INVALID_RESULT".equals(invalid.code) || retriedForLength) throw invalid;
+            Result retry=requestStructured(model,conciseInstruction+" 이전 응답은 카드 수·중복 또는 질문 품질 검증에 실패했습니다. 같은 근거를 반복하지 말고 실패 조건을 바로잡아 완성된 카드를 반환하세요.",source,"FLASHCARD",16384);
             return new CardResult(parseFlashcards(retry.text(),count),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
         }
     }
@@ -295,9 +304,9 @@ public class GeminiGenerator {
             fields.put("explanation",Map.of("type","string","maxLength",1000));
         } else {
             fields.put("type",Map.of("type","string","enum",List.copyOf(FLASHCARD_TYPES)));
-            fields.put("front",Map.of("type","string","maxLength",1000));
-            fields.put("back",Map.of("type","string","maxLength",4000));
-            fields.put("explanation",Map.of("type","string","maxLength",2000));
+            fields.put("front",Map.of("type","string","maxLength",300));
+            fields.put("back",Map.of("type","string","maxLength",1200));
+            fields.put("explanation",Map.of("type","string","maxLength",700));
         }
         fields.put("source",Map.of("type","string","maxLength",300));
         return Map.of("type","array","items",Map.of("type","object","properties",fields,"required",List.copyOf(fields.keySet()),"additionalProperties",false));
@@ -306,7 +315,8 @@ public class GeminiGenerator {
     Result parse(String body,String kind) {
         try {
             JsonNode root=json.readTree(body),candidate=root.path("candidates").path(0);
-            if(!"STOP".equals(candidate.path("finishReason").asText())) throw new Failure("PROVIDER_INCOMPLETE");
+            String finishReason=candidate.path("finishReason").asText();
+            if(!"STOP".equals(finishReason)) throw new Failure("MAX_TOKENS".equals(finishReason)?"PROVIDER_MAX_TOKENS":"PROVIDER_INCOMPLETE");
             var text=new StringBuilder();
             for(JsonNode part:candidate.path("content").path("parts")) if(!part.path("thought").asBoolean(false))text.append(part.path("text").asText(""));
             String result=text.toString().strip();
@@ -351,6 +361,7 @@ public class GeminiGenerator {
                 case "PROVIDER_MODEL_NOT_FOUND", "PROVIDER_MODEL_INVALID" -> "설정된 Gemini 모델을 사용할 수 없습니다.";
                 case "PROVIDER_RATE_LIMITED" -> "Gemini 요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.";
                 case "PROVIDER_TIMEOUT" -> "Gemini 응답 시간이 초과되었습니다. 다시 시도해 주세요.";
+                case "PROVIDER_MAX_TOKENS" -> "AI 응답이 길이 제한에 걸렸습니다. 카드 수를 줄여 다시 시도해 주세요.";
                 case "INPUT_TOO_LARGE" -> "노트와 자료가 너무 깁니다. 생성 입력은 120,000자까지 지원합니다.";
                 case "PROVIDER_INCOMPLETE", "PROVIDER_INVALID_RESULT" -> "AI 응답이 불완전합니다. 다시 생성해 주세요.";
                 default -> "AI 요청을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.";

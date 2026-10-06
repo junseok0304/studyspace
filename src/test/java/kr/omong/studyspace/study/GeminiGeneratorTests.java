@@ -19,7 +19,9 @@ class GeminiGeneratorTests {
             ""","SUMMARY").text());
     }
     @Test void rejectsTruncatedBlockedAndInvalidOutputs() {
-        for(String body:new String[]{"{}","{\"candidates\":[{\"finishReason\":\"MAX_TOKENS\"}]}","{\"candidates\":[{\"finishReason\":\"STOP\"}]}","not json"})
+        assertEquals("PROVIDER_MAX_TOKENS",assertThrows(GeminiGenerator.Failure.class,
+                ()->generator.parse("{\"candidates\":[{\"finishReason\":\"MAX_TOKENS\"}]}","FLASHCARD")).code);
+        for(String body:new String[]{"{}","{\"candidates\":[{\"finishReason\":\"STOP\"}]}","not json"})
             assertThrows(GeminiGenerator.Failure.class,()->generator.parse(body,"SUMMARY"));
     }
     @Test void validatesMindMapBeforeSaving() {
@@ -63,6 +65,9 @@ class GeminiGeneratorTests {
         assertTrue(encoded.contains("\"integer\""));
         assertTrue(encoded.contains("\"additionalProperties\":false"));
         assertTrue(new ObjectMapper().writeValueAsString(GeminiGenerator.structuredSchema("FLASHCARD")).contains("\"type\""));
+        var cardSchema=GeminiGenerator.structuredSchema("FLASHCARD");
+        assertEquals(1200,new ObjectMapper().valueToTree(cardSchema).path("items").path("properties").path("back").path("maxLength").asInt());
+        assertEquals(700,new ObjectMapper().valueToTree(cardSchema).path("items").path("properties").path("explanation").path("maxLength").asInt());
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseQuiz("""
             [{"prompt":"질문","options":["가","나","다","라"],"correctIndex":0.5,"hint":"힌트","explanation":"설명","source":"노트"}]
             """,1));
