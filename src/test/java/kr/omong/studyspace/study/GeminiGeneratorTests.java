@@ -102,6 +102,14 @@ class GeminiGeneratorTests {
         assertThrows(GeminiGenerator.Failure.class,()->generator.parseFlashcards(repeatExisting,1,existing));
     }
 
+    @Test void acceptsMultipleDistinctFlashcardsInOneDeck() {
+        String cards="""
+            [{"type":"DEFINITION","front":"TCP란 무엇인가요?","back":"TCP는 연결 지향 전송 프로토콜입니다.","explanation":"데이터를 보내기 전에 연결을 설정합니다.","source":"강의노트"},
+             {"type":"MECHANISM","front":"HTTP 연결은 여러 요청에서 어떻게 유지되나요?","back":"Keep-Alive 설정으로 같은 TCP 연결을 재사용할 수 있습니다.","explanation":"연결 재사용은 추가 연결 비용을 줄입니다.","source":"강의노트"}]
+            """;
+        assertEquals(2,generator.parseFlashcards(cards,2).size());
+    }
+
     @Test void providerErrorsHaveActionableMessagesWithoutSecrets() {
         assertTrue(new GeminiGenerator.Failure("PROVIDER_NOT_CONFIGURED").userMessage().contains("키"));
         assertTrue(new GeminiGenerator.Failure("PROVIDER_RATE_LIMITED").userMessage().contains("한도"));

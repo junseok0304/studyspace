@@ -161,7 +161,7 @@ public class GeminiGenerator {
         }
         try { return new CardResult(parseFlashcards(result.text(),count,existingCards),result.promptTokens(),result.outputTokens()); }
         catch(Failure invalid) {
-            if(!"PROVIDER_INVALID_RESULT".equals(invalid.code) || retried) throw invalid;
+            if(!isInvalidFlashcardResult(invalid) || retried) throw invalid;
             Result retry=requestStructured(model,excludedConciseInstruction+" 이전 응답은 카드 수·중복, 기존 카드 반복 또는 질문 품질 검증에 실패했습니다. 같은 근거를 반복하지 말고 실패 조건을 바로잡아 완성된 카드를 반환하세요.",source,"FLASHCARD",8192);
             return new CardResult(parseFlashcards(retry.text(),count,existingCards),result.promptTokens()+retry.promptTokens(),result.outputTokens()+retry.outputTokens());
         }
@@ -179,7 +179,11 @@ public class GeminiGenerator {
     }
 
     static boolean retryableFlashcardFailure(Failure failure) {
-        return Set.of("PROVIDER_MAX_TOKENS","PROVIDER_INCOMPLETE","PROVIDER_INVALID_RESULT").contains(failure.code);
+        return Set.of("PROVIDER_MAX_TOKENS","PROVIDER_INCOMPLETE","PROVIDER_INVALID_RESULT").contains(failure.code)||isInvalidFlashcardResult(failure);
+    }
+
+    private static boolean isInvalidFlashcardResult(Failure failure) {
+        return failure.code.equals("PROVIDER_INVALID_RESULT")||failure.code.startsWith("PROVIDER_INVALID_RESULT_");
     }
 
     List<GeneratedCard> parseFlashcards(String result,int count) {
@@ -189,25 +193,31 @@ public class GeminiGenerator {
     List<GeneratedCard> parseFlashcards(String result,int count,List<ExistingFlashcard> existingCards) {
         try {
             JsonNode array=json.readTree(result);
-            if(!array.isArray() || array.size()!=count) throw new Failure("PROVIDER_INVALID_RESULT");
+            if(!array.isArray() || array.size()!=count) throw new Failure("PROVIDER_INVALID_RESULT_STRUCTURE");
             var items=new ArrayList<GeneratedCard>();
             var seenFronts=new ArrayList<String>();
             var seenBacks=new ArrayList<String>();
             var seenTypes=new HashSet<String>();
             for(JsonNode item:array) {
-                if(!item.path("type").isTextual() || !item.path("front").isTextual() || !item.path("back").isTextual() || !item.path("explanation").isTextual() || !item.path("source").isTextual()) throw new Failure("PROVIDER_INVALID_RESULT");
+                if(!item.path("type").isTextual() || !item.path("front").isTextual() || !item.path("back").isTextual() || !item.path("explanation").isTextual() || !item.path("source").isTextual()) throw new Failure("PROVIDER_INVALID_RESULT_FIELDS");
                 String type=item.path("type").asText().strip(),front=item.path("front").asText().strip(),back=item.path("back").asText().strip(),explanation=item.path("explanation").asText().strip(),sourceLabel=item.path("source").asText().strip();
-                if(!FLASHCARD_TYPES.contains(type) || front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300
-                        || refersToItemPosition(front) || !looksLikeQuestion(front) || sameQuestion(front,seenFronts)
-                        || tooSimilar(front,back) || sameAnswer(back,seenBacks) || repeatsExistingCard(front,back,existingCards) || redundantExplanation(back,explanation)) throw new Failure("PROVIDER_INVALID_RESULT");
+                if(!FLASHCARD_TYPES.contains(type) || front.isBlank() || back.isBlank() || explanation.isBlank() || sourceLabel.isBlank() || front.length()>1000 || back.length()>4000 || explanation.length()>2000 || sourceLabel.length()>300)
+                    throw new Failure("PROVIDER_INVALID_RESULT_FIELDS");
+                if(refersToItemPosition(front)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_ITEM_POSITION");
+                if(!looksLikeQuestion(front)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_NOT_QUESTION");
+                if(sameQuestion(front,seenFronts)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_DUPLICATE_QUESTION");
+                if(tooSimilar(front,back)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_ANSWER_LEAK");
+                if(sameAnswer(back,seenBacks)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_DUPLICATE_ANSWER");
+                if(repeatsExistingCard(front,back,existingCards)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_EXISTING_CARD");
+                if(redundantExplanation(back,explanation)) throw new Failure("PROVIDER_INVALID_RESULT_QUALITY_REDUNDANT_EXPLANATION");
                 seenFronts.add(front); seenBacks.add(back); seenTypes.add(type);
                 items.add(new GeneratedCard(type,front,back,explanation,sourceLabel));
             }
             int requiredTypes=count>=9?3:count>=5?2:1;
-            if(seenTypes.size()<requiredTypes) throw new Failure("PROVIDER_INVALID_RESULT");
+            if(seenTypes.size()<requiredTypes) throw new Failure("PROVIDER_INVALID_RESULT_TYPE_DIVERSITY");
             return items;
         } catch(Failure failure) { throw failure; }
-        catch(Exception failure) { throw new Failure("PROVIDER_INVALID_RESULT"); }
+        catch(Exception failure) { throw new Failure("PROVIDER_INVALID_RESULT_STRUCTURE"); }
     }
 
     private static boolean repeatsExistingCard(String front,String back,List<ExistingFlashcard> existingCards) {
@@ -248,7 +258,7 @@ public class GeminiGenerator {
 
     private static boolean sameQuestion(String question,List<String> previous) {
         String normalized=normalizedQuestion(question);
-        return previous.stream().anyMatch(old->normalized.equals(normalized)||tooSimilar(question,old));
+        return previous.stream().anyMatch(old->normalized.equals(normalizedQuestion(old))||tooSimilar(question,old));
     }
 
     private static boolean redundantExplanation(String answer,String explanation) {
@@ -392,6 +402,7 @@ public class GeminiGenerator {
         final String code;
         Failure(String code){super(code);this.code=code;}
         String userMessage() {
+            if(code.startsWith("PROVIDER_INVALID_RESULT")) return "AI 응답이 불완전합니다. 다시 생성해 주세요.";
             return switch(code) {
                 case "PROVIDER_NOT_CONFIGURED" -> "Gemini API 키가 설정되지 않았습니다.";
                 case "PROVIDER_AUTH_FAILED" -> "Gemini API 키와 접근 권한을 확인해 주세요.";

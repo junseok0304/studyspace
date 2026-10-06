@@ -15,6 +15,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,6 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 public class FlashcardController {
+    private static final Logger log=LoggerFactory.getLogger(FlashcardController.class);
     private final JdbcTemplate db; private final TransactionTemplate tx; private final GeminiGenerator gemini; private final UsageRecorder usage; private final String model; private final boolean mockEnabled; private final AuthSupport authSupport; private final AiUsageLimiter aiUsageLimiter;
     public FlashcardController(JdbcTemplate db,TransactionTemplate tx,GeminiGenerator gemini,UsageRecorder usage,
                                @Value("${studyspace.ai.model:gemini-3.6-flash}") String model,
@@ -61,7 +64,7 @@ public class FlashcardController {
         if(!mock) {
             List<GeminiGenerator.ExistingFlashcard> existingCards=db.query("select c.front_text,c.back_text from flashcards c join flashcard_decks d on d.id=c.deck_id where d.note_id=? and d.user_id=? order by d.created_at desc,c.card_order",(row,index)->new GeminiGenerator.ExistingFlashcard(row.getString("front_text"),row.getString("back_text")),noteId,user);
             try { GeminiGenerator.CardResult result=gemini.generateFlashcards(model,source(note,attachments,review),input.cardCount(),existingCards); generatedResult=result.cards(); usage.record(user,"FLASHCARD",model,result.promptTokens(),result.outputTokens()); }
-            catch(GeminiGenerator.Failure failure) { throw new AuthException(failure.userMessage(),503); }
+            catch(GeminiGenerator.Failure failure) { log.warn("Flashcard generation failed: {}",failure.code); throw new AuthException(failure.userMessage(),503); }
         }
         final List<GeminiGenerator.GeneratedCard> generated=generatedResult;
         final List<MockStudyContent.CardCandidate> selectedMockCards=mockCards;
